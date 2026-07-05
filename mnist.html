@@ -1,0 +1,535 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="MNIST recognition workflow, questions, and personal improvements by Juntong Cui.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <title>MNIST 识别流程、疑问解析及个人改进 · Juntong Cui</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f7f1e8;
+      --paper-soft: #fbf8f2;
+      --paper-deep: #eee4d5;
+      --ink: #1f1e1b;
+      --muted: #5f5a52;
+      --line: #d8cbb8;
+      --line-strong: #b7a790;
+      --clay: #b85c38;
+      --clay-dark: #873f2b;
+      --blue: #526b7c;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+      --serif: Georgia, "Times New Roman", "Songti SC", serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(90deg, rgba(31, 30, 27, .035) 1px, transparent 1px) 0 0 / 56px 56px,
+        linear-gradient(180deg, rgba(31, 30, 27, .025) 1px, transparent 1px) 0 0 / 56px 56px,
+        var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    a {
+      color: inherit;
+      text-decoration-color: rgba(31, 30, 27, .35);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 4px;
+    }
+
+    a:hover {
+      color: var(--clay-dark);
+      text-decoration-color: var(--clay-dark);
+    }
+
+    button { font: inherit; }
+
+    .site-shell {
+      width: min(940px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid var(--line);
+      background: rgba(247, 241, 232, .9);
+      backdrop-filter: blur(16px);
+    }
+
+    .topbar-inner {
+      width: min(940px, calc(100% - 40px));
+      min-height: 56px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--serif);
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .brand span:last-child {
+      font-size: 15px;
+      font-weight: 680;
+    }
+
+    .nav-actions,
+    .site-nav {
+      display: flex;
+      align-items: center;
+    }
+
+    .nav-actions { gap: 18px; }
+
+    .site-nav {
+      gap: 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .site-nav a { text-decoration: none; }
+
+    .site-nav a[aria-current="page"] {
+      color: var(--ink);
+      font-weight: 650;
+    }
+
+    .language-switch {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      width: 104px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      background: var(--paper-deep);
+    }
+
+    .language-switch button {
+      min-height: 28px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .language-switch button.is-active {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .article {
+      width: min(760px, 100%);
+      padding: 34px 0 56px;
+    }
+
+    .back-link {
+      display: inline-flex;
+      margin-bottom: 24px;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 650;
+      text-decoration: none;
+    }
+
+    .article-meta {
+      color: var(--clay-dark);
+      font-size: 12px;
+      font-weight: 760;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin: 10px 0 16px;
+      font-family: var(--serif);
+      font-size: clamp(28px, 4vw, 38px);
+      font-weight: 500;
+      line-height: 1.16;
+    }
+
+    h2 {
+      margin: 34px 0 12px;
+      font-family: var(--serif);
+      font-size: 22px;
+      font-weight: 500;
+      line-height: 1.24;
+    }
+
+    h3 {
+      margin: 22px 0 8px;
+      font-size: 16px;
+      line-height: 1.45;
+    }
+
+    p,
+    li {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.82;
+    }
+
+    ul,
+    ol {
+      padding-left: 1.25rem;
+    }
+
+    .lead {
+      color: var(--ink);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.72;
+    }
+
+    figure {
+      max-width: 520px;
+      margin: 22px auto;
+    }
+
+    .figure-cover {
+      max-width: 300px;
+    }
+
+    .figure-wide {
+      max-width: 620px;
+    }
+
+    .figure-small {
+      max-width: 260px;
+    }
+
+    .article-image {
+      width: 100%;
+      display: block;
+      border: 1px solid var(--line);
+      background: var(--paper-soft);
+    }
+
+    .image-fallback {
+      min-height: 170px;
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      border: 1px dashed var(--line-strong);
+      background: rgba(251, 248, 242, .72);
+      color: var(--muted);
+      text-align: center;
+      font-size: 14px;
+      line-height: 1.7;
+    }
+
+    .image-fallback[hidden] {
+      display: none;
+    }
+
+    figcaption {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    code,
+    pre {
+      font-family: var(--mono);
+      font-size: 13px;
+    }
+
+    pre {
+      overflow: auto;
+      padding: 14px;
+      border: 1px solid var(--line);
+      background: var(--paper-soft);
+      line-height: 1.6;
+    }
+
+    .qa {
+      display: grid;
+      gap: 16px;
+      margin-top: 16px;
+    }
+
+    .qa-item {
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+    }
+
+    .footer {
+      padding: 26px 0 36px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    [data-lang-content][hidden] { display: none; }
+
+    @media (max-width: 720px) {
+      .topbar-inner {
+        min-height: auto;
+        padding: 12px 0;
+        align-items: flex-start;
+      }
+
+      .nav-actions {
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 12px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .site-shell,
+      .topbar-inner {
+        width: min(100% - 28px, 940px);
+      }
+
+      .topbar-inner {
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .nav-actions {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html" aria-label="Juntong Cui home">
+        <span class="brand-mark">C</span>
+        <span data-i18n="brand"></span>
+      </a>
+      <div class="nav-actions">
+        <nav class="site-nav" aria-label="Primary navigation">
+          <a href="index.html" data-i18n="navHome"></a>
+          <a href="blog.html" aria-current="page" data-i18n="navBlog"></a>
+          <a href="photography.html" data-i18n="navPhotography"></a>
+        </nav>
+        <div class="language-switch" aria-label="Language switch">
+          <button type="button" data-lang="zh">中文</button>
+          <button type="button" data-lang="en">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="site-shell">
+    <article class="article" data-lang-content="zh">
+      <a class="back-link" href="blog.html">← 返回博客</a>
+      <div class="article-meta">机器学习 · MNIST</div>
+      <h1>MNIST 识别流程、疑问解析及个人改进</h1>
+      <p class="lead">这篇笔记整理了我做 MNIST 手写数字识别时的主要流程、对几个常见问题的理解，以及针对本地自造测试集不稳定问题做的预处理改进。</p>
+
+      <figure class="figure-cover">
+        <img class="article-image" src="assets/blog/mnist-cover.jpg" alt="MNIST 识别流程、个人疑问解析与改进封面" onerror="this.hidden=true; this.nextElementSibling.hidden=false">
+        <div class="image-fallback" hidden>图片位置：assets/blog/mnist-cover.jpg<br>建议放入第 1 张 MNIST 封面图。</div>
+        <figcaption>图 1：MNIST 识别笔记封面，用于概括本文的流程、疑问解析与个人改进。</figcaption>
+      </figure>
+
+      <h2>主要流程与代码结构</h2>
+      <p>整体流程可以拆成五步：数据准备与预处理、构建 CNN 模型、训练模型、评估模型，以及单张本地图片预测。训练阶段重点关注损失函数、反向传播和优化器更新；预测阶段则要保证输入图片与训练数据拥有一致的尺寸、灰度分布和标准化方式。</p>
+
+      <figure class="figure-wide">
+        <img class="article-image" src="assets/blog/mnist-flow.jpg" alt="基于 PyTorch 的 MNIST 识别流程图" onerror="this.hidden=true; this.nextElementSibling.hidden=false">
+        <div class="image-fallback" hidden>图片位置：assets/blog/mnist-flow.jpg<br>建议放入第 2 张 MNIST 流程图。</div>
+        <figcaption>图 2：基于 PyTorch 的 MNIST 识别流程图，展示从数据预处理到单张图片预测的主要代码结构。</figcaption>
+      </figure>
+
+      <h2>自造本地测试集</h2>
+      <p>官方 MNIST 测试集通常能取得较稳定的准确率，但自己随手画的数字会遇到分布不一致的问题。例如笔画颜色、背景亮度、线宽、数字位置都会影响模型输出。</p>
+
+      <figure class="figure-small">
+        <img class="article-image" src="assets/blog/mnist-test-3.jpg" alt="蓝色手写数字 3 的本地测试样例" onerror="this.hidden=true; this.nextElementSibling.hidden=false">
+        <div class="image-fallback" hidden>图片位置：assets/blog/mnist-test-3.jpg<br>建议放入第 3 张蓝色手写数字样例。</div>
+        <figcaption>图 3：自造本地测试样例，蓝色笔画和非标准背景会使输入分布偏离 MNIST。</figcaption>
+      </figure>
+
+      <figure class="figure-small">
+        <img class="article-image" src="assets/blog/mnist-test-7.jpg" alt="黑色细笔画数字 7 的本地测试样例" onerror="this.hidden=true; this.nextElementSibling.hidden=false">
+        <div class="image-fallback" hidden>图片位置：assets/blog/mnist-test-7.jpg<br>建议放入第 4 张黑色细笔画数字样例。</div>
+        <figcaption>图 4：细笔画数字样例。若前景占比过低，模型更容易把有效笔画当作噪声。</figcaption>
+      </figure>
+
+      <h2>个人流程疑问</h2>
+      <div class="qa">
+        <section class="qa-item">
+          <h3>Q：为什么要有 <code>transforms.Normalize((0.1307,), (0.3081,))</code>？</h3>
+          <p>A：这是在用 MNIST 官方统计量做标准化。<code>0.1307</code> 是 MNIST 训练集所有像素的平均值，<code>0.3081</code> 是 MNIST 训练集所有像素的标准差。这样做是为了让训练和推理保持统一分布，使梯度更平稳，并加速收敛。对于其他识图程序，这两个数不一定相同，需要根据实际数据重新统计。</p>
+        </section>
+        <section class="qa-item">
+          <h3>Q：MNIST 官方下载的包为什么打不开？</h3>
+          <p>A：下载得到的是 MNIST 的 Binary 索引格式，并不是标准 PNG 或 JPG 图片，因此不能直接用普通看图软件打开，需要用程序按格式解包读取。</p>
+        </section>
+        <section class="qa-item">
+          <h3>Q：自己造的数据完全测不准怎么办？</h3>
+          <p>A：我的推测是输入分布与训练集差异太大：笔画太细、背景不是黑底、数字不是白字时都可能识别错误。因此可以先做粗糙的黑底白字转换，再根据前景占比对亮区做膨胀。</p>
+          <pre><code>if ImageStat.Stat(img).mean[0] &gt; 127:
+    img = ImageOps.invert(img)
+
+foreground_ratio = sum(px &gt; 0 for px in img.getdata()) / (28 * 28)
+if foreground_ratio &lt; 0.08:
+    img = img.filter(ImageFilter.MaxFilter(3))
+if foreground_ratio &lt; 0.04:
+    img = img.filter(ImageFilter.MaxFilter(3))</code></pre>
+          <p>这段逻辑会在转换成黑底后判断数字笔画占比。若占比小于阈值，就通过 <code>MaxFilter</code> 让亮区膨胀，使细笔画更接近 MNIST 的数据形态。训练 10 个 epochs 后，本地样例的预测置信度基本可以达到 99.5% 以上。</p>
+        </section>
+      </div>
+    </article>
+
+    <article class="article" data-lang-content="en" hidden>
+      <a class="back-link" href="blog.html">← Back to Blog</a>
+      <div class="article-meta">Machine Learning · MNIST</div>
+      <h1>MNIST Recognition Workflow, Questions, and Personal Improvements</h1>
+      <p class="lead">This note summarizes my MNIST handwritten-digit recognition workflow, several questions I encountered, and preprocessing improvements for unstable predictions on handmade local test images.</p>
+
+      <figure class="figure-cover">
+        <img class="article-image" src="assets/blog/mnist-cover.jpg" alt="Cover image for the MNIST recognition note" onerror="this.hidden=true; this.nextElementSibling.hidden=false">
+        <div class="image-fallback" hidden>Image path: assets/blog/mnist-cover.jpg<br>Place the first MNIST cover image here.</div>
+        <figcaption>Figure 1: Cover image for the MNIST note, summarizing the workflow, questions, and improvements.</figcaption>
+      </figure>
+
+      <h2>Main Workflow and Code Structure</h2>
+      <p>The workflow can be divided into five stages: data preparation and preprocessing, CNN model construction, model training, model evaluation, and single local-image prediction. The training stage focuses on loss computation, backpropagation, and optimizer updates; the prediction stage must keep image size, grayscale distribution, and normalization consistent with the training data.</p>
+
+      <figure class="figure-wide">
+        <img class="article-image" src="assets/blog/mnist-flow.jpg" alt="MNIST recognition workflow based on PyTorch" onerror="this.hidden=true; this.nextElementSibling.hidden=false">
+        <div class="image-fallback" hidden>Image path: assets/blog/mnist-flow.jpg<br>Place the second MNIST workflow image here.</div>
+        <figcaption>Figure 2: PyTorch-based MNIST recognition workflow, from preprocessing to single-image prediction.</figcaption>
+      </figure>
+
+      <h2>Handmade Local Test Set</h2>
+      <p>The official MNIST test set is usually stable, but handmade digits can deviate from the training distribution. Stroke color, background brightness, line width, and digit placement can all affect the model output.</p>
+
+      <figure class="figure-small">
+        <img class="article-image" src="assets/blog/mnist-test-3.jpg" alt="A blue handwritten digit 3 local test sample" onerror="this.hidden=true; this.nextElementSibling.hidden=false">
+        <div class="image-fallback" hidden>Image path: assets/blog/mnist-test-3.jpg<br>Place the third blue handwritten sample here.</div>
+        <figcaption>Figure 3: A handmade local test sample. Blue strokes and a nonstandard background shift the input distribution away from MNIST.</figcaption>
+      </figure>
+
+      <figure class="figure-small">
+        <img class="article-image" src="assets/blog/mnist-test-7.jpg" alt="A thin black handwritten digit 7 local test sample" onerror="this.hidden=true; this.nextElementSibling.hidden=false">
+        <div class="image-fallback" hidden>Image path: assets/blog/mnist-test-7.jpg<br>Place the fourth thin handwritten sample here.</div>
+        <figcaption>Figure 4: A thin-stroke digit sample. When the foreground ratio is too low, useful strokes can be treated like noise.</figcaption>
+      </figure>
+
+      <h2>Questions From the Workflow</h2>
+      <div class="qa">
+        <section class="qa-item">
+          <h3>Q: Why use <code>transforms.Normalize((0.1307,), (0.3081,))</code>?</h3>
+          <p>A: These are the official MNIST training-set statistics. <code>0.1307</code> is the mean of all pixels, and <code>0.3081</code> is the standard deviation. Normalization keeps training and inference in the same distribution, makes gradients smoother, and speeds up convergence. For other image-recognition tasks, these values should be recomputed from the actual data.</p>
+        </section>
+        <section class="qa-item">
+          <h3>Q: Why can the official MNIST package not be opened directly?</h3>
+          <p>A: MNIST is stored in a binary index format rather than standard PNG or JPG files, so it needs to be decoded programmatically.</p>
+        </section>
+        <section class="qa-item">
+          <h3>Q: What if handmade local data is almost always misclassified?</h3>
+          <p>A: My guess is that the input distribution differs too much from the training set. Thin strokes, bright backgrounds, or non-white digits may cause recognition errors. A practical fix is to convert the input to a black-background, white-stroke style and then thicken foreground pixels when the foreground ratio is too low.</p>
+          <pre><code>if ImageStat.Stat(img).mean[0] &gt; 127:
+    img = ImageOps.invert(img)
+
+foreground_ratio = sum(px &gt; 0 for px in img.getdata()) / (28 * 28)
+if foreground_ratio &lt; 0.08:
+    img = img.filter(ImageFilter.MaxFilter(3))
+if foreground_ratio &lt; 0.04:
+    img = img.filter(ImageFilter.MaxFilter(3))</code></pre>
+          <p>After converting to a black background, this code checks the digit foreground ratio. If the ratio is below the threshold, <code>MaxFilter</code> expands bright regions so thin strokes become closer to the MNIST data distribution. After training for 10 epochs, the confidence on local samples can generally exceed 99.5%.</p>
+        </section>
+      </div>
+    </article>
+  </main>
+
+  <footer class="site-shell footer">
+    <span data-i18n="footerNote"></span>
+  </footer>
+
+  <script>
+    const translations = {
+      zh: {
+        title: "MNIST 识别流程、疑问解析及个人改进 · 崔君同",
+        brand: "崔君同",
+        navHome: "主页",
+        navBlog: "博客",
+        navPhotography: "摄影",
+        footerNote: "© 2026 崔君同。本站托管于 GitHub Pages。"
+      },
+      en: {
+        title: "MNIST Recognition Workflow, Questions, and Personal Improvements · Juntong Cui",
+        brand: "Juntong Cui",
+        navHome: "Home",
+        navBlog: "Blog",
+        navPhotography: "Photography",
+        footerNote: "© 2026 Juntong Cui. Hosted on GitHub Pages."
+      }
+    };
+
+    const fallbackLang = "zh";
+    const savedLang = localStorage.getItem("site-language");
+    const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
+
+    function applyLanguage(lang) {
+      const dict = translations[lang] || translations[fallbackLang];
+      document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+      document.title = dict.title;
+      document.querySelectorAll("[data-i18n]").forEach((node) => {
+        const key = node.getAttribute("data-i18n");
+        node.textContent = dict[key] || "";
+      });
+      document.querySelectorAll("[data-lang-content]").forEach((node) => {
+        node.hidden = node.dataset.langContent !== lang;
+      });
+      document.querySelectorAll("[data-lang]").forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.lang === lang);
+        button.setAttribute("aria-pressed", String(button.dataset.lang === lang));
+      });
+      localStorage.setItem("site-language", lang);
+    }
+
+    document.querySelectorAll("[data-lang]").forEach((button) => {
+      button.addEventListener("click", () => applyLanguage(button.dataset.lang));
+    });
+
+    applyLanguage(initialLang);
+  </script>
+</body>
+</html>

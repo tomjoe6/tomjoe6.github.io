@@ -1,0 +1,738 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Photography works by Juntong Cui.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <title>摄影 · Juntong Cui</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f7f1e8;
+      --paper-soft: #fbf8f2;
+      --paper-deep: #eee4d5;
+      --ink: #1f1e1b;
+      --muted: #5f5a52;
+      --line: #d8cbb8;
+      --line-strong: #b7a790;
+      --clay: #b85c38;
+      --clay-dark: #873f2b;
+      --blue: #526b7c;
+      --shadow: 0 18px 60px rgba(31, 30, 27, .12);
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+      --serif: Georgia, "Times New Roman", "Songti SC", serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(90deg, rgba(31, 30, 27, .035) 1px, transparent 1px) 0 0 / 56px 56px,
+        linear-gradient(180deg, rgba(31, 30, 27, .025) 1px, transparent 1px) 0 0 / 56px 56px,
+        var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    a {
+      color: inherit;
+      text-decoration-color: rgba(31, 30, 27, .35);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 4px;
+      transition: color .2s ease, text-decoration-color .2s ease;
+    }
+
+    a:hover {
+      color: var(--clay-dark);
+      text-decoration-color: var(--clay-dark);
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .site-shell {
+      width: min(940px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid var(--line);
+      background: rgba(247, 241, 232, .9);
+      backdrop-filter: blur(16px);
+    }
+
+    .topbar-inner {
+      width: min(940px, calc(100% - 40px));
+      min-height: 56px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--serif);
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .brand span:last-child {
+      font-size: 15px;
+      font-weight: 680;
+    }
+
+    .nav-actions,
+    .site-nav {
+      display: flex;
+      align-items: center;
+    }
+
+    .nav-actions {
+      gap: 18px;
+    }
+
+    .site-nav {
+      gap: 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .site-nav a {
+      text-decoration: none;
+    }
+
+    .site-nav a[aria-current="page"] {
+      color: var(--ink);
+      font-weight: 650;
+    }
+
+    .language-switch {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      width: 104px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      background: var(--paper-deep);
+    }
+
+    .language-switch button {
+      min-height: 28px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background .2s ease, color .2s ease;
+    }
+
+    .language-switch button.is-active {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .page-head {
+      padding: 38px 0 26px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      color: var(--clay-dark);
+      font-size: 11px;
+      font-weight: 760;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 28px;
+      height: 1px;
+      background: var(--clay);
+    }
+
+    h1,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 680px;
+      margin-bottom: 12px;
+      font-family: var(--serif);
+      font-size: clamp(28px, 4vw, 36px);
+      font-weight: 500;
+      line-height: 1.14;
+    }
+
+    .subtitle {
+      max-width: 650px;
+      margin-bottom: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.72;
+    }
+
+    .carousel-section {
+      padding: 28px 0 18px;
+    }
+
+    .carousel {
+      position: relative;
+      display: grid;
+      gap: 10px;
+      width: min(720px, 100%);
+      margin: 0 auto;
+    }
+
+    .carousel-stage {
+      position: relative;
+      overflow: hidden;
+      min-height: 340px;
+      border: 1px solid var(--line);
+      background: var(--paper-soft);
+      box-shadow: var(--shadow);
+      cursor: pointer;
+    }
+
+    .carousel-image {
+      width: 100%;
+      height: min(62vh, 560px);
+      min-height: 340px;
+      display: block;
+      object-fit: contain;
+      background: var(--paper-soft);
+      transition: opacity .28s ease, transform .28s ease;
+    }
+
+    .carousel-image.is-switching {
+      opacity: .32;
+      transform: scale(.985);
+    }
+
+    .carousel-button,
+    .modal-button,
+    .modal-close {
+      border: 1px solid var(--line-strong);
+      background: rgba(251, 248, 242, .82);
+      color: var(--ink);
+      cursor: pointer;
+      transition: background .2s ease, color .2s ease, border-color .2s ease, transform .2s ease;
+    }
+
+    .carousel-button:hover,
+    .modal-button:hover,
+    .modal-close:hover {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .carousel-button {
+      position: absolute;
+      top: 50%;
+      width: 40px;
+      height: 40px;
+      display: grid;
+      place-items: center;
+      transform: translateY(-50%);
+      z-index: 2;
+      font-size: 20px;
+    }
+
+    .carousel-button:hover {
+      transform: translateY(-50%) scale(1.03);
+    }
+
+    .carousel-button.prev {
+      left: 12px;
+    }
+
+    .carousel-button.next {
+      right: 12px;
+    }
+
+    .carousel-meta {
+      display: flex;
+      justify-content: flex-end;
+      gap: 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .masonry-section {
+      padding: 26px 0 70px;
+      border-top: 1px solid var(--line);
+    }
+
+    .masonry {
+      columns: 3 220px;
+      column-gap: 18px;
+    }
+
+    .photo-card {
+      width: 100%;
+      display: inline-block;
+      margin: 0 0 18px;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      break-inside: avoid;
+      cursor: zoom-in;
+    }
+
+    .photo-card:nth-child(3n + 2) {
+      margin-top: 24px;
+    }
+
+    .photo-card:nth-child(4n) {
+      margin-top: 10px;
+    }
+
+    .photo-card img {
+      width: 100%;
+      display: block;
+      border: 1px solid var(--line);
+      background: var(--paper-soft);
+      transition: transform .25s ease, box-shadow .25s ease, border-color .25s ease;
+    }
+
+    .photo-card:hover img {
+      transform: translateY(-3px);
+      border-color: var(--ink);
+      box-shadow: var(--shadow);
+    }
+
+    .photo-card span {
+      display: none;
+    }
+
+    .modal {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: none;
+      place-items: center;
+      padding: 22px;
+      background: rgba(31, 30, 27, .82);
+    }
+
+    .modal.is-open {
+      display: grid;
+    }
+
+    .modal-inner {
+      position: relative;
+      width: min(1100px, 100%);
+      display: grid;
+      gap: 12px;
+    }
+
+    .modal-image {
+      width: 100%;
+      max-height: 82vh;
+      object-fit: contain;
+      background: var(--ink);
+    }
+
+    .modal-caption {
+      display: none;
+    }
+
+    .modal-close,
+    .modal-button {
+      position: absolute;
+      z-index: 3;
+      display: grid;
+      place-items: center;
+    }
+
+    .modal-close {
+      top: -12px;
+      right: -12px;
+      width: 38px;
+      height: 38px;
+      font-size: 18px;
+    }
+
+    .modal-button {
+      top: 50%;
+      width: 42px;
+      height: 42px;
+      transform: translateY(-50%);
+      font-size: 21px;
+    }
+
+    .modal-button.prev {
+      left: -12px;
+    }
+
+    .modal-button.next {
+      right: -12px;
+    }
+
+    .footer {
+      padding: 26px 0 36px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .topbar-inner {
+        min-height: auto;
+        padding: 12px 0;
+        align-items: flex-start;
+      }
+
+      .nav-actions {
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 12px;
+      }
+
+      .carousel-stage,
+      .carousel-image {
+        min-height: 260px;
+      }
+
+      .carousel-image {
+        height: 52vh;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .site-shell,
+      .topbar-inner {
+        width: min(100% - 28px, 940px);
+      }
+
+      .topbar-inner {
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .nav-actions {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .site-nav {
+        gap: 14px;
+      }
+
+      .masonry {
+        columns: 2 150px;
+        column-gap: 12px;
+      }
+
+      .photo-card {
+        margin-bottom: 12px;
+      }
+
+      .photo-card:nth-child(3n + 2),
+      .photo-card:nth-child(4n) {
+        margin-top: 0;
+      }
+
+      .modal-button.prev {
+        left: 4px;
+      }
+
+      .modal-button.next {
+        right: 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html" aria-label="Juntong Cui home">
+        <span class="brand-mark">C</span>
+        <span data-i18n="brand"></span>
+      </a>
+      <div class="nav-actions">
+        <nav class="site-nav" aria-label="Primary navigation">
+          <a href="index.html" data-i18n="navHome"></a>
+          <a href="blog.html" data-i18n="navBlog"></a>
+          <a href="photography.html" aria-current="page" data-i18n="navPhotography"></a>
+        </nav>
+        <div class="language-switch" aria-label="Language switch">
+          <button type="button" data-lang="zh">中文</button>
+          <button type="button" data-lang="en">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="site-shell">
+    <section class="page-head">
+      <span class="eyebrow" data-i18n="eyebrow"></span>
+      <h1 data-i18n="pageTitle"></h1>
+      <p class="subtitle" data-i18n="intro"></p>
+    </section>
+
+    <section class="carousel-section" aria-label="Featured photography carousel">
+      <div class="carousel">
+        <div class="carousel-stage" id="carouselStage">
+          <button class="carousel-button prev" type="button" id="prevPhoto" aria-label="Previous photo">‹</button>
+          <img class="carousel-image" id="carouselImage" src="assets/photography/photo-01.jpg" alt="">
+          <button class="carousel-button next" type="button" id="nextPhoto" aria-label="Next photo">›</button>
+        </div>
+        <div class="carousel-meta">
+          <span id="carouselCaption"></span>
+          <span id="carouselCounter"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="masonry-section" aria-label="Photography gallery">
+      <div class="masonry" id="masonry"></div>
+    </section>
+  </main>
+
+  <footer class="site-shell footer">
+    <span data-i18n="footerNote"></span>
+  </footer>
+
+  <div class="modal" id="photoModal" role="dialog" aria-modal="true" aria-label="Photography viewer">
+    <div class="modal-inner">
+      <button class="modal-close" type="button" id="closeModal" aria-label="Close viewer">×</button>
+      <button class="modal-button prev" type="button" id="modalPrev" aria-label="Previous photo">‹</button>
+      <img class="modal-image" id="modalImage" src="assets/photography/photo-01.jpg" alt="">
+      <button class="modal-button next" type="button" id="modalNext" aria-label="Next photo">›</button>
+      <div class="modal-caption" id="modalCaption"></div>
+    </div>
+  </div>
+
+  <script>
+    const translations = {
+      zh: {
+        title: "摄影 · 崔君同",
+        brand: "崔君同",
+        navHome: "主页",
+        navBlog: "博客",
+        navPhotography: "摄影",
+        eyebrow: "Photography",
+        pageTitle: "摄影作品",
+        intro: "一些日常观察、旅行片段和光线记录。",
+        footerNote: "© 2026 崔君同。本站托管于 GitHub Pages。",
+        counterPrefix: "第",
+        counterMiddle: "张，共",
+        counterSuffix: "张"
+      },
+      en: {
+        title: "Photography · Juntong Cui",
+        brand: "Juntong Cui",
+        navHome: "Home",
+        navBlog: "Blog",
+        navPhotography: "Photography",
+        eyebrow: "Photography",
+        pageTitle: "Photography",
+        intro: "A small collection of everyday observations, travel fragments, and light studies. Click the left or right side of the featured image to move through the set, and click any image below to enlarge it.",
+        footerNote: "© 2026 Juntong Cui. Hosted on GitHub Pages.",
+        counterPrefix: "",
+        counterMiddle: " / ",
+        counterSuffix: ""
+      }
+    };
+
+    const photos = Array.from({ length: 13 }, (_, index) => {
+      const id = String(index + 1).padStart(2, "0");
+      return {
+        full: `assets/photography/photo-${id}.jpg`,
+        thumb: `assets/photography/thumb-${id}.jpg`,
+        index
+      };
+    });
+
+    const refs = {
+      carouselStage: document.querySelector("#carouselStage"),
+      carouselImage: document.querySelector("#carouselImage"),
+      carouselCaption: document.querySelector("#carouselCaption"),
+      carouselCounter: document.querySelector("#carouselCounter"),
+      prevPhoto: document.querySelector("#prevPhoto"),
+      nextPhoto: document.querySelector("#nextPhoto"),
+      masonry: document.querySelector("#masonry"),
+      modal: document.querySelector("#photoModal"),
+      modalImage: document.querySelector("#modalImage"),
+      modalCaption: document.querySelector("#modalCaption"),
+      closeModal: document.querySelector("#closeModal"),
+      modalPrev: document.querySelector("#modalPrev"),
+      modalNext: document.querySelector("#modalNext")
+    };
+
+    let currentIndex = 0;
+    let currentLang = "zh";
+
+    const fallbackLang = "zh";
+    const savedLang = localStorage.getItem("site-language");
+    const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
+
+    function captionFor(index) {
+      return currentLang === "zh" ? `照片 ${index + 1}` : `Photo ${index + 1}`;
+    }
+
+    function counterFor(index) {
+      const dict = translations[currentLang] || translations[fallbackLang];
+      if (currentLang === "zh") {
+        return `${dict.counterPrefix} ${index + 1} ${dict.counterMiddle} ${photos.length} ${dict.counterSuffix}`;
+      }
+      return `${index + 1}${dict.counterMiddle}${photos.length}`;
+    }
+
+    function renderGallery() {
+      refs.masonry.innerHTML = photos.map((photo, index) => `
+        <button class="photo-card" type="button" data-index="${index}" aria-label="${captionFor(index)}">
+          <img src="${photo.thumb}" alt="${captionFor(index)}" loading="lazy">
+        </button>
+      `).join("");
+      refs.masonry.querySelectorAll(".photo-card").forEach((button) => {
+        button.addEventListener("click", () => openModal(Number(button.dataset.index)));
+      });
+    }
+
+    function renderCarousel(animate = true) {
+      const photo = photos[currentIndex];
+      if (animate) refs.carouselImage.classList.add("is-switching");
+      window.setTimeout(() => {
+        refs.carouselImage.src = photo.full;
+        refs.carouselImage.alt = captionFor(currentIndex);
+        refs.carouselCaption.textContent = "";
+        refs.carouselCounter.textContent = counterFor(currentIndex);
+        refs.carouselImage.classList.remove("is-switching");
+      }, animate ? 130 : 0);
+    }
+
+    function go(delta) {
+      currentIndex = (currentIndex + delta + photos.length) % photos.length;
+      renderCarousel(true);
+    }
+
+    function openModal(index) {
+      currentIndex = index;
+      const photo = photos[currentIndex];
+      refs.modalImage.src = photo.full;
+      refs.modalImage.alt = captionFor(currentIndex);
+      refs.modalCaption.textContent = "";
+      refs.modal.classList.add("is-open");
+      refs.closeModal.focus();
+    }
+
+    function updateModal(delta) {
+      currentIndex = (currentIndex + delta + photos.length) % photos.length;
+      const photo = photos[currentIndex];
+      refs.modalImage.src = photo.full;
+      refs.modalImage.alt = captionFor(currentIndex);
+      refs.modalCaption.textContent = "";
+    }
+
+    function closeModal() {
+      refs.modal.classList.remove("is-open");
+      renderCarousel(false);
+    }
+
+    function applyLanguage(lang) {
+      currentLang = translations[lang] ? lang : fallbackLang;
+      const dict = translations[currentLang];
+      document.documentElement.lang = currentLang === "zh" ? "zh-CN" : "en";
+      document.title = dict.title;
+      document.querySelectorAll("[data-i18n]").forEach((node) => {
+        const key = node.getAttribute("data-i18n");
+        node.textContent = dict[key] || "";
+      });
+      document.querySelectorAll("[data-lang]").forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.lang === currentLang);
+        button.setAttribute("aria-pressed", String(button.dataset.lang === currentLang));
+      });
+      localStorage.setItem("site-language", currentLang);
+      renderGallery();
+      renderCarousel(false);
+    }
+
+    refs.prevPhoto.addEventListener("click", (event) => {
+      event.stopPropagation();
+      go(-1);
+    });
+    refs.nextPhoto.addEventListener("click", (event) => {
+      event.stopPropagation();
+      go(1);
+    });
+    refs.carouselStage.addEventListener("click", (event) => {
+      const rect = refs.carouselStage.getBoundingClientRect();
+      const isLeft = event.clientX - rect.left < rect.width / 2;
+      go(isLeft ? -1 : 1);
+    });
+    refs.carouselImage.addEventListener("dblclick", () => openModal(currentIndex));
+    refs.closeModal.addEventListener("click", closeModal);
+    refs.modalPrev.addEventListener("click", () => updateModal(-1));
+    refs.modalNext.addEventListener("click", () => updateModal(1));
+    refs.modal.addEventListener("click", (event) => {
+      if (event.target === refs.modal) closeModal();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (refs.modal.classList.contains("is-open")) {
+        if (event.key === "Escape") closeModal();
+        if (event.key === "ArrowLeft") updateModal(-1);
+        if (event.key === "ArrowRight") updateModal(1);
+      } else {
+        if (event.key === "ArrowLeft") go(-1);
+        if (event.key === "ArrowRight") go(1);
+      }
+    });
+    document.querySelectorAll("[data-lang]").forEach((button) => {
+      button.addEventListener("click", () => applyLanguage(button.dataset.lang));
+    });
+
+    applyLanguage(initialLang);
+  </script>
+</body>
+</html>

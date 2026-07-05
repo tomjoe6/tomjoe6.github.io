@@ -209,12 +209,41 @@
       padding: 18px 0 54px;
     }
 
+    .category-filter {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 18px 0 0;
+    }
+
+    .category-filter button {
+      min-height: 32px;
+      padding: 0 11px;
+      border: 1px solid var(--line-strong);
+      background: rgba(251, 248, 242, .72);
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 13px;
+      transition: background .2s ease, color .2s ease, border-color .2s ease;
+    }
+
+    .category-filter button.is-active,
+    .category-filter button:hover {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: var(--paper);
+    }
+
     .post-row {
       display: grid;
       grid-template-columns: 126px minmax(0, 1fr);
       gap: 22px;
       padding: 18px 0;
       border-bottom: 1px solid var(--line);
+    }
+
+    .post-row[hidden] {
+      display: none;
     }
 
     .post-date {
@@ -231,11 +260,48 @@
       line-height: 1.25;
     }
 
+    .post-title-link {
+      text-decoration-color: rgba(31, 30, 27, .24);
+    }
+
     .post-row p {
       margin-bottom: 0;
       color: var(--muted);
       font-size: 15px;
       line-height: 1.76;
+    }
+
+    .post-source {
+      display: inline-flex;
+      margin-top: 10px;
+      color: var(--clay-dark);
+      font-size: 13px;
+      font-weight: 650;
+      text-decoration: none;
+    }
+
+    .empty-state {
+      display: grid;
+      gap: 6px;
+      padding: 34px 0 54px;
+      border-bottom: 1px solid var(--line);
+      color: var(--muted);
+    }
+
+    .empty-state[hidden] {
+      display: none;
+    }
+
+    .empty-state strong {
+      color: var(--ink);
+      font-family: var(--serif);
+      font-size: 19px;
+      font-weight: 500;
+    }
+
+    .empty-state span {
+      font-size: 15px;
+      line-height: 1.72;
     }
 
     .footer {
@@ -339,6 +405,7 @@
         <nav class="site-nav" aria-label="Primary navigation">
           <a href="index.html" data-i18n="navHome"></a>
           <a href="blog.html" aria-current="page" data-i18n="navBlog"></a>
+          <a href="photography.html" data-i18n="navPhotography"></a>
         </nav>
         <div class="language-switch" aria-label="Language switch">
           <button type="button" data-lang="zh">中文</button>
@@ -355,22 +422,41 @@
       <p class="subtitle" data-i18n="blogIntro"></p>
     </section>
 
+    <div class="category-filter" aria-label="Blog categories" data-animate="2">
+      <button type="button" class="is-active" data-category-filter="all" data-i18n="catAll" aria-pressed="true"></button>
+      <button type="button" data-category-filter="ml" data-i18n="catML" aria-pressed="false"></button>
+      <button type="button" data-category-filter="ic" data-i18n="catIC" aria-pressed="false"></button>
+      <button type="button" data-category-filter="cross" data-i18n="catCross" aria-pressed="false"></button>
+      <button type="button" data-category-filter="other" data-i18n="catOther" aria-pressed="false"></button>
+    </div>
+
     <section class="post-list" aria-label="Blog posts" data-animate="2">
-      <article class="post-row">
+      <article class="post-row" data-category="ml">
         <div class="post-date" data-i18n="postOneDate"></div>
         <div>
-          <h2 data-i18n="postOneTitle"></h2>
+          <h2>
+            <a class="post-title-link" href="mnist.html" data-i18n="postOneTitle"></a>
+          </h2>
           <p data-i18n="postOneBody"></p>
+          <a class="post-source" href="mnist.html" data-i18n="postOneLink"></a>
         </div>
       </article>
-      <article class="post-row">
+      <article class="post-row" data-category="ic">
         <div class="post-date" data-i18n="postTwoDate"></div>
         <div>
-          <h2 data-i18n="postTwoTitle"></h2>
+          <h2>
+            <a class="post-title-link" href="sar-adc.html" data-i18n="postTwoTitle"></a>
+          </h2>
           <p data-i18n="postTwoBody"></p>
+          <a class="post-source" href="sar-adc.html" data-i18n="postTwoLink"></a>
         </div>
       </article>
     </section>
+
+    <div class="empty-state" id="emptyState" hidden>
+      <strong data-i18n="emptyTitle"></strong>
+      <span data-i18n="emptyBody"></span>
+    </div>
   </main>
 
   <footer class="site-shell footer">
@@ -384,15 +470,25 @@
         brand: "崔君同",
         navHome: "主页",
         navBlog: "博客",
+        navPhotography: "摄影",
         blogEyebrow: "博客",
         blogTitle: "笔记与文章",
         blogIntro: "这里会整理我在 AI 高效计算、多模态大模型、世界模型，以及相关硬件系统与工程实现方面的学习笔记和思考。",
-        postOneDate: "即将更新",
-        postOneTitle: "第一篇文章正在准备中",
-        postOneBody: "可以从课程笔记、实习复盘或一个具体技术问题开始。等内容确定后，这里会替换为正式文章入口。",
-        postTwoDate: "规划中",
-        postTwoTitle: "AI 高效计算学习笔记",
-        postTwoBody: "用于沉淀大模型推理效率、多模态模型计算需求、世界模型和硬件系统实现相关的学习记录。",
+        catAll: "全部",
+        catML: "机器学习",
+        catIC: "集成电路",
+        catCross: "两学科交叉",
+        catOther: "其他",
+        postOneDate: "机器学习",
+        postOneTitle: "MNIST 识别流程、疑问解析及个人改进",
+        postOneBody: "整理 MNIST 识别的训练与预测流程、Normalize 的作用、官方数据格式问题，以及自造本地测试集识别不准时的预处理改进。",
+        postOneLink: "阅读文章",
+        postTwoDate: "集成电路",
+        postTwoTitle: "电容阵列 SAR ADC 的简单原理",
+        postTwoBody: "从二分法逐次逼近、电荷守恒和电容下极板切换出发，解释电容阵列 SAR ADC 的基本工作过程。",
+        postTwoLink: "阅读文章",
+        emptyTitle: "这个分类还在等待第一篇文章。",
+        emptyBody: "之后关于两学科交叉或其他主题的笔记会出现在这里。",
         footerNote: "© 2026 崔君同。本站托管于 GitHub Pages。"
       },
       en: {
@@ -400,15 +496,25 @@
         brand: "Juntong Cui",
         navHome: "Home",
         navBlog: "Blog",
+        navPhotography: "Photography",
         blogEyebrow: "Blog",
         blogTitle: "Notes and Essays",
         blogIntro: "This space will collect notes and thoughts on efficient computation for AI, multimodal large models, world models, and related hardware-system implementation.",
-        postOneDate: "Coming soon",
-        postOneTitle: "The first post is in preparation",
-        postOneBody: "A course note, internship reflection, or concrete technical question could be a good starting point. This placeholder will become a real post once the content is ready.",
-        postTwoDate: "Planned",
-        postTwoTitle: "AI Efficient Computing Notes",
-        postTwoBody: "A place to collect learning records on large-model inference efficiency, multimodal-model computation, world models, and hardware-system implementation.",
+        catAll: "All",
+        catML: "Machine Learning",
+        catIC: "Integrated Circuits",
+        catCross: "Interdisciplinary",
+        catOther: "Other",
+        postOneDate: "Machine Learning",
+        postOneTitle: "MNIST Recognition Workflow, Questions, and Personal Improvements",
+        postOneBody: "A note on the MNIST training and prediction workflow, the role of Normalize, the official binary data format, and preprocessing improvements for handmade local test images.",
+        postOneLink: "Read article",
+        postTwoDate: "Integrated Circuits",
+        postTwoTitle: "A Simple Introduction to Capacitor-Array SAR ADCs",
+        postTwoBody: "A compact explanation of capacitor-array SAR ADCs through binary search, charge conservation, and bottom-plate switching.",
+        postTwoLink: "Read article",
+        emptyTitle: "This category is waiting for its first post.",
+        emptyBody: "Future notes on interdisciplinary topics or other subjects will appear here.",
         footerNote: "© 2026 Juntong Cui. Hosted on GitHub Pages."
       }
     };
@@ -416,6 +522,23 @@
     const fallbackLang = "zh";
     const savedLang = localStorage.getItem("site-language");
     const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
+    let activeCategory = "all";
+
+    function applyCategory(category) {
+      activeCategory = category;
+      let visibleCount = 0;
+      document.querySelectorAll("[data-category]").forEach((post) => {
+        const isVisible = category === "all" || post.dataset.category === category;
+        post.hidden = !isVisible;
+        if (isVisible) visibleCount += 1;
+      });
+      document.querySelectorAll("[data-category-filter]").forEach((button) => {
+        const isActive = button.dataset.categoryFilter === category;
+        button.classList.toggle("is-active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+      });
+      document.querySelector("#emptyState").hidden = visibleCount > 0;
+    }
 
     function applyLanguage(lang) {
       const dict = translations[lang] || translations[fallbackLang];
@@ -430,10 +553,14 @@
         button.setAttribute("aria-pressed", String(button.dataset.lang === lang));
       });
       localStorage.setItem("site-language", lang);
+      applyCategory(activeCategory);
     }
 
     document.querySelectorAll("[data-lang]").forEach((button) => {
       button.addEventListener("click", () => applyLanguage(button.dataset.lang));
+    });
+    document.querySelectorAll("[data-category-filter]").forEach((button) => {
+      button.addEventListener("click", () => applyCategory(button.dataset.categoryFilter));
     });
 
     applyLanguage(initialLang);
