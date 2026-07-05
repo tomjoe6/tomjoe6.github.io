@@ -215,15 +215,15 @@
     .page-head,
     .carousel-section,
     .masonry-section {
-      animation: riseIn 1.08s cubic-bezier(.16, 1, .3, 1) both;
+      animation: riseIn 1.38s cubic-bezier(.22, 1, .36, 1) both;
     }
 
     .carousel-section {
-      animation-delay: .12s;
+      animation-delay: .18s;
     }
 
     .masonry-section {
-      animation-delay: .22s;
+      animation-delay: .34s;
     }
 
     .carousel-section {
@@ -260,41 +260,26 @@
       object-fit: contain;
       background: var(--paper-soft);
       opacity: 0;
-      transform: translate3d(0, 0, 0) scale(.992);
-      transition:
-        opacity .62s cubic-bezier(.16, 1, .3, 1),
-        transform .62s cubic-bezier(.16, 1, .3, 1);
-      will-change: opacity, transform;
+      transition: opacity 1.22s cubic-bezier(.22, 1, .36, 1);
+      will-change: opacity;
       backface-visibility: hidden;
-      transform-origin: center;
     }
 
     .carousel-image.is-active {
       z-index: 1;
       opacity: 1;
-      transform: translate3d(0, 0, 0) scale(1);
     }
 
-    .carousel-image.enter-next {
-      z-index: 2;
-      opacity: 0;
-      transform: translate3d(5%, 0, 0) scale(.992);
-    }
-
+    .carousel-image.enter-next,
     .carousel-image.enter-prev {
       z-index: 2;
       opacity: 0;
-      transform: translate3d(-5%, 0, 0) scale(.992);
     }
 
-    .carousel-image.exit-next {
-      opacity: 0;
-      transform: translate3d(-4%, 0, 0) scale(.992);
-    }
-
+    .carousel-image.exit-next,
     .carousel-image.exit-prev {
+      z-index: 2;
       opacity: 0;
-      transform: translate3d(4%, 0, 0) scale(.992);
     }
 
     .carousel-button,
@@ -471,7 +456,7 @@
     @keyframes riseIn {
       from {
         opacity: 0;
-        transform: translateY(28px);
+        transform: translateY(36px);
       }
       to {
         opacity: 1;
@@ -592,8 +577,8 @@
       <div class="carousel">
         <div class="carousel-stage" id="carouselStage">
           <button class="carousel-button prev" type="button" id="prevPhoto" aria-label="Previous photo">‹</button>
-          <img class="carousel-image is-active" id="carouselImageA" src="assets/photography/photo-01.jpg" alt="" decoding="async" fetchpriority="high">
-          <img class="carousel-image" id="carouselImageB" src="assets/photography/photo-01.jpg" alt="" decoding="async">
+          <img class="carousel-image is-active" id="carouselImageA" src="assets/photography/slide-01.jpg" alt="" decoding="async" fetchpriority="high">
+          <img class="carousel-image" id="carouselImageB" src="assets/photography/slide-01.jpg" alt="" decoding="async">
           <button class="carousel-button next" type="button" id="nextPhoto" aria-label="Next photo">›</button>
         </div>
         <div class="carousel-meta">
@@ -659,6 +644,7 @@
     const photos = Array.from({ length: 13 }, (_, index) => {
       const id = String(index + 1).padStart(2, "0");
       return {
+        slide: `assets/photography/slide-${id}.jpg`,
         full: `assets/photography/photo-${id}.jpg`,
         thumb: `assets/photography/thumb-${id}.jpg`,
         index
@@ -688,7 +674,8 @@
     let currentLang = "zh";
     let activeCarouselLayer = 0;
     let isCarouselAnimating = false;
-    const decodedPhotos = new Map();
+    const decodedSlides = new Map();
+    const decodedFullImages = new Map();
 
     const fallbackLang = "zh";
     const savedLang = localStorage.getItem("site-language");
@@ -706,21 +693,41 @@
       return `${index + 1}${dict.counterMiddle}${photos.length}`;
     }
 
-    function preloadPhoto(src) {
-      if (!decodedPhotos.has(src)) {
+    function preloadImage(cache, src) {
+      if (!cache.has(src)) {
         const image = new Image();
         image.decoding = "async";
         image.src = src;
-        decodedPhotos.set(src, image.decode ? image.decode().catch(() => {}) : Promise.resolve());
+        const ready = image.decode ? image.decode().catch(() => {}) : Promise.resolve();
+        cache.set(src, { image, ready });
       }
-      return decodedPhotos.get(src);
+      return cache.get(src).ready;
     }
 
-    function preloadAround(index) {
+    function preloadSlideAround(index) {
       [-1, 0, 1, 2].forEach((offset) => {
         const photo = photos[(index + offset + photos.length) % photos.length];
-        preloadPhoto(photo.full);
+        preloadImage(decodedSlides, photo.slide);
       });
+    }
+
+    function preloadFullAround(index) {
+      [-1, 0, 1].forEach((offset) => {
+        const photo = photos[(index + offset + photos.length) % photos.length];
+        preloadImage(decodedFullImages, photo.full);
+      });
+    }
+
+    function warmAllSlides() {
+      const schedule = window.requestIdleCallback || ((callback) => window.setTimeout(callback, 140));
+      let index = 0;
+      const warmNext = () => {
+        if (index >= photos.length) return;
+        preloadImage(decodedSlides, photos[index].slide);
+        index += 1;
+        schedule(warmNext);
+      };
+      schedule(warmNext);
     }
 
     function renderGallery() {
@@ -739,7 +746,7 @@
       refs.carouselCounter.textContent = counterFor(currentIndex);
     }
 
-    async function renderCarousel(animate = true, direction = 1) {
+    function renderCarousel(animate = true, direction = 1) {
       const photo = photos[currentIndex];
       const activeImage = refs.carouselImages[activeCarouselLayer];
       const nextLayer = activeCarouselLayer === 0 ? 1 : 0;
@@ -749,24 +756,21 @@
         refs.carouselImages.forEach((image) => {
           image.className = "carousel-image";
         });
-        activeImage.src = photo.full;
+        activeImage.src = photo.slide;
         activeImage.alt = captionFor(currentIndex);
         activeImage.classList.add("is-active");
         updateCarouselText();
-        preloadAround(currentIndex);
+        preloadSlideAround(currentIndex);
         return;
       }
 
       if (isCarouselAnimating) return;
       isCarouselAnimating = true;
-      nextImage.src = photo.full;
+      nextImage.src = photo.slide;
       nextImage.alt = captionFor(currentIndex);
       nextImage.className = `carousel-image ${direction > 0 ? "enter-next" : "enter-prev"}`;
-      await preloadPhoto(photo.full);
-      if (nextImage.decode) {
-        await nextImage.decode().catch(() => {});
-      }
       updateCarouselText();
+      preloadSlideAround(currentIndex);
 
       nextImage.getBoundingClientRect();
       requestAnimationFrame(() => {
@@ -779,8 +783,8 @@
         activeImage.className = "carousel-image";
         activeCarouselLayer = nextLayer;
         isCarouselAnimating = false;
-        preloadAround(currentIndex);
-      }, 660);
+        preloadSlideAround(currentIndex);
+      }, 1260);
     }
 
     function go(delta) {
@@ -796,7 +800,7 @@
       refs.modalImage.alt = captionFor(currentIndex);
       refs.modalCaption.textContent = "";
       refs.modal.classList.add("is-open");
-      preloadAround(currentIndex);
+      preloadFullAround(currentIndex);
       refs.closeModal.focus();
     }
 
@@ -806,7 +810,7 @@
       refs.modalImage.src = photo.full;
       refs.modalImage.alt = captionFor(currentIndex);
       refs.modalCaption.textContent = "";
-      preloadAround(currentIndex);
+      preloadFullAround(currentIndex);
     }
 
     function closeModal() {
@@ -866,7 +870,8 @@
     });
 
     applyLanguage(initialLang);
-    preloadAround(currentIndex);
+    preloadSlideAround(currentIndex);
+    warmAllSlides();
   </script>
 </body>
 </html>
