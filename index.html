@@ -351,24 +351,34 @@
     }
 
     [data-animate] {
-      animation: riseIn 1.38s cubic-bezier(.22, 1, .36, 1) both;
+      animation: riseIn 1.72s cubic-bezier(.19, 1, .22, 1) both;
     }
 
     [data-animate="2"] {
-      animation-delay: .18s;
+      animation-delay: .32s;
     }
 
     [data-animate="3"] {
-      animation-delay: .34s;
+      animation-delay: .58s;
+    }
+
+    [data-animate="4"] {
+      animation-delay: .82s;
+    }
+
+    [data-animate="5"] {
+      animation-delay: 1.02s;
     }
 
     @keyframes riseIn {
       from {
         opacity: 0;
-        transform: translateY(36px);
+        filter: blur(6px);
+        transform: translateY(48px);
       }
       to {
         opacity: 1;
+        filter: blur(0);
         transform: translateY(0);
       }
     }
@@ -486,7 +496,7 @@
       </div>
     </section>
 
-    <section class="section" id="about" data-animate="2">
+    <section class="section" id="about" data-animate="3">
       <h2 class="section-label" data-i18n="aboutTitle"></h2>
       <div class="section-body">
         <p class="lead-copy" data-i18n="aboutLead"></p>
@@ -494,7 +504,7 @@
       </div>
     </section>
 
-    <section class="section" id="education" data-animate="3">
+    <section class="section" id="education" data-animate="4">
       <h2 class="section-label" data-i18n="educationTitle"></h2>
       <div class="section-body">
         <div class="timeline">
@@ -510,7 +520,7 @@
       </div>
     </section>
 
-    <section class="section" id="experience" data-animate="3">
+    <section class="section" id="experience" data-animate="5">
       <h2 class="section-label" data-i18n="experienceTitle"></h2>
       <div class="section-body">
         <div class="timeline">

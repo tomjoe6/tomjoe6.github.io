@@ -247,14 +247,24 @@
     }
 
     .post-date {
-      color: var(--blue);
+      display: grid;
+      align-content: start;
+      gap: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.35;
+    }
+
+    .post-date time {
+      color: var(--ink);
       font-size: 13px;
       font-weight: 700;
+      font-variant-numeric: tabular-nums;
     }
 
     .post-category {
       display: block;
-      margin-top: 5px;
       color: var(--muted);
       font-size: 12px;
       font-weight: 500;
@@ -326,20 +336,42 @@
     }
 
     [data-animate] {
-      animation: riseIn 1.38s cubic-bezier(.22, 1, .36, 1) both;
+      animation: riseIn 1.72s cubic-bezier(.19, 1, .22, 1) both;
     }
 
     [data-animate="2"] {
-      animation-delay: .22s;
+      animation-delay: .32s;
+    }
+
+    [data-animate="3"] {
+      animation-delay: .58s;
+    }
+
+    .post-row {
+      animation: riseIn 1.56s cubic-bezier(.19, 1, .22, 1) both;
+    }
+
+    .post-row:nth-child(1) {
+      animation-delay: .74s;
+    }
+
+    .post-row:nth-child(2) {
+      animation-delay: .92s;
+    }
+
+    .post-row:nth-child(3) {
+      animation-delay: 1.1s;
     }
 
     @keyframes riseIn {
       from {
         opacity: 0;
-        transform: translateY(36px);
+        filter: blur(6px);
+        transform: translateY(48px);
       }
       to {
         opacity: 1;
+        filter: blur(0);
         transform: translateY(0);
       }
     }
@@ -439,8 +471,8 @@
       <button type="button" data-category-filter="other" data-i18n="catOther" aria-pressed="false"></button>
     </div>
 
-    <section class="post-list" aria-label="Blog posts" data-animate="2">
-      <article class="post-row" data-category="ml">
+    <section class="post-list" aria-label="Blog posts" data-animate="3">
+      <article class="post-row" data-category="ml" data-published="2026-07-05">
         <div class="post-date">
           <time datetime="2026-07-05">2026-07-05</time>
           <span class="post-category" data-i18n="postThreeCategory"></span>
@@ -453,22 +485,9 @@
           <a class="post-source" href="resnet-highway.html" data-i18n="postThreeLink"></a>
         </div>
       </article>
-      <article class="post-row" data-category="ml">
+      <article class="post-row" data-category="ic" data-published="2026-05-28">
         <div class="post-date">
-          <time datetime="2026-07-05">2026-07-05</time>
-          <span class="post-category" data-i18n="postOneCategory"></span>
-        </div>
-        <div>
-          <h2>
-            <a class="post-title-link" href="mnist.html" data-i18n="postOneTitle"></a>
-          </h2>
-          <p data-i18n="postOneBody"></p>
-          <a class="post-source" href="mnist.html" data-i18n="postOneLink"></a>
-        </div>
-      </article>
-      <article class="post-row" data-category="ic">
-        <div class="post-date">
-          <time datetime="2026-07-05">2026-07-05</time>
+          <time datetime="2026-05-28">2026-05-28</time>
           <span class="post-category" data-i18n="postTwoCategory"></span>
         </div>
         <div>
@@ -477,6 +496,19 @@
           </h2>
           <p data-i18n="postTwoBody"></p>
           <a class="post-source" href="sar-adc.html" data-i18n="postTwoLink"></a>
+        </div>
+      </article>
+      <article class="post-row" data-category="ml" data-published="2026-04-24">
+        <div class="post-date">
+          <time datetime="2026-04-24">2026-04-24</time>
+          <span class="post-category" data-i18n="postOneCategory"></span>
+        </div>
+        <div>
+          <h2>
+            <a class="post-title-link" href="mnist.html" data-i18n="postOneTitle"></a>
+          </h2>
+          <p data-i18n="postOneBody"></p>
+          <a class="post-source" href="mnist.html" data-i18n="postOneLink"></a>
         </div>
       </article>
     </section>
@@ -565,8 +597,8 @@
       const posts = Array.from(list.querySelectorAll(".post-row"));
       posts
         .sort((a, b) => {
-          const dateA = a.querySelector("time")?.dateTime || "";
-          const dateB = b.querySelector("time")?.dateTime || "";
+          const dateA = a.dataset.published || a.querySelector("time")?.dateTime || "";
+          const dateB = b.dataset.published || b.querySelector("time")?.dateTime || "";
           return dateB.localeCompare(dateA);
         })
         .forEach((post) => list.appendChild(post));

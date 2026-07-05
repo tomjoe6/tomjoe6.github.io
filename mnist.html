@@ -297,16 +297,18 @@
     }
 
     .article {
-      animation: riseIn 1.38s cubic-bezier(.22, 1, .36, 1) both;
+      animation: riseIn 1.72s cubic-bezier(.19, 1, .22, 1) both;
     }
 
     @keyframes riseIn {
       from {
         opacity: 0;
-        transform: translateY(36px);
+        filter: blur(6px);
+        transform: translateY(48px);
       }
       to {
         opacity: 1;
+        filter: blur(0);
         transform: translateY(0);
       }
     }
@@ -382,7 +384,7 @@
   <main class="site-shell">
     <article class="article" data-lang-content="zh">
       <a class="back-link" href="blog.html">← 返回博客</a>
-      <div class="article-meta">2026-07-05 · 机器学习 · MNIST</div>
+      <div class="article-meta">2026-04-24 · 机器学习 · MNIST</div>
       <h1>MNIST 识别流程、疑问解析及个人改进</h1>
       <p class="lead">这篇笔记整理了我做 MNIST 手写数字识别时的主要流程、对几个常见问题的理解，以及针对本地自造测试集不稳定问题做的预处理改进。</p>
 
@@ -444,7 +446,7 @@ if foreground_ratio &lt; 0.04:
 
     <article class="article" data-lang-content="en" hidden>
       <a class="back-link" href="blog.html">← Back to Blog</a>
-      <div class="article-meta">2026-07-05 · Machine Learning · MNIST</div>
+      <div class="article-meta">2026-04-24 · Machine Learning · MNIST</div>
       <h1>MNIST Recognition Workflow, Questions, and Personal Improvements</h1>
       <p class="lead">This note summarizes my MNIST handwritten-digit recognition workflow, several questions I encountered, and preprocessing improvements for unstable predictions on handmade local test images.</p>
 
