@@ -268,6 +268,32 @@
       font-size: 13px;
     }
 
+    .article {
+      animation: riseIn 1.08s cubic-bezier(.16, 1, .3, 1) both;
+    }
+
+    @keyframes riseIn {
+      from {
+        opacity: 0;
+        transform: translateY(28px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
     [data-lang-content][hidden] { display: none; }
 
     @media (max-width: 720px) {
@@ -328,7 +354,7 @@
   <main class="site-shell">
     <article class="article" data-lang-content="zh">
       <a class="back-link" href="blog.html">← 返回博客</a>
-      <div class="article-meta">机器学习 · 深度网络</div>
+      <div class="article-meta">2026-07-05 · 机器学习 · 深度网络</div>
       <h1>ResNet 为什么取代了 Highway</h1>
       <p class="lead">在 ResNet 之前，Highway Network 已经提出过类似的跨层连接。从形式上看 Highway 甚至比 ResNet 更复杂，那么为什么成为主流的是 ResNet 的思想？</p>
 
@@ -387,7 +413,7 @@
 
     <article class="article" data-lang-content="en" hidden>
       <a class="back-link" href="blog.html">← Back to Blog</a>
-      <div class="article-meta">Machine Learning · Deep Networks</div>
+      <div class="article-meta">2026-07-05 · Machine Learning · Deep Networks</div>
       <h1>Why ResNet Replaced Highway Networks</h1>
       <p class="lead">Before ResNet, Highway Networks had already proposed a similar cross-layer connection. Highway even looks more complex than ResNet, so why did the ResNet idea become the mainstream one?</p>
 

@@ -252,6 +252,15 @@
       font-weight: 700;
     }
 
+    .post-category {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 500;
+      line-height: 1.45;
+    }
+
     .post-row h2 {
       margin-bottom: 6px;
       font-family: var(--serif);
@@ -317,17 +326,17 @@
     }
 
     [data-animate] {
-      animation: riseIn .55s ease both;
+      animation: riseIn 1.08s cubic-bezier(.16, 1, .3, 1) both;
     }
 
     [data-animate="2"] {
-      animation-delay: .08s;
+      animation-delay: .14s;
     }
 
     @keyframes riseIn {
       from {
         opacity: 0;
-        transform: translateY(14px);
+        transform: translateY(28px);
       }
       to {
         opacity: 1;
@@ -432,17 +441,10 @@
 
     <section class="post-list" aria-label="Blog posts" data-animate="2">
       <article class="post-row" data-category="ml">
-        <div class="post-date" data-i18n="postOneDate"></div>
-        <div>
-          <h2>
-            <a class="post-title-link" href="mnist.html" data-i18n="postOneTitle"></a>
-          </h2>
-          <p data-i18n="postOneBody"></p>
-          <a class="post-source" href="mnist.html" data-i18n="postOneLink"></a>
+        <div class="post-date">
+          <time datetime="2026-07-05">2026-07-05</time>
+          <span class="post-category" data-i18n="postThreeCategory"></span>
         </div>
-      </article>
-      <article class="post-row" data-category="ml">
-        <div class="post-date" data-i18n="postThreeDate"></div>
         <div>
           <h2>
             <a class="post-title-link" href="resnet-highway.html" data-i18n="postThreeTitle"></a>
@@ -451,8 +453,24 @@
           <a class="post-source" href="resnet-highway.html" data-i18n="postThreeLink"></a>
         </div>
       </article>
+      <article class="post-row" data-category="ml">
+        <div class="post-date">
+          <time datetime="2026-07-05">2026-07-05</time>
+          <span class="post-category" data-i18n="postOneCategory"></span>
+        </div>
+        <div>
+          <h2>
+            <a class="post-title-link" href="mnist.html" data-i18n="postOneTitle"></a>
+          </h2>
+          <p data-i18n="postOneBody"></p>
+          <a class="post-source" href="mnist.html" data-i18n="postOneLink"></a>
+        </div>
+      </article>
       <article class="post-row" data-category="ic">
-        <div class="post-date" data-i18n="postTwoDate"></div>
+        <div class="post-date">
+          <time datetime="2026-07-05">2026-07-05</time>
+          <span class="post-category" data-i18n="postTwoCategory"></span>
+        </div>
         <div>
           <h2>
             <a class="post-title-link" href="sar-adc.html" data-i18n="postTwoTitle"></a>
@@ -489,15 +507,15 @@
         catIC: "集成电路",
         catCross: "两学科交叉",
         catOther: "其他",
-        postOneDate: "机器学习",
+        postOneCategory: "机器学习",
         postOneTitle: "MNIST 识别流程、疑问解析及个人改进",
         postOneBody: "整理 MNIST 识别的训练与预测流程、Normalize 的作用、官方数据格式问题，以及自造本地测试集识别不准时的预处理改进。",
         postOneLink: "阅读文章",
-        postThreeDate: "机器学习",
+        postThreeCategory: "机器学习",
         postThreeTitle: "ResNet 为什么取代了 Highway",
         postThreeBody: "从 degradation problem、gated residual 和非参数化 shortcut 的角度，整理 ResNet 思想为何比 Highway 更适合作为深层网络的主流结构。",
         postThreeLink: "阅读文章",
-        postTwoDate: "集成电路",
+        postTwoCategory: "集成电路",
         postTwoTitle: "电容阵列 SAR ADC 的简单原理",
         postTwoBody: "从二分法逐次逼近、电荷守恒和电容下极板切换出发，解释电容阵列 SAR ADC 的基本工作过程。",
         postTwoLink: "阅读文章",
@@ -519,15 +537,15 @@
         catIC: "Integrated Circuits",
         catCross: "Interdisciplinary",
         catOther: "Other",
-        postOneDate: "Machine Learning",
+        postOneCategory: "Machine Learning",
         postOneTitle: "MNIST Recognition Workflow, Questions, and Personal Improvements",
         postOneBody: "A note on the MNIST training and prediction workflow, the role of Normalize, the official binary data format, and preprocessing improvements for handmade local test images.",
         postOneLink: "Read article",
-        postThreeDate: "Machine Learning",
+        postThreeCategory: "Machine Learning",
         postThreeTitle: "Why ResNet Replaced Highway Networks",
         postThreeBody: "A note on why ResNet became more influential than Highway Networks, from the degradation problem, gated residual learning, and non-parametric shortcut paths.",
         postThreeLink: "Read article",
-        postTwoDate: "Integrated Circuits",
+        postTwoCategory: "Integrated Circuits",
         postTwoTitle: "A Simple Introduction to Capacitor-Array SAR ADCs",
         postTwoBody: "A compact explanation of capacitor-array SAR ADCs through binary search, charge conservation, and bottom-plate switching.",
         postTwoLink: "Read article",
@@ -541,6 +559,18 @@
     const savedLang = localStorage.getItem("site-language");
     const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
     let activeCategory = "all";
+
+    function sortPostsByDate() {
+      const list = document.querySelector(".post-list");
+      const posts = Array.from(list.querySelectorAll(".post-row"));
+      posts
+        .sort((a, b) => {
+          const dateA = a.querySelector("time")?.dateTime || "";
+          const dateB = b.querySelector("time")?.dateTime || "";
+          return dateB.localeCompare(dateA);
+        })
+        .forEach((post) => list.appendChild(post));
+    }
 
     function applyCategory(category) {
       activeCategory = category;
@@ -581,6 +611,7 @@
       button.addEventListener("click", () => applyCategory(button.dataset.categoryFilter));
     });
 
+    sortPostsByDate();
     applyLanguage(initialLang);
   </script>
 </body>

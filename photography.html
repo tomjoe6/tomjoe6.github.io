@@ -212,6 +212,20 @@
       line-height: 1.65;
     }
 
+    .page-head,
+    .carousel-section,
+    .masonry-section {
+      animation: riseIn 1.08s cubic-bezier(.16, 1, .3, 1) both;
+    }
+
+    .carousel-section {
+      animation-delay: .12s;
+    }
+
+    .masonry-section {
+      animation-delay: .22s;
+    }
+
     .carousel-section {
       padding: 28px 0 18px;
     }
@@ -227,26 +241,60 @@
     .carousel-stage {
       position: relative;
       overflow: hidden;
+      height: min(62vh, 560px);
       min-height: 340px;
       border: 1px solid var(--line);
       background: var(--paper-soft);
       box-shadow: var(--shadow);
       cursor: pointer;
+      contain: layout paint;
+      isolation: isolate;
     }
 
     .carousel-image {
+      position: absolute;
+      inset: 0;
       width: 100%;
-      height: min(62vh, 560px);
-      min-height: 340px;
+      height: 100%;
       display: block;
       object-fit: contain;
       background: var(--paper-soft);
-      transition: opacity .28s ease, transform .28s ease;
+      opacity: 0;
+      transform: translate3d(0, 0, 0) scale(.992);
+      transition:
+        opacity .62s cubic-bezier(.16, 1, .3, 1),
+        transform .62s cubic-bezier(.16, 1, .3, 1);
+      will-change: opacity, transform;
+      backface-visibility: hidden;
+      transform-origin: center;
     }
 
-    .carousel-image.is-switching {
-      opacity: .32;
-      transform: scale(.985);
+    .carousel-image.is-active {
+      z-index: 1;
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+
+    .carousel-image.enter-next {
+      z-index: 2;
+      opacity: 0;
+      transform: translate3d(5%, 0, 0) scale(.992);
+    }
+
+    .carousel-image.enter-prev {
+      z-index: 2;
+      opacity: 0;
+      transform: translate3d(-5%, 0, 0) scale(.992);
+    }
+
+    .carousel-image.exit-next {
+      opacity: 0;
+      transform: translate3d(-4%, 0, 0) scale(.992);
+    }
+
+    .carousel-image.exit-prev {
+      opacity: 0;
+      transform: translate3d(4%, 0, 0) scale(.992);
     }
 
     .carousel-button,
@@ -420,6 +468,17 @@
       font-size: 13px;
     }
 
+    @keyframes riseIn {
+      from {
+        opacity: 0;
+        transform: translateY(28px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       *,
       *::before,
@@ -449,7 +508,7 @@
         min-height: 260px;
       }
 
-      .carousel-image {
+      .carousel-stage {
         height: 52vh;
       }
     }
@@ -533,7 +592,8 @@
       <div class="carousel">
         <div class="carousel-stage" id="carouselStage">
           <button class="carousel-button prev" type="button" id="prevPhoto" aria-label="Previous photo">‹</button>
-          <img class="carousel-image" id="carouselImage" src="assets/photography/photo-01.jpg" alt="">
+          <img class="carousel-image is-active" id="carouselImageA" src="assets/photography/photo-01.jpg" alt="" decoding="async" fetchpriority="high">
+          <img class="carousel-image" id="carouselImageB" src="assets/photography/photo-01.jpg" alt="" decoding="async">
           <button class="carousel-button next" type="button" id="nextPhoto" aria-label="Next photo">›</button>
         </div>
         <div class="carousel-meta">
@@ -556,7 +616,7 @@
     <div class="modal-inner">
       <button class="modal-close" type="button" id="closeModal" aria-label="Close viewer">×</button>
       <button class="modal-button prev" type="button" id="modalPrev" aria-label="Previous photo">‹</button>
-      <img class="modal-image" id="modalImage" src="assets/photography/photo-01.jpg" alt="">
+      <img class="modal-image" id="modalImage" src="assets/photography/photo-01.jpg" alt="" decoding="async">
       <button class="modal-button next" type="button" id="modalNext" aria-label="Next photo">›</button>
       <div class="modal-caption" id="modalCaption"></div>
     </div>
@@ -607,7 +667,10 @@
 
     const refs = {
       carouselStage: document.querySelector("#carouselStage"),
-      carouselImage: document.querySelector("#carouselImage"),
+      carouselImages: [
+        document.querySelector("#carouselImageA"),
+        document.querySelector("#carouselImageB")
+      ],
       carouselCaption: document.querySelector("#carouselCaption"),
       carouselCounter: document.querySelector("#carouselCounter"),
       prevPhoto: document.querySelector("#prevPhoto"),
@@ -623,6 +686,9 @@
 
     let currentIndex = 0;
     let currentLang = "zh";
+    let activeCarouselLayer = 0;
+    let isCarouselAnimating = false;
+    const decodedPhotos = new Map();
 
     const fallbackLang = "zh";
     const savedLang = localStorage.getItem("site-language");
@@ -640,6 +706,23 @@
       return `${index + 1}${dict.counterMiddle}${photos.length}`;
     }
 
+    function preloadPhoto(src) {
+      if (!decodedPhotos.has(src)) {
+        const image = new Image();
+        image.decoding = "async";
+        image.src = src;
+        decodedPhotos.set(src, image.decode ? image.decode().catch(() => {}) : Promise.resolve());
+      }
+      return decodedPhotos.get(src);
+    }
+
+    function preloadAround(index) {
+      [-1, 0, 1, 2].forEach((offset) => {
+        const photo = photos[(index + offset + photos.length) % photos.length];
+        preloadPhoto(photo.full);
+      });
+    }
+
     function renderGallery() {
       refs.masonry.innerHTML = photos.map((photo, index) => `
         <button class="photo-card" type="button" data-index="${index}" aria-label="${captionFor(index)}">
@@ -651,21 +734,59 @@
       });
     }
 
-    function renderCarousel(animate = true) {
+    function updateCarouselText() {
+      refs.carouselCaption.textContent = "";
+      refs.carouselCounter.textContent = counterFor(currentIndex);
+    }
+
+    async function renderCarousel(animate = true, direction = 1) {
       const photo = photos[currentIndex];
-      if (animate) refs.carouselImage.classList.add("is-switching");
+      const activeImage = refs.carouselImages[activeCarouselLayer];
+      const nextLayer = activeCarouselLayer === 0 ? 1 : 0;
+      const nextImage = refs.carouselImages[nextLayer];
+
+      if (!animate) {
+        refs.carouselImages.forEach((image) => {
+          image.className = "carousel-image";
+        });
+        activeImage.src = photo.full;
+        activeImage.alt = captionFor(currentIndex);
+        activeImage.classList.add("is-active");
+        updateCarouselText();
+        preloadAround(currentIndex);
+        return;
+      }
+
+      if (isCarouselAnimating) return;
+      isCarouselAnimating = true;
+      nextImage.src = photo.full;
+      nextImage.alt = captionFor(currentIndex);
+      nextImage.className = `carousel-image ${direction > 0 ? "enter-next" : "enter-prev"}`;
+      await preloadPhoto(photo.full);
+      if (nextImage.decode) {
+        await nextImage.decode().catch(() => {});
+      }
+      updateCarouselText();
+
+      nextImage.getBoundingClientRect();
+      requestAnimationFrame(() => {
+        activeImage.classList.add(direction > 0 ? "exit-next" : "exit-prev");
+        nextImage.classList.remove("enter-next", "enter-prev");
+        nextImage.classList.add("is-active");
+      });
+
       window.setTimeout(() => {
-        refs.carouselImage.src = photo.full;
-        refs.carouselImage.alt = captionFor(currentIndex);
-        refs.carouselCaption.textContent = "";
-        refs.carouselCounter.textContent = counterFor(currentIndex);
-        refs.carouselImage.classList.remove("is-switching");
-      }, animate ? 130 : 0);
+        activeImage.className = "carousel-image";
+        activeCarouselLayer = nextLayer;
+        isCarouselAnimating = false;
+        preloadAround(currentIndex);
+      }, 660);
     }
 
     function go(delta) {
+      if (isCarouselAnimating) return;
       currentIndex = (currentIndex + delta + photos.length) % photos.length;
-      renderCarousel(true);
+      renderCarousel(true, delta);
     }
 
     function openModal(index) {
@@ -675,6 +796,7 @@
       refs.modalImage.alt = captionFor(currentIndex);
       refs.modalCaption.textContent = "";
       refs.modal.classList.add("is-open");
+      preloadAround(currentIndex);
       refs.closeModal.focus();
     }
 
@@ -684,6 +806,7 @@
       refs.modalImage.src = photo.full;
       refs.modalImage.alt = captionFor(currentIndex);
       refs.modalCaption.textContent = "";
+      preloadAround(currentIndex);
     }
 
     function closeModal() {
@@ -722,7 +845,6 @@
       const isLeft = event.clientX - rect.left < rect.width / 2;
       go(isLeft ? -1 : 1);
     });
-    refs.carouselImage.addEventListener("dblclick", () => openModal(currentIndex));
     refs.closeModal.addEventListener("click", closeModal);
     refs.modalPrev.addEventListener("click", () => updateModal(-1));
     refs.modalNext.addEventListener("click", () => updateModal(1));
@@ -744,6 +866,7 @@
     });
 
     applyLanguage(initialLang);
+    preloadAround(currentIndex);
   </script>
 </body>
 </html>
