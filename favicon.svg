@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="8" y1="8" x2="120" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#174750"/>
+      <stop offset=".38" stop-color="#0d7a68"/>
+      <stop offset=".74" stop-color="#12364d"/>
+      <stop offset="1" stop-color="#0b272f"/>
+    </linearGradient>
+    <linearGradient id="swirlA" x1="0" y1="24" x2="128" y2="96" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#95a955" stop-opacity=".62"/>
+      <stop offset=".55" stop-color="#4e7361" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#1c3952" stop-opacity=".5"/>
+    </linearGradient>
+    <linearGradient id="swirlB" x1="16" y1="114" x2="116" y2="16" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0c485b" stop-opacity=".54"/>
+      <stop offset=".48" stop-color="#7a6868" stop-opacity=".42"/>
+      <stop offset="1" stop-color="#1b806a" stop-opacity=".4"/>
+    </linearGradient>
+    <filter id="grain">
+      <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="4" seed="7"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 .18"/>
+      </feComponentTransfer>
+      <feBlend mode="overlay" in2="SourceGraphic"/>
+    </filter>
+    <filter id="soft">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+  <rect width="128" height="128" fill="url(#bg)"/>
+  <path d="M-12 27C19 19 34 50 61 45c28-5 43-38 83-28v32C103 40 93 70 61 73 29 75 11 52-12 61Z" fill="url(#swirlA)" filter="url(#soft)"/>
+  <path d="M-9 96c28-24 52-5 78-18 23-11 30-37 68-25v45c-35-12-47 17-76 21-28 4-43-17-70-1Z" fill="url(#swirlB)" filter="url(#soft)"/>
+  <rect width="128" height="128" fill="transparent" filter="url(#grain)" opacity=".7"/>
+</svg>

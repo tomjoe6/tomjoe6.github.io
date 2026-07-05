@@ -1,0 +1,629 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Juntong Cui, undergraduate student at the School of Integrated Circuits, Shanghai Jiao Tong University.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <title>崔君同 Juntong Cui</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f7f1e8;
+      --paper-soft: #fbf8f2;
+      --paper-deep: #eee4d5;
+      --ink: #1f1e1b;
+      --muted: #5f5a52;
+      --line: #d8cbb8;
+      --line-strong: #b7a790;
+      --clay: #b85c38;
+      --clay-dark: #873f2b;
+      --sage: #66745f;
+      --blue: #526b7c;
+      --shadow: 0 18px 60px rgba(31, 30, 27, .08);
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+      --serif: Georgia, "Times New Roman", "Songti SC", serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(90deg, rgba(31, 30, 27, .035) 1px, transparent 1px) 0 0 / 56px 56px,
+        linear-gradient(180deg, rgba(31, 30, 27, .025) 1px, transparent 1px) 0 0 / 56px 56px,
+        var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    a {
+      color: inherit;
+      text-decoration-color: rgba(31, 30, 27, .35);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 4px;
+      transition: color .2s ease, text-decoration-color .2s ease;
+    }
+
+    a:hover {
+      color: var(--clay-dark);
+      text-decoration-color: var(--clay-dark);
+    }
+
+    button {
+      font: inherit;
+    }
+
+    .site-shell {
+      width: min(940px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid var(--line);
+      background: rgba(247, 241, 232, .9);
+      backdrop-filter: blur(16px);
+    }
+
+    .topbar-inner {
+      width: min(940px, calc(100% - 40px));
+      min-height: 56px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--serif);
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .brand span:last-child {
+      font-size: 15px;
+      font-weight: 680;
+    }
+
+    .nav-actions {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .site-nav {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .site-nav a {
+      text-decoration: none;
+    }
+
+    .site-nav a[aria-current="page"] {
+      color: var(--ink);
+      font-weight: 650;
+    }
+
+    .language-switch {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      width: 104px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      background: var(--paper-deep);
+    }
+
+    .language-switch button {
+      min-height: 28px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: background .2s ease, color .2s ease;
+    }
+
+    .language-switch button.is-active {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .hero {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 148px;
+      gap: clamp(24px, 5vw, 48px);
+      align-items: start;
+      padding: 34px 0 30px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      color: var(--clay-dark);
+      font-size: 11px;
+      font-weight: 760;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 28px;
+      height: 1px;
+      background: var(--clay);
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      max-width: 520px;
+      margin-bottom: 10px;
+      font-family: var(--serif);
+      font-size: clamp(28px, 4vw, 36px);
+      font-weight: 500;
+      line-height: 1.14;
+    }
+
+    .subtitle {
+      max-width: 620px;
+      margin-bottom: 12px;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.72;
+    }
+
+    .profile-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      margin: 0;
+      padding: 0;
+      color: var(--muted);
+      list-style: none;
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    .profile-photo-wrap {
+      justify-self: end;
+      width: min(148px, 100%);
+      margin-top: 4px;
+    }
+
+    .profile-photo {
+      width: 100%;
+      aspect-ratio: 1;
+      display: block;
+      object-fit: cover;
+      object-position: center 18%;
+      border: 1px solid var(--line-strong);
+      background: var(--paper-soft);
+      box-shadow: var(--shadow);
+      filter: saturate(.96) contrast(1.02);
+    }
+
+    .contact-strip {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 13px;
+    }
+
+    .contact-link {
+      display: inline-flex;
+      min-height: 32px;
+      align-items: center;
+      padding: 0 11px;
+      border: 1px solid var(--line-strong);
+      background: rgba(251, 248, 242, .72);
+      color: var(--ink);
+      text-decoration: none;
+      font-size: 12px;
+    }
+
+    .contact-link:hover {
+      border-color: var(--ink);
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .section {
+      display: block;
+      padding: 34px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section-label {
+      margin: 0 0 18px;
+      color: var(--ink);
+      font-family: var(--serif);
+      font-size: 22px;
+      font-weight: 500;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+
+    .section-body {
+      max-width: 760px;
+    }
+
+    .section-body p {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.78;
+    }
+
+    .lead-copy {
+      margin-bottom: 10px;
+      color: var(--ink) !important;
+      font-family: var(--sans);
+      font-size: 16px !important;
+      font-weight: 600;
+      line-height: 1.68 !important;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 0;
+      border-top: 1px solid var(--line);
+    }
+
+    .timeline-item {
+      display: grid;
+      grid-template-columns: 126px minmax(0, 1fr);
+      gap: 22px;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .time {
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .timeline h3 {
+      margin-bottom: 5px;
+      font-family: var(--serif);
+      font-size: 18px;
+      font-weight: 500;
+      line-height: 1.18;
+    }
+
+    .timeline .role {
+      margin-bottom: 5px;
+      color: var(--ink);
+      font-weight: 650;
+      font-size: 14px;
+      line-height: 1.55;
+    }
+
+    .timeline p {
+      margin-bottom: 0;
+    }
+
+    .footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 26px 0 36px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    [data-animate] {
+      animation: riseIn .55s ease both;
+    }
+
+    [data-animate="2"] {
+      animation-delay: .08s;
+    }
+
+    [data-animate="3"] {
+      animation-delay: .14s;
+    }
+
+    @keyframes riseIn {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .topbar-inner {
+        min-height: auto;
+        padding: 12px 0;
+        align-items: flex-start;
+      }
+
+      .nav-actions {
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 12px;
+      }
+
+      .hero {
+        grid-template-columns: 1fr;
+        min-height: auto;
+      }
+
+      .profile-photo-wrap {
+        justify-self: start;
+        width: min(136px, 44vw);
+        order: -1;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .site-shell,
+      .topbar-inner {
+        width: min(100% - 28px, 940px);
+      }
+
+      .topbar-inner {
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .nav-actions {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .site-nav {
+        gap: 16px;
+      }
+
+      .timeline-item {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .footer {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body data-page="home">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html" aria-label="Juntong Cui home">
+        <span class="brand-mark">C</span>
+        <span data-i18n="brand"></span>
+      </a>
+      <div class="nav-actions">
+        <nav class="site-nav" aria-label="Primary navigation">
+          <a href="index.html" aria-current="page" data-i18n="navHome"></a>
+          <a href="blog.html" data-i18n="navBlog"></a>
+        </nav>
+        <div class="language-switch" aria-label="Language switch">
+          <button type="button" data-lang="zh">中文</button>
+          <button type="button" data-lang="en">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="site-shell">
+    <section class="hero" id="home">
+      <div data-animate>
+        <span class="eyebrow" data-i18n="heroEyebrow"></span>
+        <h1 data-i18n="heroName"></h1>
+        <p class="subtitle" data-i18n="heroSubtitle"></p>
+        <ul class="profile-meta">
+          <li data-i18n="heroSchool"></li>
+          <li data-i18n="heroLocation"></li>
+        </ul>
+        <div class="contact-strip">
+          <a class="contact-link" href="mailto:tomjoe6@sjtu.edu.cn">tomjoe6@sjtu.edu.cn</a>
+          <a class="contact-link" href="mailto:3173618156@qq.com">3173618156@qq.com</a>
+          <a class="contact-link" href="https://www.xiaohongshu.com/user/profile/610284840000000001007f8d" target="_blank" rel="noreferrer">Xiaohongshu</a>
+          <a class="contact-link" href="https://www.linkedin.com/in/juntong-cui-63a5b63b4/" target="_blank" rel="noreferrer">LinkedIn</a>
+        </div>
+      </div>
+      <div class="profile-photo-wrap" data-animate="2">
+        <img class="profile-photo" src="photo.jpg" alt="Juntong Cui portrait">
+      </div>
+    </section>
+
+    <section class="section" id="about" data-animate="2">
+      <h2 class="section-label" data-i18n="aboutTitle"></h2>
+      <div class="section-body">
+        <p class="lead-copy" data-i18n="aboutLead"></p>
+        <p data-i18n="aboutBody"></p>
+      </div>
+    </section>
+
+    <section class="section" id="education" data-animate="3">
+      <h2 class="section-label" data-i18n="educationTitle"></h2>
+      <div class="section-body">
+        <div class="timeline">
+          <article class="timeline-item">
+            <div class="time" data-i18n="eduTime"></div>
+            <div>
+              <h3 data-i18n="eduSchool"></h3>
+              <div class="role" data-i18n="eduRole"></div>
+              <p data-i18n="eduBody"></p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="experience" data-animate="3">
+      <h2 class="section-label" data-i18n="experienceTitle"></h2>
+      <div class="section-body">
+        <div class="timeline">
+          <article class="timeline-item">
+            <div class="time" data-i18n="hisiliconTime"></div>
+            <div>
+              <h3 data-i18n="hisiliconOrg"></h3>
+              <div class="role" data-i18n="hisiliconRole"></div>
+              <p data-i18n="hisiliconBody"></p>
+            </div>
+          </article>
+          <article class="timeline-item">
+            <div class="time" data-i18n="labTime"></div>
+            <div>
+              <h3 data-i18n="labOrg"></h3>
+              <div class="role" data-i18n="labRole"></div>
+              <p data-i18n="labBody"></p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-shell footer">
+    <span data-i18n="footerNote"></span>
+  </footer>
+
+  <script>
+    const translations = {
+      zh: {
+        title: "崔君同 Juntong Cui",
+        brand: "崔君同",
+        navHome: "主页",
+        navBlog: "博客",
+        heroEyebrow: "个人主页",
+        heroName: "崔君同",
+        heroSubtitle: "上海交通大学集成电路学院本科生，关注 AI 高效计算、多模态大模型与世界模型。",
+        heroSchool: "上海交通大学 · 集成电路学院",
+        heroLocation: "上海，中国",
+        aboutTitle: "关于",
+        aboutLead: "我目前感兴趣的是 AI 高效计算、多模态大模型与世界模型。",
+        aboutBody: "我希望从集成电路和系统实现的视角理解智能模型的计算需求：如何让大模型推理更高效，如何让多模态模型处理视觉、语言与环境信息，以及世界模型如何支持更具预测和规划能力的智能系统。这个网站会持续记录我在这些方向上的学习、项目和实习经历。",
+        educationTitle: "教育经历",
+        eduTime: "2024 至今",
+        eduSchool: "上海交通大学",
+        eduRole: "集成电路学院 · 本科生",
+        eduBody: "正在接受集成电路相关训练，持续学习电路、系统、计算机体系结构和工程实践。",
+        experienceTitle: "经历",
+        hisiliconTime: "2025.6 - 2025.8",
+        hisiliconOrg: "海思 HiSilicon",
+        hisiliconRole: "实习生 · 多路选择器优化",
+        hisiliconBody: "参与多路选择器相关优化工作，关注硬件实现中的结构、性能和工程细节。",
+        labTime: "进行中",
+        labOrg: "上海交通大学集成电路学院课题组",
+        labRole: "课题组实习",
+        labBody: "参与学院课题组实习，在具体研究和工程任务中积累集成电路方向的实践经验。",
+        footerNote: "© 2026 崔君同。本站托管于 GitHub Pages。"
+      },
+      en: {
+        title: "Juntong Cui",
+        brand: "Juntong Cui",
+        navHome: "Home",
+        navBlog: "Blog",
+        heroEyebrow: "Personal Homepage",
+        heroName: "Juntong Cui",
+        heroSubtitle: "Undergraduate student at the School of Integrated Circuits, Shanghai Jiao Tong University, interested in efficient computation for AI, multimodal large models, and world models.",
+        heroSchool: "School of Integrated Circuits · Shanghai Jiao Tong University",
+        heroLocation: "Shanghai, China",
+        aboutTitle: "About",
+        aboutLead: "I am currently interested in efficient computation for AI, multimodal large models, and world models.",
+        aboutBody: "From the perspective of integrated circuits and system implementation, I want to understand the computational demands behind intelligent models: how to make large-model inference more efficient, how multimodal models process visual, language, and environmental information, and how world models can support intelligence with stronger prediction and planning abilities. This website will collect my learning notes, projects, and internship experience in these directions.",
+        educationTitle: "Education",
+        eduTime: "2024 - Now",
+        eduSchool: "Shanghai Jiao Tong University",
+        eduRole: "Undergraduate Student · School of Integrated Circuits",
+        eduBody: "Studying integrated circuits with ongoing training in circuits, systems, computer architecture, and engineering practice.",
+        experienceTitle: "Experience",
+        hisiliconTime: "Jun. 2025 - Aug. 2025",
+        hisiliconOrg: "HiSilicon",
+        hisiliconRole: "Intern · Multiplexer Optimization",
+        hisiliconBody: "Worked on multiplexer-related optimization, focusing on structure, performance, and engineering details in hardware implementation.",
+        labTime: "Ongoing",
+        labOrg: "Research Group, School of Integrated Circuits, SJTU",
+        labRole: "Research Group Intern",
+        labBody: "Participating in research group work at the School of Integrated Circuits and gaining practical experience through concrete research and engineering tasks.",
+        footerNote: "© 2026 Juntong Cui. Hosted on GitHub Pages."
+      }
+    };
+
+    const fallbackLang = "zh";
+    const savedLang = localStorage.getItem("site-language");
+    const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
+
+    function applyLanguage(lang) {
+      const dict = translations[lang] || translations[fallbackLang];
+      document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+      document.title = dict.title;
+      document.querySelectorAll("[data-i18n]").forEach((node) => {
+        const key = node.getAttribute("data-i18n");
+        node.textContent = dict[key] || "";
+      });
+      document.querySelectorAll("[data-lang]").forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.lang === lang);
+        button.setAttribute("aria-pressed", String(button.dataset.lang === lang));
+      });
+      localStorage.setItem("site-language", lang);
+    }
+
+    document.querySelectorAll("[data-lang]").forEach((button) => {
+      button.addEventListener("click", () => applyLanguage(button.dataset.lang));
+    });
+
+    applyLanguage(initialLang);
+  </script>
+</body>
+</html>
