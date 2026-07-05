@@ -1,0 +1,503 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Why ResNet replaced Highway Networks by Juntong Cui.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <title>ResNet 为什么取代了 Highway · Juntong Cui</title>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [["\\(", "\\)"], ["$", "$"]], displayMath: [["\\[", "\\]"]] },
+      svg: { fontCache: "global" }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f7f1e8;
+      --paper-soft: #fbf8f2;
+      --paper-deep: #eee4d5;
+      --ink: #1f1e1b;
+      --muted: #5f5a52;
+      --line: #d8cbb8;
+      --line-strong: #b7a790;
+      --clay: #b85c38;
+      --clay-dark: #873f2b;
+      --blue: #526b7c;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+      --serif: Georgia, "Times New Roman", "Songti SC", serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(90deg, rgba(31, 30, 27, .035) 1px, transparent 1px) 0 0 / 56px 56px,
+        linear-gradient(180deg, rgba(31, 30, 27, .025) 1px, transparent 1px) 0 0 / 56px 56px,
+        var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    a {
+      color: inherit;
+      text-decoration-color: rgba(31, 30, 27, .35);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 4px;
+    }
+
+    a:hover {
+      color: var(--clay-dark);
+      text-decoration-color: var(--clay-dark);
+    }
+
+    button { font: inherit; }
+
+    .site-shell {
+      width: min(940px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid var(--line);
+      background: rgba(247, 241, 232, .9);
+      backdrop-filter: blur(16px);
+    }
+
+    .topbar-inner {
+      width: min(940px, calc(100% - 40px));
+      min-height: 56px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--serif);
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .brand span:last-child {
+      font-size: 15px;
+      font-weight: 680;
+    }
+
+    .nav-actions,
+    .site-nav {
+      display: flex;
+      align-items: center;
+    }
+
+    .nav-actions { gap: 18px; }
+
+    .site-nav {
+      gap: 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .site-nav a { text-decoration: none; }
+
+    .site-nav a[aria-current="page"] {
+      color: var(--ink);
+      font-weight: 650;
+    }
+
+    .language-switch {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      width: 104px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      background: var(--paper-deep);
+    }
+
+    .language-switch button {
+      min-height: 28px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .language-switch button.is-active {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .article {
+      width: min(760px, 100%);
+      padding: 34px 0 56px;
+    }
+
+    .back-link {
+      display: inline-flex;
+      margin-bottom: 24px;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 650;
+      text-decoration: none;
+    }
+
+    .article-meta {
+      color: var(--clay-dark);
+      font-size: 12px;
+      font-weight: 760;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin: 10px 0 16px;
+      font-family: var(--serif);
+      font-size: clamp(28px, 4vw, 38px);
+      font-weight: 500;
+      line-height: 1.16;
+    }
+
+    h2 {
+      margin: 34px 0 12px;
+      font-family: var(--serif);
+      font-size: 22px;
+      font-weight: 500;
+      line-height: 1.24;
+    }
+
+    h3 {
+      margin: 22px 0 8px;
+      font-size: 16px;
+      line-height: 1.45;
+    }
+
+    p,
+    li {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.82;
+    }
+
+    ul,
+    ol {
+      padding-left: 1.25rem;
+    }
+
+    .lead {
+      color: var(--ink);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.72;
+    }
+
+    figure {
+      max-width: 520px;
+      margin: 22px auto;
+    }
+
+    .article-image {
+      width: 100%;
+      display: block;
+      border: 1px solid var(--line);
+      background: var(--paper-soft);
+    }
+
+    figcaption {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    .formula-block {
+      overflow-x: auto;
+      margin: 18px 0;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      background: var(--paper-soft);
+    }
+
+    .paper-list {
+      display: grid;
+      gap: 8px;
+      padding-left: 0;
+      list-style: none;
+    }
+
+    .paper-list a {
+      color: var(--clay-dark);
+      font-weight: 650;
+    }
+
+    .footer {
+      padding: 26px 0 36px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    [data-lang-content][hidden] { display: none; }
+
+    @media (max-width: 720px) {
+      .topbar-inner {
+        min-height: auto;
+        padding: 12px 0;
+        align-items: flex-start;
+      }
+
+      .nav-actions {
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 12px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .site-shell,
+      .topbar-inner {
+        width: min(100% - 28px, 940px);
+      }
+
+      .topbar-inner {
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .nav-actions {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html" aria-label="Juntong Cui home">
+        <span class="brand-mark">C</span>
+        <span data-i18n="brand"></span>
+      </a>
+      <div class="nav-actions">
+        <nav class="site-nav" aria-label="Primary navigation">
+          <a href="index.html" data-i18n="navHome"></a>
+          <a href="blog.html" aria-current="page" data-i18n="navBlog"></a>
+          <a href="photography.html" data-i18n="navPhotography"></a>
+        </nav>
+        <div class="language-switch" aria-label="Language switch">
+          <button type="button" data-lang="zh">中文</button>
+          <button type="button" data-lang="en">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="site-shell">
+    <article class="article" data-lang-content="zh">
+      <a class="back-link" href="blog.html">← 返回博客</a>
+      <div class="article-meta">机器学习 · 深度网络</div>
+      <h1>ResNet 为什么取代了 Highway</h1>
+      <p class="lead">在 ResNet 之前，Highway Network 已经提出过类似的跨层连接。从形式上看 Highway 甚至比 ResNet 更复杂，那么为什么成为主流的是 ResNet 的思想？</p>
+
+      <figure>
+        <img class="article-image" src="assets/blog/highway-resnet.png" alt="Highway Network 与 ResNet 对比示意图">
+        <figcaption>图 1：Highway 与 ResNet 都试图解决深层网络训练困难的问题，但二者对 shortcut 路径的处理方式不同。</figcaption>
+      </figure>
+
+      <h2>更深网络为什么反而更难训练</h2>
+      <p>早期深度学习有一个很自然的直觉：如果浅层网络已经能得到较好的解，那么更深的网络不应该更差。新增的层完全可以退化为恒等映射：</p>
+      <div class="formula-block">\[H(x)=x\]</div>
+      <p>但实际训练中，plain network 加深后训练误差反而上升。ResNet 论文将这个现象称为 degradation problem。它说明网络很难主动学出恒等映射，哪怕这个解从函数表达上看很简单。</p>
+
+      <h2>Highway：带门控的残差</h2>
+      <p>Highway layer 可以写成：</p>
+      <div class="formula-block">\[y = H(x;W_H)\cdot T(x;W_T)+x\cdot C(x;W_C)\]</div>
+      <p>通常令：</p>
+      <div class="formula-block">\[C(x)=1-T(x)\]</div>
+      <p>其中：</p>
+      <div class="formula-block">\[T(x)=\sigma(W_Tx+b_T)\]</div>
+      <p>于是 Highway layer 可写为：</p>
+      <div class="formula-block">\[y=H(x)\cdot T(x)+x\cdot(1-T(x))\]</div>
+      <p>进一步改写：</p>
+      <div class="formula-block">\[y=x+T(x)\cdot(H(x)-x)\]</div>
+      <p>所以 Highway 本质上已经是 gated residual：它不是直接学习 \(H(x)\)，而是在学习一个被 gate 控制的残差项。</p>
+      <p>如果 \(T(x)\to 0\)，则 \(y=x\)，信息直接通过；如果 \(T(x)\to 1\)，则 \(y=H(x)\)，网络执行非线性变换。也就是说，Highway 的思想是让网络自己学习“变换多少”。</p>
+
+      <h2>ResNet：把恒等路径固定下来</h2>
+      <p>ResNet 将问题进一步简化为：</p>
+      <div class="formula-block">\[y=x+F(x;W)\]</div>
+      <p>其中：</p>
+      <div class="formula-block">\[F(x;W)=H(x)-x\]</div>
+      <p>如果某个 block 不需要改变输入，只需让：</p>
+      <div class="formula-block">\[F(x;W)\to 0\]</div>
+      <p>即可得到：</p>
+      <div class="formula-block">\[y=x\]</div>
+
+      <h2>反向传播中的区别</h2>
+      <p>从反向传播看，ResNet 的优势更明显。对单个 residual block：</p>
+      <div class="formula-block">\[y=x+F(x;W)\]</div>
+      <p>有：</p>
+      <div class="formula-block">\[\frac{dy}{dx}=I+\frac{dF}{dx}\]</div>
+      <p>本质区别在于：Highway 的 shortcut 是参数化的，而 ResNet 的 shortcut 是非参数化的。</p>
+      <p>在 Highway 中，信息是否通过 shortcut 取决于 gate。Gate 会引入额外参数，也可能出现饱和，使梯度传播受到门控影响。ResNet 则始终保留恒等映射，不经过卷积、不经过激活、不经过 gate。</p>
+
+      <h2>结论</h2>
+      <p>凡是结构上必须稳定存在的路径，就不应该交给优化器去学习。在足够深的网络里，重要的并不只是复杂变换，而是一条始终畅通的恒等路径。这正是 ResNet 思想能够取代 Highway，并成为主流深层网络基础结构的重要原因。</p>
+
+      <h2>参考论文</h2>
+      <ul class="paper-list">
+        <li><a href="https://arxiv.org/abs/1505.00387" target="_blank" rel="noreferrer">Highway Networks: arXiv:1505.00387</a></li>
+        <li><a href="https://arxiv.org/abs/1512.03385" target="_blank" rel="noreferrer">Deep Residual Learning for Image Recognition: arXiv:1512.03385</a></li>
+        <li><a href="https://arxiv.org/abs/1603.05027" target="_blank" rel="noreferrer">Identity Mappings in Deep Residual Networks: arXiv:1603.05027</a></li>
+      </ul>
+    </article>
+
+    <article class="article" data-lang-content="en" hidden>
+      <a class="back-link" href="blog.html">← Back to Blog</a>
+      <div class="article-meta">Machine Learning · Deep Networks</div>
+      <h1>Why ResNet Replaced Highway Networks</h1>
+      <p class="lead">Before ResNet, Highway Networks had already proposed a similar cross-layer connection. Highway even looks more complex than ResNet, so why did the ResNet idea become the mainstream one?</p>
+
+      <figure>
+        <img class="article-image" src="assets/blog/highway-resnet.png" alt="Comparison between Highway Networks and ResNet">
+        <figcaption>Figure 1: Both Highway and ResNet try to address the optimization difficulty of deep networks, but they treat the shortcut path differently.</figcaption>
+      </figure>
+
+      <h2>Why deeper plain networks became harder to train</h2>
+      <p>There was a natural intuition in early deep learning: if a shallow network can already obtain a good solution, then a deeper network should not be worse. The newly added layers could simply degenerate into an identity mapping:</p>
+      <div class="formula-block">\[H(x)=x\]</div>
+      <p>However, in practice, deeper plain networks often showed higher training error. The ResNet paper called this the degradation problem, indicating that a network can have difficulty learning the identity mapping even when it is functionally simple.</p>
+
+      <h2>Highway: gated residual learning</h2>
+      <p>A Highway layer can be written as:</p>
+      <div class="formula-block">\[y = H(x;W_H)\cdot T(x;W_T)+x\cdot C(x;W_C)\]</div>
+      <p>Usually:</p>
+      <div class="formula-block">\[C(x)=1-T(x)\]</div>
+      <p>where:</p>
+      <div class="formula-block">\[T(x)=\sigma(W_Tx+b_T)\]</div>
+      <p>Thus:</p>
+      <div class="formula-block">\[y=H(x)\cdot T(x)+x\cdot(1-T(x))\]</div>
+      <p>which can be rewritten as:</p>
+      <div class="formula-block">\[y=x+T(x)\cdot(H(x)-x)\]</div>
+      <p>So Highway is essentially gated residual learning. Instead of directly learning \(H(x)\), it learns a residual term controlled by a gate.</p>
+
+      <h2>ResNet: fixing the identity path</h2>
+      <p>ResNet simplifies the formulation to:</p>
+      <div class="formula-block">\[y=x+F(x;W)\]</div>
+      <p>where:</p>
+      <div class="formula-block">\[F(x;W)=H(x)-x\]</div>
+      <p>If a block does not need to change its input, it only needs:</p>
+      <div class="formula-block">\[F(x;W)\to 0\]</div>
+      <p>and then:</p>
+      <div class="formula-block">\[y=x\]</div>
+
+      <h2>The difference in backpropagation</h2>
+      <p>For a single residual block:</p>
+      <div class="formula-block">\[y=x+F(x;W)\]</div>
+      <p>we have:</p>
+      <div class="formula-block">\[\frac{dy}{dx}=I+\frac{dF}{dx}\]</div>
+      <p>The core difference is that Highway parameterizes the shortcut, while ResNet keeps it non-parametric.</p>
+      <p>In Highway Networks, whether information passes through the shortcut depends on the gate. The gate introduces extra parameters and can saturate, so gradient propagation can be affected by gating. ResNet keeps an identity mapping that does not pass through convolution, activation, or a gate.</p>
+
+      <h2>Conclusion</h2>
+      <p>A path that must remain structurally stable should not be left for the optimizer to learn. In sufficiently deep networks, the key is not only complex transformation, but also an always-open identity path. This is why ResNet's idea replaced Highway Networks and became a foundation for deep architectures.</p>
+
+      <h2>References</h2>
+      <ul class="paper-list">
+        <li><a href="https://arxiv.org/abs/1505.00387" target="_blank" rel="noreferrer">Highway Networks: arXiv:1505.00387</a></li>
+        <li><a href="https://arxiv.org/abs/1512.03385" target="_blank" rel="noreferrer">Deep Residual Learning for Image Recognition: arXiv:1512.03385</a></li>
+        <li><a href="https://arxiv.org/abs/1603.05027" target="_blank" rel="noreferrer">Identity Mappings in Deep Residual Networks: arXiv:1603.05027</a></li>
+      </ul>
+    </article>
+  </main>
+
+  <footer class="site-shell footer">
+    <span data-i18n="footerNote"></span>
+  </footer>
+
+  <script>
+    const translations = {
+      zh: {
+        title: "ResNet 为什么取代了 Highway · 崔君同",
+        brand: "崔君同",
+        navHome: "主页",
+        navBlog: "博客",
+        navPhotography: "摄影",
+        footerNote: "© 2026 崔君同。本站托管于 GitHub Pages。"
+      },
+      en: {
+        title: "Why ResNet Replaced Highway Networks · Juntong Cui",
+        brand: "Juntong Cui",
+        navHome: "Home",
+        navBlog: "Blog",
+        navPhotography: "Photography",
+        footerNote: "© 2026 Juntong Cui. Hosted on GitHub Pages."
+      }
+    };
+
+    const fallbackLang = "zh";
+    const savedLang = localStorage.getItem("site-language");
+    const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
+
+    function applyLanguage(lang) {
+      const dict = translations[lang] || translations[fallbackLang];
+      document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+      document.title = dict.title;
+      document.querySelectorAll("[data-i18n]").forEach((node) => {
+        const key = node.getAttribute("data-i18n");
+        node.textContent = dict[key] || "";
+      });
+      document.querySelectorAll("[data-lang-content]").forEach((node) => {
+        node.hidden = node.dataset.langContent !== lang;
+      });
+      document.querySelectorAll("[data-lang]").forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.lang === lang);
+        button.setAttribute("aria-pressed", String(button.dataset.lang === lang));
+      });
+      localStorage.setItem("site-language", lang);
+      if (window.MathJax?.typesetPromise) {
+        window.MathJax.typesetPromise();
+      }
+    }
+
+    document.querySelectorAll("[data-lang]").forEach((button) => {
+      button.addEventListener("click", () => applyLanguage(button.dataset.lang));
+    });
+
+    applyLanguage(initialLang);
+  </script>
+</body>
+</html>
