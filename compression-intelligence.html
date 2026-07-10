@@ -349,34 +349,56 @@
       <a class="back-link" href="blog.html">← 返回博客</a>
       <div class="article-meta">2026-07-10 · 机器学习 · 大模型</div>
       <h1>什么是压缩即智能</h1>
-      <p class="lead">“压缩即智能”不是说把文件变小就等于聪明，而是说：一个系统如果能用更短的模型描述更复杂的数据，并在新数据上仍然预测准确，那么它已经捕捉到了数据背后的结构。</p>
+      <p class="lead">“压缩即智能”不是一句玄学口号。它的核心意思是：如果一个系统能用更短的内部模型解释大量复杂数据，并且在未见过的数据上继续预测准确，那么它已经捕捉到了数据背后的可复用结构。对大语言模型来说，next-token prediction 正是在用预测误差衡量这种结构捕捉能力。</p>
 
-      <h2>从最优编码看预测</h2>
-      <p>信息论里，一个事件越容易预测，编码它需要的比特数越少。如果模型给序列 \(x\) 分配概率 \(p(x)\)，最优编码长度近似为：</p>
+      <h2>1. 压缩不是删减，而是发现结构</h2>
+      <p>日常语境里的压缩常常让人想到 zip 文件：把文件变小，再无损还原。但在智能讨论里，“压缩”更接近信息论意义上的建模。一个事件越容易预测，编码它需要的比特数越少。如果模型给样本 \(x\) 分配概率 \(p(x)\)，理想编码长度为：</p>
       <div class="formula-block">\[\ell(x)=-\log_2 p(x)\]</div>
-      <p>所以压缩的核心不是“删掉信息”，而是找到规律。规律越强，模型给真实数据的概率越高，所需比特越少。对文本序列 \(x_1,\ldots,x_T\)，语言模型做的是：</p>
-      <div class="formula-block">\[p_\theta(x)=\prod_{t=1}^{T}p_\theta(x_t\mid x_{<t})\]</div>
-      <p>训练时最小化的负对数似然可以写成：</p>
-      <div class="formula-block">\[\mathcal{L}(\theta)=-\frac{1}{T}\sum_{t=1}^{T}\log p_\theta(x_t\mid x_{<t})\]</div>
-      <p>这就是交叉熵损失。换成以 2 为底的对数，它几乎就是“每个 token 平均需要多少比特来编码”。困惑度也可以理解为压缩效率的另一种表达：</p>
-      <div class="formula-block">\[\mathrm{PPL}=2^{H}\]</div>
+      <p>这条公式很关键：压缩和预测是同一件事的两种说法。模型越理解数据中的规律，就越能给真实样本分配更高概率，也就能用更短编码描述它。反过来，如果模型不知道规律，只能把每个样本当成偶然事件，编码长度就会很长。</p>
+      <p>因此，好的压缩不是抹掉细节，而是把重复出现的结构抽出来。例如自然语言里有语法结构，代码里有类型和控制流，数学证明里有局部推导规则，现实描述里有因果和时间关系。智能系统要做的，是把这些结构压进一个可泛化的模型中。</p>
 
-      <h2>为什么大模型的压缩会变成能力</h2>
-      <p>大语言模型的 next-token prediction 看起来像文字接龙，但要在互联网文本上持续降低 loss，模型不能只记住表面字符串。它必须学习语法、语义、事实关联、代码结构、数学步骤、对话意图，以及大量隐含的世界规律。</p>
-      <p>更形式化地说，真实数据分布为 \(P\)，模型分布为 \(Q_\theta\)，交叉熵满足：</p>
+      <h2>2. 语言模型的训练目标本质上是压缩目标</h2>
+      <p>对文本序列 \(x_{1:T}\)，自回归语言模型把联合概率分解为一串条件概率：</p>
+      <div class="formula-block">\[p_\theta(x_{1:T})=\prod_{t=1}^{T}p_\theta(x_t\mid x_{1:t-1})\]</div>
+      <p>训练时最小化平均负对数似然：</p>
+      <div class="formula-block">\[\mathcal{L}(\theta)=-\frac{1}{T}\sum_{t=1}^{T}\ln p_\theta(x_t\mid x_{1:t-1})\]</div>
+      <p>如果把自然对数换算成以 2 为底的比特单位，就得到 bits per token：</p>
+      <div class="formula-block">\[\mathrm{BPT}=\frac{\mathcal{L}}{\ln 2}\]</div>
+      <p>困惑度则是同一个量的指数形式：</p>
+      <div class="formula-block">\[\mathrm{PPL}=e^{\mathcal{L}}=2^{\mathrm{BPT}}\]</div>
+      <p>所以一个大模型 loss 下降，并不只是“预测下一个词更准”。从信息论视角看，它是在减少编码真实文本所需的平均比特数。语言建模训练就是在训练一个越来越好的文本压缩器。</p>
+
+      <h2>3. 为什么“预测下一个 token”会学到高级能力</h2>
+      <p>表面看，next-token prediction 像文字接龙。但在大规模语料上持续降低 loss，模型不能只靠局部词频。要预测“牛顿第二定律可以写成”，模型需要物理知识；要补全一段 Python 函数，它需要变量作用域和程序语义；要续写一段证明，它需要保持符号一致并执行若干步推理。</p>
+      <p>换句话说，许多高级能力是高质量压缩的副产物。世界知识、语法、代码结构、数学模式、对话意图，并不是训练目标外额外添加的模块，而是为了更好地压缩文本分布而被迫形成的内部结构。</p>
+      <p>更形式化地说，设真实数据分布为 \(P\)，模型分布为 \(Q_\theta\)，交叉熵可以分解为：</p>
       <div class="formula-block">\[H(P,Q_\theta)=H(P)+D_{\mathrm{KL}}(P\parallel Q_\theta)\]</div>
-      <p>\(H(P)\) 是数据本身不可约的不确定性，模型能优化的是后面的 KL 散度。散度越小，模型越接近真实分布，也就越能压缩数据。能力提升可以看作模型把许多分散样本中的公共结构抽象成参数，再在新上下文中展开。</p>
-      <p class="note">这解释了为什么“记忆”不是理想压缩。死记硬背只能缩短训练集上的描述长度；真正有用的压缩要在未见过的数据上也减少编码长度，也就是泛化。</p>
+      <p>其中 \(H(P)\) 是数据本身不可约的不确定性，模型能优化的是 \(D_{\mathrm{KL}}\) 项。KL 散度越小，模型越接近真实分布，编码真实数据时付出的额外比特越少。所谓“能力提升”，可以理解为模型把分散样本中的公共结构压缩进参数，再在新的上下文中展开。</p>
+      <p class="note">这也解释了为什么“背诵训练集”不是理想智能。背诵可以降低训练集上的描述长度，但如果不能降低测试集上的编码长度，它只是存储，不是可泛化压缩。</p>
 
-      <h2>MDL 视角：模型本身也要付费</h2>
+      <h2>4. MDL：模型复杂度也要计入成本</h2>
       <p>最小描述长度原则会把总成本写成模型成本和数据成本之和：</p>
       <div class="formula-block">\[L(D,M)=L(M)+L(D\mid M)\]</div>
-      <p>如果模型太小，\(L(D\mid M)\) 很大，因为它解释不了数据；如果模型只是在参数里硬塞训练集，\(L(M)\) 会很大，也不是真正优雅的压缩。大模型有效的地方在于：当参数、数据和算力足够时，很多表面上不同的样本可以共享同一套内部表示。</p>
-      <p>Transformer 的注意力机制让模型根据上下文动态选择相关信息；规模律和 Chinchilla 一类结果则说明，在一定范围内，模型规模、数据量和计算量增加时，语言建模 loss 会可预测地下降。这意味着“更好的压缩”与“更强的下游能力”之间存在经验上的强联系。</p>
+      <p>\(L(M)\) 是描述模型本身的成本，\(L(D\mid M)\) 是在模型已知的情况下描述数据的成本。模型太弱时，\(L(D\mid M)\) 很大；模型只是在参数中硬塞训练集时，\(L(M)\) 很大。真正有效的模型处在中间：它用有限的参数复用大量规律，让新样本也能被更短地描述。</p>
+      <p>大模型的参数量很大，看起来似乎违背“短描述”。但这里要比较的是“模型加数据”的总长度，而不是模型本身是否小。一个巨大的模型如果能解释海量文本、代码、图像描述和知识片段中的共享结构，并在新样本上保持低 loss，它仍可能是更好的总描述。</p>
 
-      <h2>边界：压缩不是智能的全部</h2>
-      <p>压缩给了大模型强大的预测和泛化能力，但它不自动等于目标、价值、真实世界行动能力或可靠因果理解。一个模型可能很会压缩文本分布，却仍然会幻觉、缺少长期规划，或者在分布外场景中失败。</p>
-      <p>因此更准确的说法是：对大模型而言，压缩是智能的一条主要训练路径。它把海量经验压成可调用的预测模型；当上下文给出任务时，模型再把这些压缩结构展开为回答、代码、推理步骤或计划。</p>
+      <h2>5. Transformer 为什么适合做这种压缩</h2>
+      <p>Transformer 的注意力机制提供了一种上下文相关的动态索引。给定当前 token，模型可以从上下文中选择相关位置，组合局部模式和长程依赖。它不是把句子压成一个固定向量后再预测，而是在每一层持续重写“当前上下文中哪些信息重要”。</p>
+      <p>如果把每一层看作一次重编码，Transformer 做的就是逐层把原始 token 序列变成更有预测价值的表示。浅层可能编码词形和局部搭配，中层编码实体关系和句法角色，更深层则更接近任务、意图、代码语义或推理状态。这不是严格分层定律，但它是理解大模型内部表征的一个有用图景。</p>
+
+      <h2>6. 规模律：更大模型为什么常常更聪明</h2>
+      <p>规模律研究发现，在一定范围内，语言模型 loss 会随着模型规模、数据量和计算量的增加而平滑下降。一个简化表达可以写成：</p>
+      <div class="formula-block">\[\mathcal{L}(N,D)\approx \mathcal{L}_\infty + A N^{-\alpha}+B D^{-\beta}\]</div>
+      <p>这里 \(N\) 表示模型规模，\(D\) 表示训练数据量，\(\mathcal{L}_\infty\) 表示不可约损失。它说明：当模型容量和数据足够匹配时，压缩质量会可预测地提升。Chinchilla 的结论进一步强调，单纯堆参数不够，数据量和算力分配也必须匹配。</p>
+      <p>这也是为什么大模型能力常常随 loss 改善而出现：更低 loss 表明模型找到了更多跨样本共享结构。当这些结构足够丰富，用户在 prompt 中指定一个新任务时，模型就能调用已有压缩结构完成看似新颖的组合。</p>
+
+      <h2>7. 压缩和推理：模型不是只在存知识</h2>
+      <p>一个常见误解是：如果大模型只是压缩语料，那它只能复述。实际情况更细。压缩可以包含程序化结构。比如“长加法算法”不是某一道题的答案，而是一套可复用变换规则；“递归函数”不是某段代码的字符串，而是一种控制结构；“证明反证法”不是一句模板，而是一种搜索和约束方式。</p>
+      <p>当这些结构被压进参数后，模型在上下文中可以进行组合。它可能把某个数学模式和某个自然语言解释结合，把一个 API 用法迁移到新函数，把一段抽象原则落实到具体代码。这种组合不是完美可靠的形式推理，但它已经超出简单记忆。</p>
+
+      <h2>8. 边界：压缩不是智能的全部</h2>
+      <p>压缩提供了预测、泛化和组合能力，但它不自动等于目标、价值、因果干预能力或长期行动能力。一个模型可能很会压缩文本分布，却仍然会幻觉；可能能解释因果语言，却不能真正进行物理实验；可能能写计划，却不能稳定执行计划。</p>
+      <p>所以更准确的说法是：对大模型而言，压缩是通往智能的一条主路径，而不是智能的完整定义。它把海量经验压成可调用的预测模型；当上下文给出任务时，模型再把这些压缩结构展开为回答、代码、推理步骤或计划。压缩解释了大模型为什么能从简单训练目标中长出复杂行为，也提醒我们：真正可靠的智能还需要 grounding、反馈、工具使用和长期记忆等机制补足。</p>
 
       <h2>参考来源</h2>
       <ul class="paper-list">
@@ -393,34 +415,56 @@
       <a class="back-link" href="blog.html">← Back to Blog</a>
       <div class="article-meta">2026-07-10 · Machine Learning · Large Models</div>
       <h1>What Does 'Compression Is Intelligence' Mean?</h1>
-      <p class="lead">“Compression is intelligence” does not mean that making files smaller is the whole of intelligence. It means that a system is intelligent to the extent that it can describe complex data with a shorter, reusable model and still predict unseen data well.</p>
+      <p class="lead">“Compression is intelligence” is not a mystical slogan. It means that if a system can explain complex data with a shorter reusable model, and still predict unseen data well, it has captured structure in the data. For large language models, next-token prediction is a concrete way to measure this structure capture.</p>
 
-      <h2>Prediction as optimal coding</h2>
-      <p>In information theory, the more predictable an event is, the fewer bits it needs. If a model assigns probability \(p(x)\) to a sequence \(x\), the ideal code length is approximately:</p>
+      <h2>1. Compression means finding structure</h2>
+      <p>In everyday use, compression sounds like making a zip file smaller. In the intelligence discussion, it is closer to probabilistic modeling. The more predictable an event is, the fewer bits it needs. If a model assigns probability \(p(x)\) to sample \(x\), the ideal code length is:</p>
       <div class="formula-block">\[\ell(x)=-\log_2 p(x)\]</div>
-      <p>For a text sequence \(x_1,\ldots,x_T\), a language model factorizes probability as:</p>
-      <div class="formula-block">\[p_\theta(x)=\prod_{t=1}^{T}p_\theta(x_t\mid x_{<t})\]</div>
-      <p>Training minimizes negative log-likelihood:</p>
-      <div class="formula-block">\[\mathcal{L}(\theta)=-\frac{1}{T}\sum_{t=1}^{T}\log p_\theta(x_t\mid x_{<t})\]</div>
-      <p>With base-2 logarithms, this is nearly the average number of bits needed per token. Perplexity is another way to express the same compression quality:</p>
-      <div class="formula-block">\[\mathrm{PPL}=2^{H}\]</div>
+      <p>This equation is the bridge: prediction and compression are two views of the same operation. A model that understands the regularities of the data assigns higher probability to real samples, so it can describe them with fewer bits.</p>
+      <p>Good compression is therefore not deleting information. It is extracting reusable structure: grammar in language, control flow in code, local inference rules in proofs, and causal or temporal patterns in descriptions of the world.</p>
 
-      <h2>Why compression becomes capability in LLMs</h2>
-      <p>Next-token prediction looks like autocomplete, but lowering loss on web-scale text requires much more than memorizing strings. The model must learn syntax, semantics, facts, code patterns, mathematical steps, conversational intent, and many latent regularities of the world.</p>
-      <p>If the data distribution is \(P\) and the model distribution is \(Q_\theta\), cross-entropy satisfies:</p>
+      <h2>2. Language-model training is a compression objective</h2>
+      <p>For a text sequence \(x_{1:T}\), an autoregressive language model factorizes probability as:</p>
+      <div class="formula-block">\[p_\theta(x_{1:T})=\prod_{t=1}^{T}p_\theta(x_t\mid x_{1:t-1})\]</div>
+      <p>Training minimizes average negative log-likelihood:</p>
+      <div class="formula-block">\[\mathcal{L}(\theta)=-\frac{1}{T}\sum_{t=1}^{T}\ln p_\theta(x_t\mid x_{1:t-1})\]</div>
+      <p>Converting natural logs into bits gives bits per token:</p>
+      <div class="formula-block">\[\mathrm{BPT}=\frac{\mathcal{L}}{\ln 2}\]</div>
+      <p>Perplexity is the exponential form of the same quantity:</p>
+      <div class="formula-block">\[\mathrm{PPL}=e^{\mathcal{L}}=2^{\mathrm{BPT}}\]</div>
+      <p>So when language-model loss decreases, the model is not merely becoming better at autocomplete. It is reducing the number of bits needed to encode real text. Language modeling is training a better compressor.</p>
+
+      <h2>3. Why next-token prediction creates capability</h2>
+      <p>Next-token prediction looks shallow only if the data is shallow. On web-scale text, lowering loss requires more than local word frequencies. To continue “Newton's second law can be written as,” the model needs physics; to complete a Python function, it needs program semantics; to continue a proof, it needs symbol tracking and local reasoning.</p>
+      <p>Many high-level abilities are therefore side effects of high-quality compression. World knowledge, syntax, code structure, mathematical patterns, and conversational intent are not separate modules added after training. They are structures the model is pressured to learn because they help compress the data distribution.</p>
+      <p>Formally, if the data distribution is \(P\) and the model distribution is \(Q_\theta\), cross-entropy decomposes as:</p>
       <div class="formula-block">\[H(P,Q_\theta)=H(P)+D_{\mathrm{KL}}(P\parallel Q_\theta)\]</div>
-      <p>\(H(P)\) is the irreducible uncertainty of the data. The model reduces the KL term. A smaller KL divergence means the model is closer to the true distribution and can encode the data with fewer extra bits.</p>
-      <p class="note">Memorization is not the useful kind of compression. Memorization shortens the description of the training set; real compression also reduces code length on unseen data, which is generalization.</p>
+      <p>\(H(P)\) is the irreducible uncertainty of the data. The model reduces the KL term. A smaller KL divergence means the model is closer to the true distribution and pays fewer extra bits when encoding real samples.</p>
+      <p class="note">Memorization is not the useful kind of compression. Memorization can shorten the training set, but real compression also reduces code length on unseen data. That is generalization.</p>
 
-      <h2>The MDL view</h2>
+      <h2>4. MDL: the model also has a cost</h2>
       <p>The minimum description length principle writes the total cost as:</p>
       <div class="formula-block">\[L(D,M)=L(M)+L(D\mid M)\]</div>
-      <p>If the model is too small, \(L(D\mid M)\) is large because it cannot explain the data. If the model simply stores the training set in its parameters, \(L(M)\) becomes large. The useful regime is where many apparently different samples share internal representations.</p>
-      <p>Transformer attention lets the model select relevant context dynamically. Scaling laws and Chinchilla-style compute-optimal training show that, within a broad range, language-modeling loss decreases predictably as model size, data, and compute are balanced. Empirically, better compression and stronger downstream behavior are tightly linked.</p>
+      <p>\(L(M)\) is the cost of describing the model. \(L(D\mid M)\) is the cost of describing the data once the model is known. If the model is too weak, \(L(D\mid M)\) is large. If it simply stores the training set in its parameters, \(L(M)\) is large. The useful regime is where finite parameters explain many samples through shared structure.</p>
+      <p>Large models look expensive because their parameter count is high, but the right comparison is total description length, not model size alone. A large model can still be a better compressor if it explains a much larger and more diverse data distribution and continues to generalize.</p>
 
-      <h2>The boundary</h2>
-      <p>Compression is not all of intelligence. It does not automatically give a model goals, values, reliable causal grounding, or robust long-term planning. A model can compress text extremely well and still hallucinate or fail out of distribution.</p>
-      <p>A more precise statement is: for large language models, compression is a major training path toward intelligence. The model compresses experience into a reusable predictive structure, then expands that structure into answers, code, reasoning steps, or plans when a context asks for them.</p>
+      <h2>5. Why Transformer is a good compressor</h2>
+      <p>Transformer attention is a dynamic indexing mechanism. At each token, the model can select relevant positions from the context and combine local patterns with long-range dependencies. It does not compress a whole sentence into one fixed vector; it repeatedly rewrites the representation of the current context.</p>
+      <p>One useful mental picture is that each layer performs a re-encoding. Early layers may encode morphology and local phrases; middle layers may encode entity relations and syntax; deeper layers may move closer to task intent, code semantics, or reasoning state. This is not a strict law, but it is a useful way to understand why Transformer representations become increasingly predictive.</p>
+
+      <h2>6. Scaling laws: why bigger often means better</h2>
+      <p>Scaling-law work shows that language-model loss decreases smoothly as model size, data, and compute increase within a broad regime. A simplified form is:</p>
+      <div class="formula-block">\[\mathcal{L}(N,D)\approx \mathcal{L}_\infty + A N^{-\alpha}+B D^{-\beta}\]</div>
+      <p>Here \(N\) is model size, \(D\) is data, and \(\mathcal{L}_\infty\) is irreducible loss. Chinchilla-style results add an important correction: parameters alone are not enough; data and compute allocation must be balanced.</p>
+      <p>This explains why better compression often correlates with stronger downstream behavior. Lower loss means the model has discovered more shared structure across samples. When a prompt specifies a new task, the model can reuse and recombine those compressed structures.</p>
+
+      <h2>7. Compression is not just storing facts</h2>
+      <p>Another misconception is that if a model compresses text, it can only repeat text. Compression can include procedural structure. Long addition is not one answer; it is an algorithm. Recursion is not one code snippet; it is a control pattern. Proof by contradiction is not a phrase; it is a search strategy under constraints.</p>
+      <p>Once these structures are encoded in parameters, the model can compose them in context. It can combine a mathematical pattern with a natural-language explanation, transfer an API usage to a new function, or turn an abstract principle into code. This is not perfect formal reasoning, but it is more than rote memory.</p>
+
+      <h2>8. The boundary</h2>
+      <p>Compression gives prediction, generalization, and composition. It does not automatically give goals, values, causal intervention, or robust long-term agency. A model can compress text extremely well and still hallucinate; it can discuss causality without running experiments; it can write plans without reliably executing them.</p>
+      <p>A more precise statement is: for large language models, compression is a major route toward intelligence, not the whole definition of intelligence. It compresses experience into a reusable predictive model, then expands that structure into answers, code, reasoning steps, or plans when a context asks for them. It also shows why reliable intelligence needs extra ingredients such as grounding, feedback, tool use, and long-term memory.</p>
 
       <h2>References</h2>
       <ul class="paper-list">
