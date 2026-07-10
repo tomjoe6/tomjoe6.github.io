@@ -1,0 +1,493 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A note on compression as intelligence and large language models by Juntong Cui.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <title>什么是压缩即智能 · Juntong Cui</title>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [["\\(", "\\)"], ["$", "$"]], displayMath: [["\\[", "\\]"]] },
+      svg: { fontCache: "global" }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f7f1e8;
+      --paper-soft: #fbf8f2;
+      --paper-deep: #eee4d5;
+      --ink: #1f1e1b;
+      --muted: #5f5a52;
+      --line: #d8cbb8;
+      --line-strong: #b7a790;
+      --clay: #b85c38;
+      --clay-dark: #873f2b;
+      --blue: #526b7c;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+      --serif: Georgia, "Times New Roman", "Songti SC", serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        linear-gradient(90deg, rgba(31, 30, 27, .035) 1px, transparent 1px) 0 0 / 56px 56px,
+        linear-gradient(180deg, rgba(31, 30, 27, .025) 1px, transparent 1px) 0 0 / 56px 56px,
+        var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+      letter-spacing: 0;
+    }
+
+    a {
+      color: inherit;
+      text-decoration-color: rgba(31, 30, 27, .35);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 4px;
+    }
+
+    a:hover {
+      color: var(--clay-dark);
+      text-decoration-color: var(--clay-dark);
+    }
+
+    button { font: inherit; }
+
+    .site-shell {
+      width: min(940px, calc(100% - 40px));
+      margin: 0 auto;
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid var(--line);
+      background: rgba(247, 241, 232, .9);
+      backdrop-filter: blur(16px);
+    }
+
+    .topbar-inner {
+      width: min(940px, calc(100% - 40px));
+      min-height: 56px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 11px;
+      color: var(--ink);
+      text-decoration: none;
+    }
+
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--serif);
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    .brand span:last-child {
+      font-size: 15px;
+      font-weight: 680;
+    }
+
+    .nav-actions,
+    .site-nav {
+      display: flex;
+      align-items: center;
+    }
+
+    .nav-actions { gap: 18px; }
+
+    .site-nav {
+      gap: 20px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .site-nav a { text-decoration: none; }
+
+    .site-nav a[aria-current="page"] {
+      color: var(--ink);
+      font-weight: 650;
+    }
+
+    .language-switch {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      width: 104px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      background: var(--paper-deep);
+    }
+
+    .language-switch button {
+      min-height: 28px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .language-switch button.is-active {
+      background: var(--ink);
+      color: var(--paper);
+    }
+
+    .article {
+      width: min(760px, 100%);
+      padding: 34px 0 56px;
+    }
+
+    .back-link {
+      display: inline-flex;
+      margin-bottom: 24px;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 650;
+      text-decoration: none;
+    }
+
+    .article-meta {
+      color: var(--clay-dark);
+      font-size: 12px;
+      font-weight: 760;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin-top: 0;
+    }
+
+    h1 {
+      margin: 10px 0 16px;
+      font-family: var(--serif);
+      font-size: clamp(28px, 4vw, 38px);
+      font-weight: 500;
+      line-height: 1.16;
+    }
+
+    h2 {
+      margin: 34px 0 12px;
+      font-family: var(--serif);
+      font-size: 22px;
+      font-weight: 500;
+      line-height: 1.24;
+    }
+
+    h3 {
+      margin: 22px 0 8px;
+      font-size: 16px;
+      line-height: 1.45;
+    }
+
+    p,
+    li {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.82;
+    }
+
+    ul,
+    ol {
+      padding-left: 1.25rem;
+    }
+
+    .lead {
+      color: var(--ink);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.72;
+    }
+
+    .formula-block {
+      overflow-x: auto;
+      margin: 18px 0;
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      background: var(--paper-soft);
+    }
+
+    .note {
+      margin: 18px 0;
+      padding: 14px 16px;
+      border-left: 3px solid var(--clay);
+      background: rgba(251, 248, 242, .72);
+      color: var(--ink);
+      font-size: 14px;
+      line-height: 1.78;
+    }
+
+    .paper-list {
+      display: grid;
+      gap: 8px;
+      padding-left: 0;
+      list-style: none;
+    }
+
+    .paper-list a {
+      color: var(--clay-dark);
+      font-weight: 650;
+    }
+
+    .footer {
+      padding: 26px 0 36px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .article {
+      animation: riseIn 1.72s cubic-bezier(.19, 1, .22, 1) both;
+    }
+
+    @keyframes riseIn {
+      from {
+        opacity: 0;
+        filter: blur(6px);
+        transform: translateY(48px);
+      }
+      to {
+        opacity: 1;
+        filter: blur(0);
+        transform: translateY(0);
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+      }
+    }
+
+    [data-lang-content][hidden] { display: none; }
+
+    @media (max-width: 720px) {
+      .topbar-inner {
+        min-height: auto;
+        padding: 12px 0;
+        align-items: flex-start;
+      }
+
+      .nav-actions {
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 12px;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .site-shell,
+      .topbar-inner {
+        width: min(100% - 28px, 940px);
+      }
+
+      .topbar-inner {
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .nav-actions {
+        width: 100%;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html" aria-label="Juntong Cui home">
+        <span class="brand-mark">C</span>
+        <span data-i18n="brand"></span>
+      </a>
+      <div class="nav-actions">
+        <nav class="site-nav" aria-label="Primary navigation">
+          <a href="index.html" data-i18n="navHome"></a>
+          <a href="blog.html" aria-current="page" data-i18n="navBlog"></a>
+          <a href="photography.html" data-i18n="navPhotography"></a>
+        </nav>
+        <div class="language-switch" aria-label="Language switch">
+          <button type="button" data-lang="zh">中文</button>
+          <button type="button" data-lang="en">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="site-shell">
+    <article class="article" data-lang-content="zh">
+      <a class="back-link" href="blog.html">← 返回博客</a>
+      <div class="article-meta">2026-07-10 · 机器学习 · 大模型</div>
+      <h1>什么是压缩即智能</h1>
+      <p class="lead">“压缩即智能”不是说把文件变小就等于聪明，而是说：一个系统如果能用更短的模型描述更复杂的数据，并在新数据上仍然预测准确，那么它已经捕捉到了数据背后的结构。</p>
+
+      <h2>从最优编码看预测</h2>
+      <p>信息论里，一个事件越容易预测，编码它需要的比特数越少。如果模型给序列 \(x\) 分配概率 \(p(x)\)，最优编码长度近似为：</p>
+      <div class="formula-block">\[\ell(x)=-\log_2 p(x)\]</div>
+      <p>所以压缩的核心不是“删掉信息”，而是找到规律。规律越强，模型给真实数据的概率越高，所需比特越少。对文本序列 \(x_1,\ldots,x_T\)，语言模型做的是：</p>
+      <div class="formula-block">\[p_\theta(x)=\prod_{t=1}^{T}p_\theta(x_t\mid x_{<t})\]</div>
+      <p>训练时最小化的负对数似然可以写成：</p>
+      <div class="formula-block">\[\mathcal{L}(\theta)=-\frac{1}{T}\sum_{t=1}^{T}\log p_\theta(x_t\mid x_{<t})\]</div>
+      <p>这就是交叉熵损失。换成以 2 为底的对数，它几乎就是“每个 token 平均需要多少比特来编码”。困惑度也可以理解为压缩效率的另一种表达：</p>
+      <div class="formula-block">\[\mathrm{PPL}=2^{H}\]</div>
+
+      <h2>为什么大模型的压缩会变成能力</h2>
+      <p>大语言模型的 next-token prediction 看起来像文字接龙，但要在互联网文本上持续降低 loss，模型不能只记住表面字符串。它必须学习语法、语义、事实关联、代码结构、数学步骤、对话意图，以及大量隐含的世界规律。</p>
+      <p>更形式化地说，真实数据分布为 \(P\)，模型分布为 \(Q_\theta\)，交叉熵满足：</p>
+      <div class="formula-block">\[H(P,Q_\theta)=H(P)+D_{\mathrm{KL}}(P\parallel Q_\theta)\]</div>
+      <p>\(H(P)\) 是数据本身不可约的不确定性，模型能优化的是后面的 KL 散度。散度越小，模型越接近真实分布，也就越能压缩数据。能力提升可以看作模型把许多分散样本中的公共结构抽象成参数，再在新上下文中展开。</p>
+      <p class="note">这解释了为什么“记忆”不是理想压缩。死记硬背只能缩短训练集上的描述长度；真正有用的压缩要在未见过的数据上也减少编码长度，也就是泛化。</p>
+
+      <h2>MDL 视角：模型本身也要付费</h2>
+      <p>最小描述长度原则会把总成本写成模型成本和数据成本之和：</p>
+      <div class="formula-block">\[L(D,M)=L(M)+L(D\mid M)\]</div>
+      <p>如果模型太小，\(L(D\mid M)\) 很大，因为它解释不了数据；如果模型只是在参数里硬塞训练集，\(L(M)\) 会很大，也不是真正优雅的压缩。大模型有效的地方在于：当参数、数据和算力足够时，很多表面上不同的样本可以共享同一套内部表示。</p>
+      <p>Transformer 的注意力机制让模型根据上下文动态选择相关信息；规模律和 Chinchilla 一类结果则说明，在一定范围内，模型规模、数据量和计算量增加时，语言建模 loss 会可预测地下降。这意味着“更好的压缩”与“更强的下游能力”之间存在经验上的强联系。</p>
+
+      <h2>边界：压缩不是智能的全部</h2>
+      <p>压缩给了大模型强大的预测和泛化能力，但它不自动等于目标、价值、真实世界行动能力或可靠因果理解。一个模型可能很会压缩文本分布，却仍然会幻觉、缺少长期规划，或者在分布外场景中失败。</p>
+      <p>因此更准确的说法是：对大模型而言，压缩是智能的一条主要训练路径。它把海量经验压成可调用的预测模型；当上下文给出任务时，模型再把这些压缩结构展开为回答、代码、推理步骤或计划。</p>
+
+      <h2>参考来源</h2>
+      <ul class="paper-list">
+        <li><a href="https://people.math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf" target="_blank" rel="noreferrer">Claude E. Shannon, A Mathematical Theory of Communication, 1948</a></li>
+        <li><a href="https://doi.org/10.1016/0005-1098(78)90005-5" target="_blank" rel="noreferrer">Jorma Rissanen, Modeling by Shortest Data Description, 1978</a></li>
+        <li><a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noreferrer">Attention Is All You Need: arXiv:1706.03762</a></li>
+        <li><a href="https://arxiv.org/abs/2001.08361" target="_blank" rel="noreferrer">Scaling Laws for Neural Language Models: arXiv:2001.08361</a></li>
+        <li><a href="https://arxiv.org/abs/2203.15556" target="_blank" rel="noreferrer">Training Compute-Optimal Large Language Models: arXiv:2203.15556</a></li>
+        <li><a href="https://arxiv.org/abs/2309.10668" target="_blank" rel="noreferrer">Language Modeling Is Compression: arXiv:2309.10668</a></li>
+      </ul>
+    </article>
+
+    <article class="article" data-lang-content="en" hidden>
+      <a class="back-link" href="blog.html">← Back to Blog</a>
+      <div class="article-meta">2026-07-10 · Machine Learning · Large Models</div>
+      <h1>What Does 'Compression Is Intelligence' Mean?</h1>
+      <p class="lead">“Compression is intelligence” does not mean that making files smaller is the whole of intelligence. It means that a system is intelligent to the extent that it can describe complex data with a shorter, reusable model and still predict unseen data well.</p>
+
+      <h2>Prediction as optimal coding</h2>
+      <p>In information theory, the more predictable an event is, the fewer bits it needs. If a model assigns probability \(p(x)\) to a sequence \(x\), the ideal code length is approximately:</p>
+      <div class="formula-block">\[\ell(x)=-\log_2 p(x)\]</div>
+      <p>For a text sequence \(x_1,\ldots,x_T\), a language model factorizes probability as:</p>
+      <div class="formula-block">\[p_\theta(x)=\prod_{t=1}^{T}p_\theta(x_t\mid x_{<t})\]</div>
+      <p>Training minimizes negative log-likelihood:</p>
+      <div class="formula-block">\[\mathcal{L}(\theta)=-\frac{1}{T}\sum_{t=1}^{T}\log p_\theta(x_t\mid x_{<t})\]</div>
+      <p>With base-2 logarithms, this is nearly the average number of bits needed per token. Perplexity is another way to express the same compression quality:</p>
+      <div class="formula-block">\[\mathrm{PPL}=2^{H}\]</div>
+
+      <h2>Why compression becomes capability in LLMs</h2>
+      <p>Next-token prediction looks like autocomplete, but lowering loss on web-scale text requires much more than memorizing strings. The model must learn syntax, semantics, facts, code patterns, mathematical steps, conversational intent, and many latent regularities of the world.</p>
+      <p>If the data distribution is \(P\) and the model distribution is \(Q_\theta\), cross-entropy satisfies:</p>
+      <div class="formula-block">\[H(P,Q_\theta)=H(P)+D_{\mathrm{KL}}(P\parallel Q_\theta)\]</div>
+      <p>\(H(P)\) is the irreducible uncertainty of the data. The model reduces the KL term. A smaller KL divergence means the model is closer to the true distribution and can encode the data with fewer extra bits.</p>
+      <p class="note">Memorization is not the useful kind of compression. Memorization shortens the description of the training set; real compression also reduces code length on unseen data, which is generalization.</p>
+
+      <h2>The MDL view</h2>
+      <p>The minimum description length principle writes the total cost as:</p>
+      <div class="formula-block">\[L(D,M)=L(M)+L(D\mid M)\]</div>
+      <p>If the model is too small, \(L(D\mid M)\) is large because it cannot explain the data. If the model simply stores the training set in its parameters, \(L(M)\) becomes large. The useful regime is where many apparently different samples share internal representations.</p>
+      <p>Transformer attention lets the model select relevant context dynamically. Scaling laws and Chinchilla-style compute-optimal training show that, within a broad range, language-modeling loss decreases predictably as model size, data, and compute are balanced. Empirically, better compression and stronger downstream behavior are tightly linked.</p>
+
+      <h2>The boundary</h2>
+      <p>Compression is not all of intelligence. It does not automatically give a model goals, values, reliable causal grounding, or robust long-term planning. A model can compress text extremely well and still hallucinate or fail out of distribution.</p>
+      <p>A more precise statement is: for large language models, compression is a major training path toward intelligence. The model compresses experience into a reusable predictive structure, then expands that structure into answers, code, reasoning steps, or plans when a context asks for them.</p>
+
+      <h2>References</h2>
+      <ul class="paper-list">
+        <li><a href="https://people.math.harvard.edu/~ctm/home/text/others/shannon/entropy/entropy.pdf" target="_blank" rel="noreferrer">Claude E. Shannon, A Mathematical Theory of Communication, 1948</a></li>
+        <li><a href="https://doi.org/10.1016/0005-1098(78)90005-5" target="_blank" rel="noreferrer">Jorma Rissanen, Modeling by Shortest Data Description, 1978</a></li>
+        <li><a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noreferrer">Attention Is All You Need: arXiv:1706.03762</a></li>
+        <li><a href="https://arxiv.org/abs/2001.08361" target="_blank" rel="noreferrer">Scaling Laws for Neural Language Models: arXiv:2001.08361</a></li>
+        <li><a href="https://arxiv.org/abs/2203.15556" target="_blank" rel="noreferrer">Training Compute-Optimal Large Language Models: arXiv:2203.15556</a></li>
+        <li><a href="https://arxiv.org/abs/2309.10668" target="_blank" rel="noreferrer">Language Modeling Is Compression: arXiv:2309.10668</a></li>
+      </ul>
+    </article>
+  </main>
+
+  <footer class="site-shell footer">
+    <span data-i18n="footerNote"></span>
+  </footer>
+
+  <script>
+    const translations = {
+      zh: {
+        title: "什么是压缩即智能 · 崔君同",
+        brand: "崔君同",
+        navHome: "主页",
+        navBlog: "博客",
+        navPhotography: "摄影",
+        footerNote: "© 2026 崔君同。本站托管于 GitHub Pages。"
+      },
+      en: {
+        title: "What Does 'Compression Is Intelligence' Mean? · Juntong Cui",
+        brand: "Juntong Cui",
+        navHome: "Home",
+        navBlog: "Blog",
+        navPhotography: "Photography",
+        footerNote: "© 2026 Juntong Cui. Hosted on GitHub Pages."
+      }
+    };
+
+    const fallbackLang = "zh";
+    const savedLang = localStorage.getItem("site-language");
+    const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
+
+    function applyLanguage(lang) {
+      const dict = translations[lang] || translations[fallbackLang];
+      document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+      document.title = dict.title;
+      document.querySelectorAll("[data-i18n]").forEach((node) => {
+        const key = node.getAttribute("data-i18n");
+        node.textContent = dict[key] || "";
+      });
+      document.querySelectorAll("[data-lang-content]").forEach((node) => {
+        node.hidden = node.dataset.langContent !== lang;
+      });
+      document.querySelectorAll("[data-lang]").forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.lang === lang);
+        button.setAttribute("aria-pressed", String(button.dataset.lang === lang));
+      });
+      localStorage.setItem("site-language", lang);
+      if (window.MathJax?.typesetPromise) {
+        window.MathJax.typesetPromise();
+      }
+    }
+
+    document.querySelectorAll("[data-lang]").forEach((button) => {
+      button.addEventListener("click", () => applyLanguage(button.dataset.lang));
+    });
+
+    applyLanguage(initialLang);
+  </script>
+</body>
+</html>
