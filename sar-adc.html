@@ -9,9 +9,9 @@
   <style>
     :root {
       color-scheme: light;
-      --paper: #f7f1e8;
-      --paper-soft: #fbf8f2;
-      --paper-deep: #eee4d5;
+      --paper: #f4f4f2;
+      --paper-soft: #fbfbfa;
+      --paper-deep: #e8e8e4;
       --ink: #1f1e1b;
       --muted: #5f5a52;
       --line: #d8cbb8;
@@ -31,10 +31,7 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background:
-        linear-gradient(90deg, rgba(31, 30, 27, .035) 1px, transparent 1px) 0 0 / 56px 56px,
-        linear-gradient(180deg, rgba(31, 30, 27, .025) 1px, transparent 1px) 0 0 / 56px 56px,
-        var(--paper);
+      background: var(--paper);
       color: var(--ink);
       font-family: var(--sans);
       letter-spacing: 0;
@@ -64,7 +61,7 @@
       top: 0;
       z-index: 20;
       border-bottom: 1px solid var(--line);
-      background: rgba(247, 241, 232, .9);
+      background: rgba(244, 244, 242, .88);
       backdrop-filter: blur(16px);
     }
 
@@ -286,6 +283,13 @@
 
     .article {
       animation: riseIn 1.72s cubic-bezier(.19, 1, .22, 1) both;
+    }
+
+    .topbar,
+    .article,
+    .footer {
+      border-top: 0;
+      border-bottom: 0;
     }
 
     @keyframes riseIn {

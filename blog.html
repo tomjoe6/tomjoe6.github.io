@@ -9,9 +9,9 @@
   <style>
     :root {
       color-scheme: light;
-      --paper: #f7f1e8;
-      --paper-soft: #fbf8f2;
-      --paper-deep: #eee4d5;
+      --paper: #f4f4f2;
+      --paper-soft: #fbfbfa;
+      --paper-deep: #e8e8e4;
       --ink: #1f1e1b;
       --muted: #5f5a52;
       --line: #d8cbb8;
@@ -35,10 +35,7 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background:
-        linear-gradient(90deg, rgba(31, 30, 27, .035) 1px, transparent 1px) 0 0 / 56px 56px,
-        linear-gradient(180deg, rgba(31, 30, 27, .025) 1px, transparent 1px) 0 0 / 56px 56px,
-        var(--paper);
+      background: var(--paper);
       color: var(--ink);
       font-family: var(--sans);
       letter-spacing: 0;
@@ -71,7 +68,7 @@
       top: 0;
       z-index: 20;
       border-bottom: 1px solid var(--line);
-      background: rgba(247, 241, 232, .9);
+      background: rgba(244, 244, 242, .88);
       backdrop-filter: blur(16px);
     }
 
@@ -174,10 +171,7 @@
     }
 
     .eyebrow::before {
-      content: "";
-      width: 28px;
-      height: 1px;
-      background: var(--clay);
+      content: none;
     }
 
     h1,
@@ -333,6 +327,17 @@
       border-top: 1px solid var(--line);
       color: var(--muted);
       font-size: 13px;
+    }
+
+    .topbar,
+    .page-head,
+    .category-filter,
+    .post-list,
+    .post-row,
+    .empty-state,
+    .footer {
+      border-top: 0;
+      border-bottom: 0;
     }
 
     [data-animate] {
@@ -550,7 +555,7 @@
         navPhotography: "摄影",
         blogEyebrow: "博客",
         blogTitle: "笔记与文章",
-        blogIntro: "这里会整理我在 AI 高效计算、多模态大模型、世界模型，以及相关硬件系统与工程实现方面的学习笔记和思考。",
+        blogIntro: "这里会整理我在多模态大模型、世界模型、视频生成，以及相关模型机制与工程实现方面的学习笔记和思考。",
         catAll: "全部",
         catML: "机器学习",
         catIC: "集成电路",
@@ -584,7 +589,7 @@
         navPhotography: "Photography",
         blogEyebrow: "Blog",
         blogTitle: "Notes and Essays",
-        blogIntro: "This space will collect notes and thoughts on efficient computation for AI, multimodal large models, world models, and related hardware-system implementation.",
+        blogIntro: "This space collects notes and thoughts on multimodal large models, world models, video generation, and related model mechanisms and engineering practice.",
         catAll: "All",
         catML: "Machine Learning",
         catIC: "Integrated Circuits",

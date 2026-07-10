@@ -3,15 +3,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Juntong Cui, undergraduate student at the School of Integrated Circuits, Shanghai Jiao Tong University.">
+  <meta name="description" content="Juntong Cui, undergraduate student at Shanghai Jiao Tong University and intern at the School of Artificial Intelligence.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <title>崔君同 Juntong Cui</title>
   <style>
     :root {
       color-scheme: light;
-      --paper: #f7f1e8;
-      --paper-soft: #fbf8f2;
-      --paper-deep: #eee4d5;
+      --paper: #f4f4f2;
+      --paper-soft: #fbfbfa;
+      --paper-deep: #e8e8e4;
       --ink: #1f1e1b;
       --muted: #5f5a52;
       --line: #d8cbb8;
@@ -36,10 +36,7 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background:
-        linear-gradient(90deg, rgba(31, 30, 27, .035) 1px, transparent 1px) 0 0 / 56px 56px,
-        linear-gradient(180deg, rgba(31, 30, 27, .025) 1px, transparent 1px) 0 0 / 56px 56px,
-        var(--paper);
+      background: var(--paper);
       color: var(--ink);
       font-family: var(--sans);
       letter-spacing: 0;
@@ -72,7 +69,7 @@
       top: 0;
       z-index: 20;
       border-bottom: 1px solid var(--line);
-      background: rgba(247, 241, 232, .9);
+      background: rgba(244, 244, 242, .88);
       backdrop-filter: blur(16px);
     }
 
@@ -179,10 +176,7 @@
     }
 
     .eyebrow::before {
-      content: "";
-      width: 28px;
-      height: 1px;
-      background: var(--clay);
+      content: none;
     }
 
     h1,
@@ -248,20 +242,53 @@
 
     .contact-link {
       display: inline-flex;
-      min-height: 32px;
+      width: 34px;
+      height: 34px;
       align-items: center;
-      padding: 0 11px;
+      justify-content: center;
       border: 1px solid var(--line-strong);
-      background: rgba(251, 248, 242, .72);
+      background: rgba(251, 251, 250, .64);
       color: var(--ink);
       text-decoration: none;
-      font-size: 12px;
+      line-height: 1;
+    }
+
+    .contact-link svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+    }
+
+    .contact-link.xhs svg,
+    .contact-link.linkedin svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .contact-link.xhs {
+      border-color: rgba(255, 36, 66, .28);
+    }
+
+    .contact-link.linkedin {
+      border-color: rgba(10, 102, 194, .28);
     }
 
     .contact-link:hover {
       border-color: var(--ink);
       background: var(--ink);
       color: var(--paper);
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
     }
 
     .section {
@@ -348,6 +375,16 @@
       padding: 26px 0 36px;
       color: var(--muted);
       font-size: 13px;
+    }
+
+    .topbar,
+    .hero,
+    .section,
+    .timeline,
+    .timeline-item,
+    .footer {
+      border-top: 0;
+      border-bottom: 0;
     }
 
     [data-animate] {
@@ -485,10 +522,34 @@
           <li data-i18n="heroLocation"></li>
         </ul>
         <div class="contact-strip">
-          <a class="contact-link" href="mailto:tomjoe6@sjtu.edu.cn">tomjoe6@sjtu.edu.cn</a>
-          <a class="contact-link" href="mailto:3173618156@qq.com">3173618156@qq.com</a>
-          <a class="contact-link" href="https://www.xiaohongshu.com/user/profile/610284840000000001007f8d" target="_blank" rel="noreferrer">Xiaohongshu</a>
-          <a class="contact-link" href="https://www.linkedin.com/in/juntong-cui-63a5b63b4/" target="_blank" rel="noreferrer">LinkedIn</a>
+          <a class="contact-link" href="mailto:tomjoe6@sjtu.edu.cn" aria-label="SJTU Email" title="tomjoe6@sjtu.edu.cn">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3.5" y="5.5" width="17" height="13" rx="2"></rect>
+              <path d="m4.5 7 7.5 6 7.5-6"></path>
+            </svg>
+            <span class="sr-only">tomjoe6@sjtu.edu.cn</span>
+          </a>
+          <a class="contact-link" href="mailto:3173618156@qq.com" aria-label="QQ Email" title="3173618156@qq.com">
+            <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3.5" y="5.5" width="17" height="13" rx="2"></rect>
+              <path d="m4.5 7 7.5 6 7.5-6"></path>
+            </svg>
+            <span class="sr-only">3173618156@qq.com</span>
+          </a>
+          <a class="contact-link xhs" href="https://www.xiaohongshu.com/user/profile/610284840000000001007f8d" target="_blank" rel="noreferrer" aria-label="Xiaohongshu" title="Xiaohongshu">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="4" fill="#ff2442"></rect>
+              <text x="12" y="15.5" text-anchor="middle" font-size="10" font-weight="700" fill="#fff" font-family="Arial, 'Noto Sans SC', sans-serif">小</text>
+            </svg>
+            <span class="sr-only">Xiaohongshu</span>
+          </a>
+          <a class="contact-link linkedin" href="https://www.linkedin.com/in/juntong-cui-63a5b63b4/" target="_blank" rel="noreferrer" aria-label="LinkedIn" title="LinkedIn">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="3" y="3" width="18" height="18" rx="2.5" fill="#0a66c2"></rect>
+              <path fill="#fff" d="M7.2 10h2.4v7H7.2v-7Zm1.2-3.5a1.38 1.38 0 1 1 0 2.76 1.38 1.38 0 0 1 0-2.76ZM11 10h2.25v.96h.03c.32-.6 1.1-1.22 2.27-1.22 2.42 0 2.87 1.59 2.87 3.66V17h-2.35v-3.2c0-.76-.01-1.75-1.07-1.75-1.08 0-1.24.84-1.24 1.7V17H11v-7Z"></path>
+            </svg>
+            <span class="sr-only">LinkedIn</span>
+          </a>
         </div>
       </div>
       <div class="profile-photo-wrap" data-animate="2">
@@ -559,12 +620,12 @@
         navPhotography: "摄影",
         heroEyebrow: "个人主页",
         heroName: "崔君同",
-        heroSubtitle: "上海交通大学集成电路学院本科生，关注 AI 高效计算、多模态大模型与世界模型。",
-        heroSchool: "上海交通大学 · 集成电路学院",
+        heroSubtitle: "上海交通大学本科生，目前在上海交通大学人工智能学院（SAI）实习，关注多模态大模型、世界模型与视频生成。",
+        heroSchool: "上海交通大学 · 本科生",
         heroLocation: "上海，中国",
         aboutTitle: "关于",
-        aboutLead: "我目前感兴趣的是 AI 高效计算、多模态大模型与世界模型。",
-        aboutBody: "我希望从集成电路和系统实现的视角理解智能模型的计算需求：如何让大模型推理更高效，如何让多模态模型处理视觉、语言与环境信息，以及世界模型如何支持更具预测和规划能力的智能系统。这个网站会持续记录我在这些方向上的学习、项目和实习经历。",
+        aboutLead: "我目前关注多模态大模型、世界模型与视频生成。",
+        aboutBody: "我希望理解模型如何把视觉、语言、时间和环境状态组织成可预测、可生成的表示：多模态大模型如何对齐不同模态，世界模型如何学习动态变化，视频生成又如何把语义、运动和物理一致性落到连续帧中。这个网站会持续记录我在这些方向上的学习、项目和实习经历。",
         educationTitle: "教育经历",
         eduTime: "2024 至今",
         eduSchool: "上海交通大学",
@@ -576,9 +637,9 @@
         hisiliconRole: "实习生 · 多路选择器优化",
         hisiliconBody: "参与多路选择器相关优化工作，关注硬件实现中的结构、性能和工程细节。",
         labTime: "进行中",
-        labOrg: "上海交通大学集成电路学院课题组",
-        labRole: "课题组实习",
-        labBody: "参与学院课题组实习，在具体研究和工程任务中积累集成电路方向的实践经验。",
+        labOrg: "上海交通大学人工智能学院（SAI）",
+        labRole: "实习",
+        labBody: "参与人工智能学院相关实习工作，关注多模态大模型、世界模型与视频生成方向的学习和研究实践。",
         footerNote: "© 2026 崔君同。本站托管于 GitHub Pages。"
       },
       en: {
@@ -589,12 +650,12 @@
         navPhotography: "Photography",
         heroEyebrow: "Personal Homepage",
         heroName: "Juntong Cui",
-        heroSubtitle: "Undergraduate student at the School of Integrated Circuits, Shanghai Jiao Tong University, interested in efficient computation for AI, multimodal large models, and world models.",
-        heroSchool: "School of Integrated Circuits · Shanghai Jiao Tong University",
+        heroSubtitle: "Undergraduate student at Shanghai Jiao Tong University, currently interning at the School of Artificial Intelligence (SAI), with interests in multimodal large models, world models, and video generation.",
+        heroSchool: "Undergraduate Student · Shanghai Jiao Tong University",
         heroLocation: "Shanghai, China",
         aboutTitle: "About",
-        aboutLead: "I am currently interested in efficient computation for AI, multimodal large models, and world models.",
-        aboutBody: "From the perspective of integrated circuits and system implementation, I want to understand the computational demands behind intelligent models: how to make large-model inference more efficient, how multimodal models process visual, language, and environmental information, and how world models can support intelligence with stronger prediction and planning abilities. This website will collect my learning notes, projects, and internship experience in these directions.",
+        aboutLead: "I am currently interested in multimodal large models, world models, and video generation.",
+        aboutBody: "I want to understand how models organize vision, language, time, and environmental state into representations that can predict and generate: how multimodal models align different modalities, how world models learn dynamics, and how video generation maintains semantic, motion, and physical consistency across frames. This website collects my learning notes, projects, and internship experience in these directions.",
         educationTitle: "Education",
         eduTime: "2024 - Now",
         eduSchool: "Shanghai Jiao Tong University",
@@ -606,9 +667,9 @@
         hisiliconRole: "Intern · Multiplexer Optimization",
         hisiliconBody: "Worked on multiplexer-related optimization, focusing on structure, performance, and engineering details in hardware implementation.",
         labTime: "Ongoing",
-        labOrg: "Research Group, School of Integrated Circuits, SJTU",
-        labRole: "Research Group Intern",
-        labBody: "Participating in research group work at the School of Integrated Circuits and gaining practical experience through concrete research and engineering tasks.",
+        labOrg: "School of Artificial Intelligence (SAI), SJTU",
+        labRole: "Intern",
+        labBody: "Participating in internship work at SAI, with a focus on multimodal large models, world models, and video generation.",
         footerNote: "© 2026 Juntong Cui. Hosted on GitHub Pages."
       }
     };
