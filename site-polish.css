@@ -61,7 +61,7 @@ a {
   position: relative;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  width: 264px;
+  width: 276px;
   gap: 0;
   padding: 3px;
   border: 1px solid rgba(31, 30, 27, .12);
@@ -115,6 +115,7 @@ html[data-nav-target="photography"] .site-nav::before {
   place-items: center;
   padding: 0 4px;
   color: var(--muted);
+  font-weight: 500;
   text-align: center;
   white-space: nowrap;
   transition: color .24s ease;
@@ -127,6 +128,7 @@ html[data-nav-target="photography"] .site-nav::before {
 .site-nav a:hover,
 .site-nav a[aria-current="page"] {
   color: var(--ink);
+  font-weight: 500;
 }
 
 .language-switch {
@@ -290,46 +292,61 @@ html[data-nav-target="photography"] .site-nav::before {
 .carousel-button,
 .modal-button,
 .modal-close {
-  border: 0;
+  border: 1px solid rgba(31, 30, 27, .12);
   border-radius: 50%;
-  background: rgba(251, 251, 250, .86);
+  background: rgba(244, 244, 242, .82);
   color: var(--ink);
-  box-shadow: 0 4px 18px rgba(31, 30, 27, .12);
-  font-size: 0;
-  opacity: .76;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 5px 18px rgba(31, 30, 27, .1);
+  opacity: .68;
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  transition: opacity .24s ease, background-color .24s ease, border-color .24s ease, transform .42s var(--ease-out-expo), box-shadow .24s ease;
 }
 
-.carousel-button::before,
-.modal-button::before,
-.modal-close::before {
-  font-size: 18px;
-  line-height: 1;
+.carousel-button {
+  width: 38px;
+  height: 38px;
 }
 
-.carousel-button.prev::before,
-.modal-button.prev::before {
-  content: "\2190";
+.carousel-button.prev {
+  left: 16px;
 }
 
-.carousel-button.next::before,
-.modal-button.next::before {
-  content: "\2192";
+.carousel-button.next {
+  right: 16px;
 }
 
-.modal-close::before {
-  content: "\00d7";
-  font-size: 22px;
+.carousel-button svg,
+.modal-button svg,
+.modal-close svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.modal-close svg {
+  width: 17px;
+  height: 17px;
 }
 
 .carousel-button:hover,
 .modal-button:hover,
 .modal-close:hover {
-  border: 0;
-  background: rgba(251, 251, 250, .98);
+  border-color: rgba(31, 30, 27, .2);
+  background: rgba(251, 251, 250, .96);
   color: var(--ink);
   opacity: 1;
+  box-shadow: 0 7px 22px rgba(31, 30, 27, .14);
+}
+
+.carousel-stage:hover .carousel-button {
+  opacity: .94;
 }
 
 .photo-card img {
@@ -362,7 +379,7 @@ html[data-nav-target="photography"] .site-nav::before {
   }
 
   .site-nav {
-    width: 250px;
+    width: 258px;
     gap: 0;
   }
 
@@ -379,6 +396,14 @@ html[data-nav-target="photography"] .site-nav::before {
 
   .category-filter {
     gap: 18px;
+  }
+}
+
+@media (hover: none) {
+  .carousel-button,
+  .modal-button,
+  .modal-close {
+    opacity: .9;
   }
 }
 

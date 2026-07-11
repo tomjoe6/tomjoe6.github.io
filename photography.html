@@ -567,8 +567,8 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="site-polish.css?v=20260711-4">
-  <script defer src="site-polish.js?v=20260711-4"></script>
+  <link rel="stylesheet" href="site-polish.css?v=20260711-6">
+  <script defer src="site-polish.js?v=20260711-6"></script>
 </head>
 <body data-page="photography">
   <header class="topbar">
@@ -602,10 +602,14 @@
     <section class="carousel-section" aria-label="Featured photography carousel">
       <div class="carousel">
         <div class="carousel-stage" id="carouselStage">
-          <button class="carousel-button prev" type="button" id="prevPhoto" aria-label="Previous photo">‹</button>
+          <button class="carousel-button prev" type="button" id="prevPhoto" aria-label="Previous photo">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+          </button>
           <img class="carousel-image is-active" id="carouselImageA" src="assets/photography/slide-01.jpg" alt="" decoding="async" fetchpriority="high">
           <img class="carousel-image" id="carouselImageB" src="assets/photography/slide-01.jpg" alt="" decoding="async">
-          <button class="carousel-button next" type="button" id="nextPhoto" aria-label="Next photo">›</button>
+          <button class="carousel-button next" type="button" id="nextPhoto" aria-label="Next photo">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+          </button>
         </div>
         <div class="carousel-meta">
           <span id="carouselCaption"></span>
@@ -625,10 +629,16 @@
 
   <div class="modal" id="photoModal" role="dialog" aria-modal="true" aria-label="Photography viewer">
     <div class="modal-inner">
-      <button class="modal-close" type="button" id="closeModal" aria-label="Close viewer">×</button>
-      <button class="modal-button prev" type="button" id="modalPrev" aria-label="Previous photo">‹</button>
+      <button class="modal-close" type="button" id="closeModal" aria-label="Close viewer">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+      </button>
+      <button class="modal-button prev" type="button" id="modalPrev" aria-label="Previous photo">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+      </button>
       <img class="modal-image" id="modalImage" src="assets/photography/photo-01.jpg" alt="" decoding="async">
-      <button class="modal-button next" type="button" id="modalNext" aria-label="Next photo">›</button>
+      <button class="modal-button next" type="button" id="modalNext" aria-label="Next photo">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+      </button>
       <div class="modal-caption" id="modalCaption"></div>
     </div>
   </div>
