@@ -1,6 +1,7 @@
 (() => {
   const nav = document.querySelector(".site-nav");
   if (!nav) return;
+  const siteVersion = "20260711-4";
 
   const pageFromLink = (link) => {
     const file = new URL(link.href, window.location.href).pathname.split("/").pop().toLowerCase();
@@ -20,16 +21,22 @@
     const current = new URL(window.location.href);
     if (destination.origin !== current.origin) return;
 
-    const sameDocument = destination.pathname === current.pathname && destination.search === current.search;
+    const sameDocument = destination.pathname === current.pathname;
     if (sameDocument) {
       event.preventDefault();
       return;
     }
 
+    destination.searchParams.set("sitev", siteVersion);
+
     const targetPage = pageFromLink(link);
     const currentPage = document.body.dataset.page || "home";
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (targetPage === currentPage || reduceMotion) return;
+    if (targetPage === currentPage || reduceMotion) {
+      event.preventDefault();
+      window.location.assign(destination.href);
+      return;
+    }
 
     event.preventDefault();
     navigating = true;

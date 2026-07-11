@@ -41,7 +41,7 @@ a {
 }
 
 .nav-actions {
-  gap: 30px;
+  gap: 26px;
 }
 
 .brand {
@@ -61,7 +61,7 @@ a {
   position: relative;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  width: 232px;
+  width: 264px;
   gap: 0;
   padding: 3px;
   border: 1px solid rgba(31, 30, 27, .12);
@@ -113,7 +113,7 @@ html[data-nav-target="photography"] .site-nav::before {
   min-width: 0;
   min-height: 30px;
   place-items: center;
-  padding: 0 8px;
+  padding: 0 4px;
   color: var(--muted);
   text-align: center;
   white-space: nowrap;
@@ -358,16 +358,17 @@ html[data-nav-target="photography"] .site-nav::before {
   }
 
   .nav-actions {
-    gap: 14px;
+    gap: 12px;
   }
 
   .site-nav {
-    width: 220px;
+    width: 250px;
     gap: 0;
   }
 
   .site-nav a {
-    padding: 0 6px;
+    padding: 0 3px;
+    font-size: 12px;
   }
 
   .hero,
@@ -378,6 +379,22 @@ html[data-nav-target="photography"] .site-nav::before {
 
   .category-filter {
     gap: 18px;
+  }
+}
+
+@media (max-width: 360px) {
+  .nav-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 9px;
+  }
+
+  .site-nav {
+    width: 100%;
+  }
+
+  .language-switch {
+    justify-self: end;
   }
 }
 
