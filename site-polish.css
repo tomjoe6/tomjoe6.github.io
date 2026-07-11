@@ -40,6 +40,10 @@ a {
   min-height: 58px;
 }
 
+.nav-actions {
+  gap: 30px;
+}
+
 .brand {
   gap: 0;
 }
@@ -54,37 +58,75 @@ a {
 }
 
 .site-nav {
-  gap: 26px;
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 232px;
+  gap: 0;
+  padding: 3px;
+  border: 1px solid rgba(31, 30, 27, .12);
+  border-radius: 8px;
+  background: rgba(31, 30, 27, .035);
+  isolation: isolate;
+}
+
+.site-nav::before {
+  content: "";
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  z-index: -1;
+  width: calc((100% - 6px) / 3);
+  border-radius: 5px;
+  background: rgba(251, 251, 250, .98);
+  box-shadow: 0 1px 4px rgba(31, 30, 27, .1);
+  transform: translate3d(0, 0, 0);
+  transition: transform .38s var(--ease-out-expo);
+  will-change: transform;
+}
+
+body[data-page="blog"] .site-nav::before {
+  transform: translate3d(100%, 0, 0);
+}
+
+body[data-page="photography"] .site-nav::before {
+  transform: translate3d(200%, 0, 0);
+}
+
+html[data-nav-target="home"] .site-nav::before {
+  transform: translate3d(0, 0, 0);
+}
+
+html[data-nav-target="blog"] .site-nav::before {
+  transform: translate3d(100%, 0, 0);
+}
+
+html[data-nav-target="photography"] .site-nav::before {
+  transform: translate3d(200%, 0, 0);
 }
 
 .site-nav a {
   position: relative;
-  padding: 20px 0;
+  z-index: 1;
+  display: grid;
+  min-width: 0;
+  min-height: 30px;
+  place-items: center;
+  padding: 0 8px;
   color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+  transition: color .24s ease;
 }
 
 .site-nav a::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  bottom: 13px;
-  left: 0;
-  height: 1px;
-  background: currentColor;
-  transform: scaleX(0);
-  transform-origin: right;
-  transition: transform .42s var(--ease-out-expo);
+  content: none;
 }
 
 .site-nav a:hover,
 .site-nav a[aria-current="page"] {
   color: var(--ink);
-}
-
-.site-nav a:hover::after,
-.site-nav a[aria-current="page"]::after {
-  transform: scaleX(1);
-  transform-origin: left;
 }
 
 .language-switch {
@@ -315,16 +357,17 @@ a {
     padding: 10px 0;
   }
 
+  .nav-actions {
+    gap: 14px;
+  }
+
   .site-nav {
-    gap: 18px;
+    width: 220px;
+    gap: 0;
   }
 
   .site-nav a {
-    padding: 8px 0;
-  }
-
-  .site-nav a::after {
-    bottom: 2px;
+    padding: 0 6px;
   }
 
   .hero,
