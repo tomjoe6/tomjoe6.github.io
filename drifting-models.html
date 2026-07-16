@@ -22,7 +22,7 @@
     .language-switch { display:grid; grid-template-columns:repeat(2,1fr); width:104px; padding:3px; border:1px solid var(--line); background:#e8e8e4; } .language-switch button { min-height:28px; border:0; background:transparent; color:var(--muted); cursor:pointer; } .language-switch button.is-active { background:var(--ink); color:var(--paper); }
     .article { width:min(760px,100%); padding:34px 0 56px; animation:riseIn .92s cubic-bezier(.16,1,.3,1) both; } .back-link { display:inline-flex; margin-bottom:24px; color:var(--blue); font-size:13px; font-weight:650; text-decoration:none; } .article-meta { color:var(--clay-dark); font-size:12px; font-weight:760; letter-spacing:.08em; text-transform:uppercase; }
     h1,h2,p { margin-top:0; } h1 { margin:10px 0 16px; font-family:var(--serif); font-size:clamp(28px,4vw,38px); font-weight:500; line-height:1.16; } h2 { margin:34px 0 12px; font-family:var(--serif); font-size:22px; font-weight:500; line-height:1.24; } p,li { color:var(--muted); font-size:15px; line-height:1.82; } .lead { color:var(--ink); font-size:16px; font-weight:600; line-height:1.72; }
-    .formula-block { overflow-x:auto; margin:18px 0; padding:12px 14px; border:1px solid var(--line); background:var(--paper-soft); } .note { margin:18px 0; padding:14px 16px; border-left:3px solid var(--clay); background:rgba(251,248,242,.72); color:var(--ink); font-size:14px; line-height:1.78; } .paper-list { display:grid; gap:8px; padding-left:0; list-style:none; } .paper-list a { color:var(--clay-dark); font-weight:650; } .footer { padding:26px 0 36px; color:var(--muted); font-size:13px; }
+    .formula-block { overflow-x:auto; margin:18px 0; padding:12px 14px; border:1px solid var(--line); background:var(--paper-soft); } .formula-label { display:block; margin-bottom:6px; color:var(--blue); font-size:12px; font-weight:650; } .note { margin:18px 0; padding:14px 16px; border-left:3px solid var(--clay); background:rgba(251,248,242,.72); color:var(--ink); font-size:14px; line-height:1.78; } .paper-list { display:grid; gap:8px; padding-left:0; list-style:none; } .paper-list a { color:var(--clay-dark); font-weight:650; } .footer { padding:26px 0 36px; color:var(--muted); font-size:13px; }
     @keyframes riseIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } } [data-lang-content][hidden] { display:none; }
     @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; } } @media (max-width:560px) { .site-shell,.topbar-inner { width:min(100% - 28px,940px); } .topbar-inner { flex-direction:column; padding:12px 0; align-items:flex-start; } .nav-actions { width:100%; justify-content:space-between; gap:10px; } .site-nav { gap:14px; } }
   </style>
@@ -40,39 +40,31 @@
       <a class="back-link" href="blog.html">← 返回博客</a>
       <div class="article-meta">2026-07-16 · 机器学习 · 生成模型</div>
       <h1>为什么 Drifting 更接近生成建模的第一性原理</h1>
-      <p class="lead"><em>Generative Modeling via Drifting</em> 改变的是分布运输发生的时机。扩散模型通常在推理时把噪声逐步带向数据；这篇工作把同类修正交给训练中的参数更新，最后保留一个直接的生成器。</p>
+      <p class="lead">首先，<em>Generative Modeling via Drifting</em> 改变的是分布运输发生的时机。扩散模型通常在推理时把噪声带向数据；这篇工作把同类修正交给训练中的参数更新，保留一个直接生成器。</p>
 
-      <p>令 \(\epsilon\sim p_\epsilon\)，\(x=f_\theta(\epsilon)\)。网络输出的分布是严格的 pushforward：</p>
-      <div class="formula-block">\[q_\theta=(f_\theta)_\#p_\epsilon.\]</div>
-      <p>生成模型要达到的条件是 \(q_\theta=p_{\mathrm{data}}\)。预测噪声、判别器博弈和 ELBO 都是逼近这个条件的具体方案。</p>
-      <p>扩散与 flow 模型通常先指定一条分布路径 \(\{q_t\}\)，并在推理时解动力系统：</p>
-      <div class="formula-block">\[\frac{\mathrm d x_t}{\mathrm d t}=v_t(x_t),\qquad \partial_t q_t+\nabla\cdot(q_t v_t)=0.\]</div>
-      <p>第二式描述概率质量守恒。该方案的代价是运输在推理时执行，因此需要多次评估网络。Drifting 把这段迭代放进训练：SGD 改变 \(f_\theta\) 时，也改变了它诱导的分布。</p>
+      <p>令 \(\epsilon\sim p_\epsilon\)，\(x=f_\theta(\epsilon)\)，网络输出的分布是严格的 pushforward，见式 1。</p>
+      <div class="formula-block"><span class="formula-label">式 1</span>\[q_\theta=(f_\theta)_\#p_\epsilon.\]</div>
+      <p>扩散模型通常先指定一条分布路径，并在推理时解动力系统，见式 2。</p>
+      <div class="formula-block"><span class="formula-label">式 2</span>\[\frac{\mathrm d x_t}{\mathrm d t}=v_t(x_t),\qquad \partial_t q_t+\nabla\cdot(q_t v_t)=0.\]</div>
 
-      <h2>训练中完成运输</h2>
-      <p>论文为目标分布 \(p\) 与当前生成分布 \(q\) 定义漂移场 \(V_{p,q}(x)\)，规定当前样本应被怎样修正：</p>
-      <div class="formula-block">\[x_{i+1}=x_i+V_{p,q_i}(x_i),\qquad x_i=f_{\theta_i}(\epsilon).\]</div>
-      <p>场需要满足的平衡条件是：</p>
-      <div class="formula-block">\[p=q\quad\Longrightarrow\quad V_{p,q}(x)=0.\]</div>
-      <p>分布匹配后，样本不再移动。论文用反对称性 \(V_{p,q}=-V_{q,p}\) 保证这一点：交换数据与生成样本，修正方向随之反转。</p>
-      <p>它的核化实现来自 mean shift。数据样本 \(y^+\sim p\) 提供吸引，生成样本 \(y^-\sim q\) 提供排斥：</p>
-      <div class="formula-block">\[\begin{aligned}V^+_p(x)&=\frac{\mathbb E_p[k(x,y^+)(y^+-x)]}{\mathbb E_p[k(x,y^+)]},\\V^-_q(x)&=\frac{\mathbb E_q[k(x,y^-)(y^--x)]}{\mathbb E_q[k(x,y^-)]},\\V_{p,q}(x)&=V^+_p(x)-V^-_q(x).\end{aligned}\]</div>
+      <p>论文为目标分布 \(p\) 与当前生成分布 \(q\) 定义漂移场 \(V_{p,q}(x)\)，规定当前样本应被怎样修正，见式 3。</p>
+      <div class="formula-block"><span class="formula-label">式 3</span>\[x_{i+1}=x_i+V_{p,q_i}(x_i),\qquad x_i=f_{\theta_i}(\epsilon).\]</div>
+      <p>场需要满足的平衡条件见式 4。</p>
+      <div class="formula-block"><span class="formula-label">式 4</span>\[p=q\quad\Longrightarrow\quad V_{p,q}(x)=0.\]</div>
+      <p>分布匹配后，样本不再移动。论文用反对称性保证这一点：交换数据与生成样本，修正方向随之反转。</p>
+      <p>数据样本提供吸引，生成样本提供排斥，实现来自 mean shift，定义见式 5。</p>
+      <div class="formula-block"><span class="formula-label">式 5</span>\[\begin{aligned}V^+_p(x)&=\frac{\mathbb E_p[k(x,y^+)(y^+-x)]}{\mathbb E_p[k(x,y^+)]},\\V^-_q(x)&=\frac{\mathbb E_q[k(x,y^-)(y^--x)]}{\mathbb E_q[k(x,y^-)]},\\V_{p,q}(x)&=V^+_p(x)-V^-_q(x).\end{aligned}\]</div>
       <p>这里比较的是两个局部重心：数据云把样本拉向自己，生成云把样本推出过密区域。它不能从理论上消除所有 mode collapse，但场中确实包含了反向的密度反馈。</p>
 
-      <p>训练目标是让网络输出追上漂移后的、冻结的自己：</p>
-      <div class="formula-block">\[\mathcal L_{\mathrm{drift}}=\mathbb E_\epsilon\left[\left\|f_\theta(\epsilon)-\operatorname{sg}\left(f_\theta(\epsilon)+V_{p,q_\theta}(f_\theta(\epsilon))\right)\right\|_2^2\right].\]</div>
-      <p>\(\operatorname{sg}\) 是 stop-gradient。反向传播时，右侧是固定目标；优化器只把 \(f_\theta(\epsilon)\) 推向该目标。每一次 SGD 更新近似执行一次由场给出的修正，长期累积后，生成器本身承担了运输。推理只需 \(x=f_\theta(\epsilon)\)，不再积分采样轨迹。</p>
-      <p class="note">数值上残差等于漂移，但这里不是简单对 \(\|V\|^2\) 求全梯度。stop-gradient 固定了“估计场，再沿场更新”的顺序；后续理论工作正是在分析这个顺序对应什么样的动力学。</p>
+      <p>训练目标是让网络输出追上 drift 后的自己，见式 6。</p>
+      <div class="formula-block"><span class="formula-label">式 6</span>\[\mathcal L_{\mathrm{drift}}=\mathbb E_\epsilon\left[\left\|f_\theta(\epsilon)-\operatorname{sg}\left(f_\theta(\epsilon)+V_{p,q_\theta}(f_\theta(\epsilon))\right)\right\|_2^2\right].\]</div>
+      <p class="note">数值上，残差对应漂移；但这里不是对漂移大小直接做全梯度下降。stop-gradient 固定了“估计场，再沿场更新”的顺序；后续理论工作正是在分析这个顺序对应什么样的动力学。</p>
 
-      <h2>这改变了什么</h2>
-      <p><strong>GAN</strong> 也直接匹配分布，但“往哪走”由同时训练的判别器给出，因而是一个 min-max 博弈。Drifting 不训练 critic，而用显式的样本间场；代价是距离度量被放进核、带宽和特征空间。</p>
-      <p><strong>VAE</strong> 以概率图模型和 ELBO 为中心，面对的是重建、先验、近似后验之间的变分折中。Drifting 不需要显式似然或后验编码器，而是直接修正 \(q_\theta\) 与 \(p\) 的几何不匹配。</p>
-      <p><strong>Diffusion、score matching 与 flow matching</strong> 的强项是把高维分布匹配改为稳定的局部回归；但通常仍把运输路径保留在推理时。Drifting 没有预先规定每个样本在推理时必须经过的噪声路径，而是在当前分布不匹配时估计局部修正，并让训练更新积累这些修正。</p>
+      <p>VAE 以概率图模型和 ELBO 为中心，面对的是重建、先验、近似后验之间的折中；Diffusion 与 flow matching 的强项是把高维分布匹配改为稳定的局部回归，但仍把运输路径保留在推理时；Drifting 没有预先规定每个样本在推理时必须经过的路径，而是在当前分布不匹配时估计局部修正，并让训练更新积累这些修正。</p>
 
-      <h2>边界</h2>
-      <p>“更第一性”在这里指建模组织方式，不是数学上的绝对优越。扩散的连续性方程同样基本，flow matching 同样在做分布运输。Drifting 的直接性在于，它以 \(q_\theta=p_{\mathrm{data}}\) 为固定点，并把训练迭代作为分布变化的时间尺度。</p>
-      <p>核、特征空间和 mini-batch 估计会决定场的几何。原论文也说明：对任意场，\(V=0\Rightarrow p=q\) 并不自动成立；它只为特定核化构造给出充分条件。后续工作把 Gaussian-kernel 情形联系到平滑分布的 score difference 与 Wasserstein gradient flow，也讨论了实际算法与理想流之间的差异。</p>
-      <p>这篇工作的价值在于给出另一种解释：一步生成可以来自训练期完成的分布运输，而不一定来自对多步采样器的蒸馏。视频生成、世界模型和控制会更在意这一点，因为推理时延会直接限制系统的反应速度。</p>
+      <p>“更第一性”在这里指建模方式，不是数学上的绝对优越。flow matching 同样在做分布运输。Drifting 的直接性在于，它以生成分布等于数据分布为固定，把分布变化放在训练时。</p>
+      <p>原论文也说：对任意场，零漂移并不意味着两个分布相同，它只给出充分条件。后续工作把 Gaussian-kernel 情形联系到平滑分布的 score difference 与 Wasserstein gradient flow，讨论了实际算法与理想流之间的差异。</p>
+      <p>总的来说，这篇工作的价值在于给出另一种解释：一步生成可以来自训练期完成的分布运输。视频生成、世界模型和控制会更在意这一点，推理时延会直接限制系统反应速度。</p>
 
       <h2>参考来源</h2>
       <ul class="paper-list">
