@@ -372,6 +372,10 @@
       animation-delay: .41s;
     }
 
+    .post-row:nth-child(5) {
+      animation-delay: .48s;
+    }
+
     @keyframes riseIn {
       from {
         opacity: 0;
@@ -481,6 +485,19 @@
     </div>
 
     <section class="post-list" aria-label="Blog posts" data-animate="3">
+      <article class="post-row" data-category="ml" data-published="2026-07-16">
+        <div class="post-date">
+          <time datetime="2026-07-16">2026-07-16</time>
+          <span class="post-category" data-i18n="postFiveCategory"></span>
+        </div>
+        <div>
+          <h2>
+            <a class="post-title-link" href="drifting-models.html" data-i18n="postFiveTitle"></a>
+          </h2>
+          <p data-i18n="postFiveBody"></p>
+          <a class="post-source" href="drifting-models.html" data-i18n="postFiveLink"></a>
+        </div>
+      </article>
       <article class="post-row" data-category="ml" data-published="2026-07-10">
         <div class="post-date">
           <time datetime="2026-07-10">2026-07-10</time>
@@ -565,6 +582,10 @@
         postFourTitle: "什么是压缩即智能",
         postFourBody: "从最优编码、交叉熵、MDL、Transformer 表征和规模律出发，解释为什么大模型的 next-token prediction 可以被理解为一种可泛化的世界压缩。",
         postFourLink: "阅读文章",
+        postFiveCategory: "机器学习",
+        postFiveTitle: "为什么 Drifting 更接近生成建模的第一性原理",
+        postFiveBody: "从 pushforward 分布、零漂移平衡点与训练期分布运输出发，理解何恺明等人的 Drifting 为什么能自然实现一步生成，以及它仍依赖哪些建模假设。",
+        postFiveLink: "阅读文章",
         postOneCategory: "机器学习",
         postOneTitle: "MNIST 识别流程、疑问解析及个人改进",
         postOneBody: "整理 MNIST 识别的训练与预测流程、Normalize 的作用、官方数据格式问题，以及自造本地测试集识别不准时的预处理改进。",
@@ -599,6 +620,10 @@
         postFourTitle: "What Does 'Compression Is Intelligence' Mean?",
         postFourBody: "A note on why next-token prediction in large language models can be understood through optimal coding, cross-entropy, MDL, Transformer representations, and scaling laws.",
         postFourLink: "Read article",
+        postFiveCategory: "Machine Learning",
+        postFiveTitle: "Why Drifting Is Closer to First Principles in Generative Modeling",
+        postFiveBody: "A note on pushforward distributions, zero-drift equilibrium, and training-time transport in Deng et al.'s Drifting Models, including both its appeal and its assumptions.",
+        postFiveLink: "Read article",
         postOneCategory: "Machine Learning",
         postOneTitle: "MNIST Recognition Workflow, Questions, and Personal Improvements",
         postOneBody: "A note on the MNIST training and prediction workflow, the role of Normalize, the official binary data format, and preprocessing improvements for handmade local test images.",
