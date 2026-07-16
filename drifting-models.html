@@ -40,41 +40,39 @@
       <a class="back-link" href="blog.html">← 返回博客</a>
       <div class="article-meta">2026-07-16 · 机器学习 · 生成模型</div>
       <h1>为什么 Drifting 更接近生成建模的第一性原理</h1>
-      <p class="lead"><em>Generative Modeling via Drifting</em> 的新意不只是把扩散采样压成一步。它把问题的时间轴翻了过来：不再让样本在推理时从噪声慢慢走向数据，而是让生成器的整体输出分布在训练时靠近数据分布。这个重写比“更快”更重要，因为它直接从生成建模最原始的目标出发。</p>
+      <p class="lead"><em>Generative Modeling via Drifting</em> 改变的是分布运输发生的时机。扩散模型通常在推理时把噪声逐步带向数据；这篇工作把同类修正交给训练中的参数更新，最后保留一个直接的生成器。</p>
 
-      <h2>先把目标写对</h2>
       <p>令 \(\epsilon\sim p_\epsilon\)，\(x=f_\theta(\epsilon)\)。网络输出的分布是严格的 pushforward：</p>
       <div class="formula-block">\[q_\theta=(f_\theta)_\#p_\epsilon.\]</div>
-      <p>生成模型最终只需要满足 \(q_\theta=p_{\mathrm{data}}\)。预测噪声、骗过判别器、最大化 ELBO 都是让这个等式成立的不同路径，而不是问题本身。</p>
+      <p>生成模型要达到的条件是 \(q_\theta=p_{\mathrm{data}}\)。预测噪声、判别器博弈和 ELBO 都是逼近这个条件的具体方案。</p>
       <p>扩散与 flow 模型通常先指定一条分布路径 \(\{q_t\}\)，并在推理时解动力系统：</p>
       <div class="formula-block">\[\frac{\mathrm d x_t}{\mathrm d t}=v_t(x_t),\qquad \partial_t q_t+\nabla\cdot(q_t v_t)=0.\]</div>
-      <p>第二式是概率质量守恒。它很自然，但运输必须在推理时真的执行，因而要多次评估网络。Drifting 问的是：既然 SGD 本来就让 \(f_\theta\) 连续变化，为什么不让<strong>训练过程</strong>承担分布运输，而把推理留给最终的一个 \(f_\theta\)？</p>
+      <p>第二式描述概率质量守恒。该方案的代价是运输在推理时执行，因此需要多次评估网络。Drifting 把这段迭代放进训练：SGD 改变 \(f_\theta\) 时，也改变了它诱导的分布。</p>
 
-      <h2>从零漂移平衡点出发</h2>
+      <h2>训练中完成运输</h2>
       <p>论文为目标分布 \(p\) 与当前生成分布 \(q\) 定义漂移场 \(V_{p,q}(x)\)，规定当前样本应被怎样修正：</p>
       <div class="formula-block">\[x_{i+1}=x_i+V_{p,q_i}(x_i),\qquad x_i=f_{\theta_i}(\epsilon).\]</div>
-      <p>核心约束是平衡条件：</p>
+      <p>场需要满足的平衡条件是：</p>
       <div class="formula-block">\[p=q\quad\Longrightarrow\quad V_{p,q}(x)=0.\]</div>
-      <p>一旦分布匹配，样本就不应再移动。论文使用反对称性 \(V_{p,q}=-V_{q,p}\) 保证这一点：把“数据”和“生成样本”对调，修正方向也应该反过来。</p>
+      <p>分布匹配后，样本不再移动。论文用反对称性 \(V_{p,q}=-V_{q,p}\) 保证这一点：交换数据与生成样本，修正方向随之反转。</p>
       <p>它的核化实现来自 mean shift。数据样本 \(y^+\sim p\) 提供吸引，生成样本 \(y^-\sim q\) 提供排斥：</p>
       <div class="formula-block">\[\begin{aligned}V^+_p(x)&=\frac{\mathbb E_p[k(x,y^+)(y^+-x)]}{\mathbb E_p[k(x,y^+)]},\\V^-_q(x)&=\frac{\mathbb E_q[k(x,y^-)(y^--x)]}{\mathbb E_q[k(x,y^-)]},\\V_{p,q}(x)&=V^+_p(x)-V^-_q(x).\end{aligned}\]</div>
-      <p>这相当于比较两个局部重心：数据云把样本拉向自己，生成云把样本推出自身过密的区域。mode collapse 因而不是额外补丁，而是天然违背自排斥方向。</p>
+      <p>这里比较的是两个局部重心：数据云把样本拉向自己，生成云把样本推出过密区域。它不能从理论上消除所有 mode collapse，但场中确实包含了反向的密度反馈。</p>
 
-      <h2>把运输摊销进参数</h2>
       <p>训练目标是让网络输出追上漂移后的、冻结的自己：</p>
       <div class="formula-block">\[\mathcal L_{\mathrm{drift}}=\mathbb E_\epsilon\left[\left\|f_\theta(\epsilon)-\operatorname{sg}\left(f_\theta(\epsilon)+V_{p,q_\theta}(f_\theta(\epsilon))\right)\right\|_2^2\right].\]</div>
-      <p>\(\operatorname{sg}\) 是 stop-gradient。反向传播时，右侧是固定目标；优化器只把 \(f_\theta(\epsilon)\) 推向这个目标。每一次 SGD 更新都近似实现一次样本运输，许多训练步后，整段运输被写进了参数。于是推理只需 \(x=f_\theta(\epsilon)\)，不必再积分一条采样轨迹。</p>
-      <p class="note">数值上残差就是漂移，但这里并不是简单对 \(\|V\|^2\) 做全梯度下降。stop-gradient 规定了“先估场、再沿冻结场走一步”的更新语义；这也是后续理论分析特别关注的部分。</p>
+      <p>\(\operatorname{sg}\) 是 stop-gradient。反向传播时，右侧是固定目标；优化器只把 \(f_\theta(\epsilon)\) 推向该目标。每一次 SGD 更新近似执行一次由场给出的修正，长期累积后，生成器本身承担了运输。推理只需 \(x=f_\theta(\epsilon)\)，不再积分采样轨迹。</p>
+      <p class="note">数值上残差等于漂移，但这里不是简单对 \(\|V\|^2\) 求全梯度。stop-gradient 固定了“估计场，再沿场更新”的顺序；后续理论工作正是在分析这个顺序对应什么样的动力学。</p>
 
-      <h2>它和此前方法的区别</h2>
+      <h2>这改变了什么</h2>
       <p><strong>GAN</strong> 也直接匹配分布，但“往哪走”由同时训练的判别器给出，因而是一个 min-max 博弈。Drifting 不训练 critic，而用显式的样本间场；代价是距离度量被放进核、带宽和特征空间。</p>
       <p><strong>VAE</strong> 以概率图模型和 ELBO 为中心，面对的是重建、先验、近似后验之间的变分折中。Drifting 不需要显式似然或后验编码器，而是直接修正 \(q_\theta\) 与 \(p\) 的几何不匹配。</p>
-      <p><strong>Diffusion、score matching 与 flow matching</strong> 的强项是把高维分布匹配改为稳定的局部回归；但通常仍把运输路径保留在推理时。Drifting 的优势在于没有先规定“每个推理样本必须走哪条噪声路径”，只要求当前分布不匹配时存在一条让它靠近目标的修正场，并让训练更新积累这些修正。</p>
+      <p><strong>Diffusion、score matching 与 flow matching</strong> 的强项是把高维分布匹配改为稳定的局部回归；但通常仍把运输路径保留在推理时。Drifting 没有预先规定每个样本在推理时必须经过的噪声路径，而是在当前分布不匹配时估计局部修正，并让训练更新积累这些修正。</p>
 
-      <h2>“更第一性”并不等于问题已经终结</h2>
-      <p>这里的“更第一性”是建模视角，不是数学冠军头衔。扩散的连续性方程同样基本，flow matching 同样在做分布运输。Drifting 更直接之处在于：把 \(q_\theta=p_{\mathrm{data}}\) 作为固定点，把训练迭代本身作为分布时间，因此不再额外支付一条推理时的桥梁。</p>
-      <p>但场不是从真空中长出的。核、特征、mini-batch 估计都定义了“什么叫接近”。原论文也明确说明，对任意场，\(V=0\Rightarrow p=q\) 并不自动成立；它只为特定核化构造给出充分条件。后续工作把 Gaussian-kernel 情形联系到平滑分布的 score difference 与 Wasserstein gradient flow，也讨论了实际算法和理想流之间的差异。</p>
-      <p>我更愿意把它看成一种重要的重新参数化：高质量一步生成不必是“先训练多步生成器，再蒸馏掉步骤”，也可以是“训练期已经完成分布运输”。对视频生成、世界模型和控制而言，这一点尤其有价值，因为推理时延本身就是能力边界。</p>
+      <h2>边界</h2>
+      <p>“更第一性”在这里指建模组织方式，不是数学上的绝对优越。扩散的连续性方程同样基本，flow matching 同样在做分布运输。Drifting 的直接性在于，它以 \(q_\theta=p_{\mathrm{data}}\) 为固定点，并把训练迭代作为分布变化的时间尺度。</p>
+      <p>核、特征空间和 mini-batch 估计会决定场的几何。原论文也说明：对任意场，\(V=0\Rightarrow p=q\) 并不自动成立；它只为特定核化构造给出充分条件。后续工作把 Gaussian-kernel 情形联系到平滑分布的 score difference 与 Wasserstein gradient flow，也讨论了实际算法与理想流之间的差异。</p>
+      <p>这篇工作的价值在于给出另一种解释：一步生成可以来自训练期完成的分布运输，而不一定来自对多步采样器的蒸馏。视频生成、世界模型和控制会更在意这一点，因为推理时延会直接限制系统的反应速度。</p>
 
       <h2>参考来源</h2>
       <ul class="paper-list">
@@ -91,30 +89,29 @@
       <a class="back-link" href="blog.html">← Back to Blog</a>
       <div class="article-meta">2026-07-16 · Machine Learning · Generative Models</div>
       <h1>Why Drifting Is Closer to First Principles in Generative Modeling</h1>
-      <p class="lead"><em>Generative Modeling via Drifting</em> is not merely a one-step diffusion proposal. It reverses where transport happens: instead of moving a sample from noise to data at inference time, it moves the generator's output distribution toward data during training. That change matters more than speed alone.</p>
+      <p class="lead"><em>Generative Modeling via Drifting</em> changes when distribution transport happens. Rather than moving a sample from noise to data at inference time, it uses parameter updates during training to move the generator's output distribution toward data.</p>
 
-      <h2>Start from the distribution that must match</h2>
       <p>For \(\epsilon\sim p_\epsilon\) and \(x=f_\theta(\epsilon)\), the generated distribution is the pushforward</p>
       <div class="formula-block">\[q_\theta=(f_\theta)_\#p_\epsilon.\]</div>
       <p>The objective is \(q_\theta=p_{\mathrm{data}}\). Noise prediction, adversarial discrimination, and variational bounds are useful routes toward that equality, not the equality itself. Diffusion and flow models often specify a path and solve transport dynamics at inference:</p>
       <div class="formula-block">\[\frac{\mathrm d x_t}{\mathrm d t}=v_t(x_t),\qquad \partial_t q_t+\nabla\cdot(q_t v_t)=0.\]</div>
-      <p>Drifting asks whether iterative parameter optimization can instead carry out the distribution transport during training, leaving a direct noise-to-data map at inference.</p>
+      <p>Drifting uses iterative parameter optimization to carry out this transport during training, leaving a direct noise-to-data map at inference.</p>
 
-      <h2>A zero-drift equilibrium</h2>
+      <h2>Transport during training</h2>
       <p>It defines a field \(V_{p,q}(x)\) that moves samples from the current generated distribution:</p>
       <div class="formula-block">\[x_{i+1}=x_i+V_{p,q_i}(x_i),\qquad p=q\Longrightarrow V_{p,q}(x)=0.\]</div>
       <p>For the kernelized construction, real samples attract and generated samples repel:</p>
       <div class="formula-block">\[\begin{aligned}V^+_p(x)&=\frac{\mathbb E_p[k(x,y^+)(y^+-x)]}{\mathbb E_p[k(x,y^+)]},\\V^-_q(x)&=\frac{\mathbb E_q[k(x,y^-)(y^--x)]}{\mathbb E_q[k(x,y^-)]},\\V_{p,q}(x)&=V^+_p(x)-V^-_q(x).\end{aligned}\]</div>
-      <p>Matching is therefore formulated as a local equilibrium: data mass attracts a sample, while generated mass repels it from occupied regions.</p>
+      <p>Matching is formulated as a local equilibrium: data mass attracts a sample, while generated mass repels it from occupied regions.</p>
 
-      <h2>Amortizing transport into parameters</h2>
       <p>The generator regresses to a drifted but detached target:</p>
       <div class="formula-block">\[\mathcal L_{\mathrm{drift}}=\mathbb E_\epsilon\left[\left\|f_\theta(\epsilon)-\operatorname{sg}\left(f_\theta(\epsilon)+V_{p,q_\theta}(f_\theta(\epsilon))\right)\right\|_2^2\right].\]</div>
       <p>Stop-gradient fixes the field estimate during backpropagation. Each SGD step approximates a step along that field, and training writes the complete transport into \(\theta\). Inference then needs one evaluation of \(f_\theta\), rather than numerical integration.</p>
 
-      <h2>Why this framing is direct, and where it is not</h2>
+      <h2>What changes</h2>
       <p>GANs obtain a direction from a learned critic in a min-max game. VAEs center a latent-variable model and its ELBO. Diffusion, score models, and flow matching create stable local objectives, but generally retain a transport trajectory at inference. Drifting is more direct in one specific sense: it uses \(q_\theta=p_{\mathrm{data}}\) as the fixed point and treats training updates as distribution time, rather than prescribing a noise path that every inference sample must traverse.</p>
-      <p>This does not make it universally more fundamental. Its field depends on kernels, bandwidths, feature spaces, and mini-batch estimates; a zero arbitrary field need not identify equal distributions. The original paper gives sufficient conditions for its construction, and subsequent analyses connect special cases to score differences and Wasserstein gradient flows. The durable idea is that high-quality one-step generation can emerge when transport is completed during training, a useful perspective for video, world models, and control where latency is part of capability.</p>
+      <h2>Limits</h2>
+      <p>This does not make it universally more fundamental. Its field depends on kernels, bandwidths, feature spaces, and mini-batch estimates; a zero arbitrary field need not identify equal distributions. The original paper gives sufficient conditions for its construction, and subsequent analyses connect special cases to score differences and Wasserstein gradient flows. The useful claim is narrower: high-quality one-step generation can emerge when transport is completed during training, which matters for video, world models, and control where latency limits response time.</p>
 
       <h2>References</h2>
       <ul class="paper-list">
