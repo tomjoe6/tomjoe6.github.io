@@ -76,6 +76,12 @@ a {
   isolation: isolate;
 }
 
+html:lang(zh) .site-nav {
+  --nav-home-width: calc(268px / 3);
+  --nav-blog-width: calc(268px / 3);
+  --nav-photography-width: calc(268px / 3);
+}
+
 .site-nav::before {
   content: "";
   position: absolute;
@@ -398,6 +404,12 @@ html[data-nav-target="photography"] .site-nav::before {
     --nav-photography-width: 122px;
     width: 258px;
     gap: 0;
+  }
+
+  html:lang(zh) .site-nav {
+    --nav-home-width: calc(250px / 3);
+    --nav-blog-width: calc(250px / 3);
+    --nav-photography-width: calc(250px / 3);
   }
 
   .site-nav a {
