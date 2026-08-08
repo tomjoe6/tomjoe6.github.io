@@ -58,9 +58,15 @@ a {
 }
 
 .site-nav {
+  --nav-home-width: 72px;
+  --nav-blog-width: 64px;
+  --nav-photography-width: 132px;
   position: relative;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns:
+    var(--nav-home-width)
+    var(--nav-blog-width)
+    var(--nav-photography-width);
   width: 276px;
   gap: 0;
   padding: 3px;
@@ -77,33 +83,40 @@ a {
   bottom: 3px;
   left: 3px;
   z-index: -1;
-  width: calc((100% - 6px) / 3);
+  width: var(--nav-home-width);
   border-radius: 5px;
   background: rgba(251, 251, 250, .98);
   box-shadow: 0 1px 4px rgba(31, 30, 27, .1);
   transform: translate3d(0, 0, 0);
-  transition: transform .38s var(--ease-out-expo);
+  transition:
+    width .24s cubic-bezier(.22, 1, .36, 1),
+    transform .24s cubic-bezier(.22, 1, .36, 1);
   will-change: transform;
 }
 
 body[data-page="blog"] .site-nav::before {
-  transform: translate3d(100%, 0, 0);
+  width: var(--nav-blog-width);
+  transform: translate3d(var(--nav-home-width), 0, 0);
 }
 
 body[data-page="photography"] .site-nav::before {
-  transform: translate3d(200%, 0, 0);
+  width: var(--nav-photography-width);
+  transform: translate3d(calc(var(--nav-home-width) + var(--nav-blog-width)), 0, 0);
 }
 
 html[data-nav-target="home"] .site-nav::before {
+  width: var(--nav-home-width);
   transform: translate3d(0, 0, 0);
 }
 
 html[data-nav-target="blog"] .site-nav::before {
-  transform: translate3d(100%, 0, 0);
+  width: var(--nav-blog-width);
+  transform: translate3d(var(--nav-home-width), 0, 0);
 }
 
 html[data-nav-target="photography"] .site-nav::before {
-  transform: translate3d(200%, 0, 0);
+  width: var(--nav-photography-width);
+  transform: translate3d(calc(var(--nav-home-width) + var(--nav-blog-width)), 0, 0);
 }
 
 .site-nav a {
@@ -113,7 +126,8 @@ html[data-nav-target="photography"] .site-nav::before {
   min-width: 0;
   min-height: 30px;
   place-items: center;
-  padding: 0 4px;
+  overflow: hidden;
+  padding: 0 8px;
   color: var(--muted);
   font-weight: 500;
   text-align: center;
@@ -379,12 +393,15 @@ html[data-nav-target="photography"] .site-nav::before {
   }
 
   .site-nav {
+    --nav-home-width: 68px;
+    --nav-blog-width: 60px;
+    --nav-photography-width: 122px;
     width: 258px;
     gap: 0;
   }
 
   .site-nav a {
-    padding: 0 3px;
+    padding: 0 6px;
     font-size: 12px;
   }
 
