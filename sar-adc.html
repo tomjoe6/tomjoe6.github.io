@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -374,7 +374,7 @@
   </header>
 
   <main class="site-shell">
-    <article class="article" data-lang-content="zh">
+    <article class="article" data-lang-content="zh" hidden>
       <a class="back-link" href="blog.html">← 返回博客</a>
       <div class="article-meta">2026-05-28 · 集成电路 · SAR ADC</div>
       <h1>电容阵列 SAR ADC 的简单原理</h1>
@@ -414,7 +414,7 @@
       <p>也有其他类型的 SAR ADC 中，比较器正负端并不是简单的 <code>0.5VDD</code> 与 <code>Vin + 电容阵列</code>。例如比较器两端可以分别接 <code>Vin</code> 与电容阵列。虽然连接方式不同，但底层原理仍然一致：通过电荷守恒、电容阵列 DAC 和比较器反馈实现逐次逼近。</p>
     </article>
 
-    <article class="article" data-lang-content="en" hidden>
+    <article class="article" data-lang-content="en">
       <a class="back-link" href="blog.html">← Back to Blog</a>
       <div class="article-meta">2026-05-28 · Integrated Circuits · SAR ADC</div>
       <h1>A Simple Introduction to Capacitor-Array SAR ADCs</h1>
@@ -479,9 +479,9 @@
       }
     };
 
-    const fallbackLang = "zh";
+    const fallbackLang = "en";
     const savedLang = localStorage.getItem("site-language");
-    const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
+    const initialLang = savedLang || "en";
 
     function applyLanguage(lang) {
       const dict = translations[lang] || translations[fallbackLang];

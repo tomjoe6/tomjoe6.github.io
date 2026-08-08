@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -707,15 +707,15 @@
     };
 
     let currentIndex = 0;
-    let currentLang = "zh";
+    let currentLang = "en";
     let activeCarouselLayer = 0;
     let isCarouselAnimating = false;
     const decodedSlides = new Map();
     const decodedFullImages = new Map();
 
-    const fallbackLang = "zh";
+    const fallbackLang = "en";
     const savedLang = localStorage.getItem("site-language");
-    const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
+    const initialLang = savedLang || "en";
 
     function captionFor(index) {
       return currentLang === "zh" ? `照片 ${index + 1}` : `Photo ${index + 1}`;

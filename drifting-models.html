@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -36,7 +36,7 @@
   </div></header>
 
   <main class="site-shell">
-    <article class="article" data-lang-content="zh">
+    <article class="article" data-lang-content="zh" hidden>
       <a class="back-link" href="blog.html">← 返回博客</a>
       <div class="article-meta">2026-07-16 · 机器学习 · 生成模型</div>
       <h1>为什么 Drifting 更接近生成建模的第一性原理</h1>
@@ -77,7 +77,7 @@
       </ul>
     </article>
 
-    <article class="article" data-lang-content="en" hidden>
+    <article class="article" data-lang-content="en">
       <a class="back-link" href="blog.html">← Back to Blog</a>
       <div class="article-meta">2026-07-16 · Machine Learning · Generative Models</div>
       <h1>Why Drifting Is Closer to First Principles in Generative Modeling</h1>
@@ -122,7 +122,7 @@
       en: { title: "Why Drifting Is Closer to First Principles in Generative Modeling · Juntong Cui", brand: "Juntong Cui", navHome: "Home", navBlog: "Blog", navPhotography: "Photography", footerNote: "© 2026 Juntong Cui. Hosted on GitHub Pages." }
     };
     const savedLang = localStorage.getItem("site-language");
-    const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
+    const initialLang = savedLang || "en";
     function applyLanguage(lang) {
       const dict = translations[lang] || translations.zh;
       document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";

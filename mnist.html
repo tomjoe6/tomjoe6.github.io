@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -387,7 +387,7 @@
   </header>
 
   <main class="site-shell">
-    <article class="article" data-lang-content="zh">
+    <article class="article" data-lang-content="zh" hidden>
       <a class="back-link" href="blog.html">← 返回博客</a>
       <div class="article-meta">2026-04-24 · 机器学习 · MNIST</div>
       <h1>MNIST 识别流程、疑问解析及个人改进</h1>
@@ -449,7 +449,7 @@ if foreground_ratio &lt; 0.04:
       </div>
     </article>
 
-    <article class="article" data-lang-content="en" hidden>
+    <article class="article" data-lang-content="en">
       <a class="back-link" href="blog.html">← Back to Blog</a>
       <div class="article-meta">2026-04-24 · Machine Learning · MNIST</div>
       <h1>MNIST Recognition Workflow, Questions, and Personal Improvements</h1>
@@ -536,9 +536,9 @@ if foreground_ratio &lt; 0.04:
       }
     };
 
-    const fallbackLang = "zh";
+    const fallbackLang = "en";
     const savedLang = localStorage.getItem("site-language");
-    const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
+    const initialLang = savedLang || "en";
 
     function applyLanguage(lang) {
       const dict = translations[lang] || translations[fallbackLang];

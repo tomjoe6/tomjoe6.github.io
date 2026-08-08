@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -663,9 +663,9 @@
       }
     };
 
-    const fallbackLang = "zh";
+    const fallbackLang = "en";
     const savedLang = localStorage.getItem("site-language");
-    const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
+    const initialLang = savedLang || "en";
     let activeCategory = "all";
 
     function sortPostsByDate() {
