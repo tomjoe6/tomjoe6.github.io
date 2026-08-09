@@ -1,7 +1,7 @@
 (() => {
   const nav = document.querySelector(".site-nav");
   if (!nav) return;
-  const siteVersion = "20260809-3";
+  const siteVersion = "20260809-6";
 
   const pageFromLink = (link) => {
     const file = new URL(link.href, window.location.href).pathname.split("/").pop().toLowerCase();

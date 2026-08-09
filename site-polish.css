@@ -399,17 +399,17 @@ html[data-nav-target="photography"] .site-nav::before {
   }
 
   .site-nav {
-    --nav-home-width: 68px;
-    --nav-blog-width: 60px;
-    --nav-photography-width: 122px;
-    width: 258px;
+    --nav-home-width: 64px;
+    --nav-blog-width: 56px;
+    --nav-photography-width: 121px;
+    width: 249px;
     gap: 0;
   }
 
   html:lang(zh) .site-nav {
-    --nav-home-width: calc(250px / 3);
-    --nav-blog-width: calc(250px / 3);
-    --nav-photography-width: calc(250px / 3);
+    --nav-home-width: calc(241px / 3);
+    --nav-blog-width: calc(241px / 3);
+    --nav-photography-width: calc(241px / 3);
   }
 
   .site-nav a {
@@ -717,5 +717,86 @@ body {
   .page-head,
   .article {
     padding-top: 42px;
+  }
+}
+
+/* Compact home composition */
+body[data-page="home"] .site-shell,
+body[data-page="home"] .topbar-inner {
+  width: min(900px, calc(100% - 48px));
+}
+
+body[data-page="home"] .profile-photo-wrap {
+  width: 128px;
+  justify-self: start;
+}
+
+body[data-page="home"] .section {
+  position: relative;
+  padding: 42px 0;
+}
+
+body[data-page="home"] .section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    rgba(23, 23, 23, .24) 0 8px,
+    transparent 8px 16px
+  );
+  background-position: 0 0;
+  animation: home-divider-drift 1.35s linear infinite;
+}
+
+@keyframes home-divider-drift {
+  to {
+    background-position: 16px 0;
+  }
+}
+
+@media (min-width: 821px) {
+  body[data-page="home"] .hero {
+    grid-template-columns: 128px minmax(0, 1fr);
+    gap: 38px;
+  }
+
+  body[data-page="home"] .hero > div:first-child {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  body[data-page="home"] .profile-photo-wrap {
+    grid-column: 1;
+    grid-row: 1;
+    margin-top: 1px;
+  }
+}
+
+@media (max-width: 820px) {
+  body[data-page="home"] .profile-photo-wrap {
+    width: min(124px, 40vw);
+  }
+}
+
+@media (max-width: 720px) {
+  html {
+    scrollbar-gutter: auto;
+  }
+
+  .nav-actions {
+    gap: 8px;
+  }
+
+  body[data-page="home"] .site-shell,
+  body[data-page="home"] .topbar-inner {
+    width: min(100% - 28px, 900px);
+  }
+
+  body[data-page="home"] .section {
+    padding: 36px 0;
   }
 }
