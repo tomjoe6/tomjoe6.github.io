@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="DLSS5 从 neural reconstruction 转向 generative rendering 的原理整理。">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <title>DLSS5 的新原理是什么 · 崔君同</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --paper: #f4f4f2;
+      --paper-soft: #fbfbfa;
+      --paper-deep: #e8e8e4;
+      --ink: #1f1e1b;
+      --muted: #5f5a52;
+      --line: #d8cbb8;
+      --line-strong: #b7a790;
+      --clay-dark: #873f2b;
+      --blue: #526b7c;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+      --serif: Georgia, "Times New Roman", "Songti SC", serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: var(--sans);
+    }
+    a {
+      color: inherit;
+      text-decoration-color: rgba(31, 30, 27, .35);
+      text-decoration-thickness: 1px;
+      text-underline-offset: 4px;
+    }
+    a:hover { color: var(--clay-dark); text-decoration-color: var(--clay-dark); }
+    button { font: inherit; }
+    .site-shell { width: min(940px, calc(100% - 40px)); margin: 0 auto; }
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      border-bottom: 1px solid var(--line);
+      background: rgba(244, 244, 242, .88);
+      backdrop-filter: blur(16px);
+    }
+    .topbar-inner {
+      width: min(940px, calc(100% - 40px));
+      min-height: 56px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+    }
+    .brand { display: inline-flex; align-items: center; gap: 11px; color: var(--ink); text-decoration: none; }
+    .brand-mark {
+      width: 28px;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: var(--serif);
+      font-size: 16px;
+    }
+    .brand span:last-child { font-size: 15px; font-weight: 680; }
+    .nav-actions, .site-nav { display: flex; align-items: center; }
+    .nav-actions { gap: 18px; }
+    .site-nav { gap: 20px; color: var(--muted); font-size: 13px; }
+    .site-nav a { text-decoration: none; }
+    .site-nav a[aria-current="page"] { color: var(--ink); font-weight: 650; }
+    .language-switch {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      width: 104px;
+      padding: 3px;
+      border: 1px solid var(--line);
+      background: var(--paper-deep);
+    }
+    .language-switch button {
+      min-height: 28px;
+      border: 0;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+    }
+    .language-switch button.is-active { background: var(--ink); color: var(--paper); }
+    .article {
+      width: min(760px, 100%);
+      padding: 34px 0 56px;
+      animation: riseIn .92s cubic-bezier(.16, 1, .3, 1) both;
+    }
+    .back-link {
+      display: inline-flex;
+      margin-bottom: 24px;
+      color: var(--blue);
+      font-size: 13px;
+      font-weight: 650;
+      text-decoration: none;
+    }
+    .article-meta {
+      color: var(--clay-dark);
+      font-size: 12px;
+      font-weight: 760;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 {
+      margin: 10px 0 16px;
+      font-family: var(--serif);
+      font-size: clamp(28px, 4vw, 38px);
+      font-weight: 500;
+      line-height: 1.16;
+    }
+    h2 {
+      margin: 34px 0 12px;
+      font-family: var(--serif);
+      font-size: 22px;
+      font-weight: 500;
+      line-height: 1.24;
+    }
+    p {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.82;
+    }
+    .lead {
+      color: var(--ink);
+      font-size: 16px;
+      font-weight: 600;
+      line-height: 1.72;
+    }
+    figure { max-width: 520px; margin: 22px auto; }
+    .figure-wide { max-width: 680px; }
+    .article-image {
+      width: 100%;
+      display: block;
+      border: 1px solid var(--line);
+      background: var(--paper-soft);
+    }
+    figcaption {
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+    }
+    .article-source {
+      margin-top: 28px;
+      padding-top: 16px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+    }
+    .footer {
+      padding: 26px 0 36px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+    [data-lang-content][hidden] { display: none; }
+    @keyframes riseIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+      }
+    }
+    @media (max-width: 720px) {
+      .topbar-inner { min-height: auto; padding: 12px 0; align-items: flex-start; }
+      .nav-actions { flex-direction: column; align-items: flex-end; gap: 12px; }
+    }
+    @media (max-width: 560px) {
+      .site-shell, .topbar-inner { width: min(100% - 28px, 940px); }
+      .topbar-inner { flex-direction: column; gap: 14px; }
+      .nav-actions { width: 100%; flex-direction: row; justify-content: space-between; align-items: center; }
+      .site-nav { gap: 16px; }
+    }
+  </style>
+  <link rel="stylesheet" href="site-polish.css?v=20260711-6">
+  <script defer src="site-polish.js?v=20260711-6"></script>
+</head>
+<body data-page="blog">
+  <header class="topbar">
+    <div class="topbar-inner">
+      <a class="brand" href="index.html" aria-label="Juntong Cui home">
+        <span class="brand-mark">C</span>
+        <span data-i18n="brand"></span>
+      </a>
+      <div class="nav-actions">
+        <nav class="site-nav" aria-label="Primary navigation">
+          <a href="index.html" data-i18n="navHome"></a>
+          <a href="blog.html" aria-current="page" data-i18n="navBlog"></a>
+          <a href="photography.html" data-i18n="navPhotography"></a>
+        </nav>
+        <div class="language-switch" aria-label="Language switch">
+          <button type="button" data-lang="zh">中文</button>
+          <button type="button" data-lang="en">EN</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="site-shell">
+    <article class="article" data-lang-content="zh">
+      <a class="back-link" href="blog.html">← 返回博客</a>
+      <div class="article-meta">2026-09-07 · 两学科交叉 · DLSS 5</div>
+      <h1>DLSS5 的新原理是什么</h1>
+      <p class="lead">DLSS最新一代的变化并非单纯换更大的网络，而是任务从 neural reconstruction 转向 generative rendering。此前的超分辨率和 Ray Reconstruction 本质上都在逼近更高采样率、更高渲染预算下的 reference：神经网络负责降成本，但最终答案仍由传统 renderer 定义。DLSS 5 直接参与 final appearance 合成。</p>
+
+      <figure class="figure-wide">
+        <img class="article-image" src="assets/blog/dlss5/dlss5-p2.jpg" alt="DLSS 5 单帧推理与时序状态示意图" loading="lazy">
+        <figcaption>图 2：DLSS 5 的信息流抽象。当前渲染帧、运动矢量、历史状态和美术参数进入单步像素空间扩散模型，得到输出图像并更新状态。</figcaption>
+      </figure>
+
+      <p>几何、基础材质和光照仍由引擎提供，模型则利用真实图像中学到的 appearance prior 补足实时 PBR 难以用有限采样表达的毛发透射、材质微结构和局部光照。</p>
+      <h2>一步扩散到底意味着什么</h2>
+      <p>第一道门槛是 diffusion 的推理成本。式 1 对应常规多步采样，每一步执行一次网络前向；DLSS 5 采用一步 pixel-space diffusion，在像素空间一次完成生成更新。这里的一步指 sampling step，神经渲染本身仍是一帧输入、一帧输出。</p>
+
+      <figure>
+        <img class="article-image" src="assets/blog/dlss5/dlss5-p3.jpg" alt="DLSS 5 扩散、状态与运动重投影公式" loading="lazy">
+        <figcaption>图 3：式 1 至式 3。式 1 是多步扩散的通用示意，式 2 是 DLSS 5 的状态抽象，式 3 表示利用运动矢量进行历史信息重投影。</figcaption>
+      </figure>
+
+      <h2>条件生成，而不是自由生成</h2>
+      <p>困难的是约束生成自由度。式 2 给出了核心条件：当前 rendered frame、motion vector、temporal state 和 artistic control 共同进入网络，输出当前图像并更新下一帧状态。因此，它是在 renderer 已确定的场景结构附近做强条件生成。</p>
+      <p>训练时还会利用材质底色、光照等 scene attributes 做一致性监督，把生成结果约束在原有几何和物体身份上。法线、材质底色等信息属于训练约束的一部分，不能直接理解为运行时必需输入的完整缓冲区。</p>
+
+      <h2>一帧输入、一帧输出，插帧在哪里</h2>
+      <p>DLSS 5 的神经渲染阶段是一帧输入、一帧输出，处理当前时刻的画面，本身不插入额外时刻。插帧属于另一项 Frame Generation 功能：它根据相邻渲染帧和运动信息合成中间帧。把“单步扩散”和“插帧”混在一起，会误解 DLSS 5 的计算路径。</p>
+      <p>时序部分对应式 3：通过 motion vector 做重投影，将历史信息对齐到当前坐标，再决定哪些细节可以继续复用。真正传递的 temporal state 不一定是 RGB，也可能是内部 feature。</p>
+
+      <h2>为什么还会有时序伪影</h2>
+      <p>disocclusion 没有有效历史，镜面反射、透明材质和光照变化也不严格服从几何运动，所以模型必须联合当前帧与历史状态判断哪些信息该继承、哪些要重建。这里和 video diffusion 的核心问题接近，都是 appearance 一致性，但 DLSS 5 的生成空间被 renderer 提供的结构和运动强约束，并采用 causal 的逐帧推理。</p>
+      <p>简单来说：renderer 负责定义世界状态，生成模型负责扩展最终 appearance。前面的 DLSS 解决如何更便宜逼近 renderer 的答案，DLSS 5 尝试把真实世界视觉先验变成渲染管线的一部分。</p>
+      <p class="article-source">原文同步自 <a href="https://www.xiaohongshu.com/explore/6a9daf65000000002700a248?xsec_token=ABJv-rqAOFXayHuoidvWwK1VnD-SvDbWaJUuICrQJ03IQ=&xsec_source=pc_user" rel="noreferrer">小红书笔记《DLSS5 的新原理是什么》</a>。图片 P2、P3 已复制到本站本地资源。</p>
+    </article>
+
+    <article class="article" data-lang-content="en" hidden>
+      <a class="back-link" href="blog.html">← Back to Blog</a>
+      <div class="article-meta">2026-09-07 · Interdisciplinary · DLSS 5</div>
+      <h1>What Is New in DLSS 5?</h1>
+      <p class="lead">The latest DLSS release is not simply a larger network. The task shifts from neural reconstruction to generative rendering. Earlier Super Resolution and Ray Reconstruction methods approximate a reference rendered with more samples or a larger rendering budget; the neural network reduces the cost, while the traditional renderer still defines the answer. DLSS 5 participates directly in final-appearance synthesis.</p>
+
+      <figure class="figure-wide">
+        <img class="article-image" src="assets/blog/dlss5/dlss5-p2.jpg" alt="DLSS 5 single-frame inference and temporal state diagram" loading="lazy">
+        <figcaption>Figure 2: An abstraction of the DLSS 5 information flow. The rendered frame, motion vectors, temporal state, and artistic controls enter a one-step pixel-space diffusion model.</figcaption>
+      </figure>
+
+      <p>Geometry, base materials, and lighting still come from the engine. The model uses appearance priors learned from real images to fill in effects that real-time PBR struggles to express with limited samples, such as light transmission through hair, material microstructure, and local illumination.</p>
+      <h2>What does one-step diffusion mean?</h2>
+      <p>The first challenge is diffusion inference cost. Equation 1 shows the usual multi-step sampling process, where each step runs a network forward pass. DLSS 5 uses one-step pixel-space diffusion and performs one generation update in pixel space. “One step” refers to the sampling step; neural rendering itself still consumes one frame and produces one frame.</p>
+
+      <figure>
+        <img class="article-image" src="assets/blog/dlss5/dlss5-p3.jpg" alt="DLSS 5 diffusion, state, and motion reprojection equations" loading="lazy">
+        <figcaption>Figure 3: Equations 1–3. Equation 1 is a generic multi-step diffusion process, Equation 2 abstracts the DLSS 5 state transition, and Equation 3 shows motion-vector reprojection.</figcaption>
+      </figure>
+
+      <h2>Conditioned generation, not free generation</h2>
+      <p>The central difficulty is constraining the freedom of generation. Equation 2 lists the main conditions: the current rendered frame, motion vectors, temporal state, and artistic controls enter the network, which outputs the current image and updates the state for the next frame.</p>
+      <p>Training also uses scene attributes such as material albedo and lighting for consistency supervision. These signals anchor the generated result to the original geometry and object identity; they should not be read as a complete list of mandatory runtime buffers.</p>
+
+      <h2>One frame in, one frame out: where is interpolation?</h2>
+      <p>The DLSS 5 neural-rendering stage processes the current frame and emits one output frame. It does not insert an extra time point by itself. Interpolation belongs to the separate Frame Generation feature, which synthesizes intermediate frames from neighboring rendered frames and motion information.</p>
+      <p>The temporal part follows Equation 3: motion vectors reproject historical information into the current coordinate system, after which the model decides what can be reused. The carried temporal state need not be RGB; it may also contain internal features.</p>
+
+      <h2>Why can temporal artifacts still appear?</h2>
+      <p>Disocclusions have no valid history. Specular reflections, transparent materials, and lighting changes also do not follow geometric motion exactly. The model therefore has to decide which information to inherit and which to rebuild. The problem resembles video diffusion in its need for appearance consistency, but DLSS 5 is strongly constrained by the renderer’s structure and motion signals and runs causally, one frame at a time.</p>
+      <p>In simple terms, the renderer defines the world state and the generative model expands its final appearance. Earlier DLSS methods made the renderer’s answer cheaper to approximate; DLSS 5 brings a learned real-world appearance prior into the rendering pipeline.</p>
+      <p class="article-source">Synced from the original <a href="https://www.xiaohongshu.com/explore/6a9daf65000000002700a248?xsec_token=ABJv-rqAOFXayHuoidvWwK1VnD-SvDbWaJUuICrQJ03IQ=&xsec_source=pc_user" rel="noreferrer">Xiaohongshu note</a>. Images P2 and P3 are stored locally with this site.</p>
+    </article>
+  </main>
+
+  <footer class="site-shell footer">
+    <span data-i18n="footerNote"></span>
+  </footer>
+
+  <script>
+    const translations = {
+      zh: {
+        title: "DLSS5 的新原理是什么 · 崔君同",
+        brand: "崔君同",
+        navHome: "主页",
+        navBlog: "博客",
+        navPhotography: "摄影",
+        footerNote: "© 2026 崔君同。本站托管于 GitHub Pages。"
+      },
+      en: {
+        title: "What Is New in DLSS 5? · Juntong Cui",
+        brand: "Juntong Cui",
+        navHome: "Home",
+        navBlog: "Blog",
+        navPhotography: "Photography",
+        footerNote: "© 2026 Juntong Cui. Hosted on GitHub Pages."
+      }
+    };
+
+    const fallbackLang = "zh";
+    const savedLang = localStorage.getItem("site-language");
+    const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
+
+    function applyLanguage(lang) {
+      const dict = translations[lang] || translations[fallbackLang];
+      document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+      document.title = dict.title;
+      document.querySelectorAll("[data-i18n]").forEach((node) => {
+        const key = node.getAttribute("data-i18n");
+        node.textContent = dict[key] || "";
+      });
+      document.querySelectorAll("[data-lang-content]").forEach((node) => {
+        node.hidden = node.dataset.langContent !== lang;
+      });
+      document.querySelectorAll("[data-lang]").forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.lang === lang);
+        button.setAttribute("aria-pressed", String(button.dataset.lang === lang));
+      });
+      localStorage.setItem("site-language", lang);
+    }
+
+    document.querySelectorAll("[data-lang]").forEach((button) => {
+      button.addEventListener("click", () => applyLanguage(button.dataset.lang));
+    });
+
+    applyLanguage(initialLang);
+  </script>
+</body>
+</html>
