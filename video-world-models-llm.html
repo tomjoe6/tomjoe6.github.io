@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A technical note on whether video understanding, physical reasoning, and planning in multimodal systems can be attributed entirely to large language models.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <title>当视频生成开始预测动作后果 · 崔君同</title>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [["\\(", "\\)"], ["$", "$"]], displayMath: [["\\[", "\\]"]] },
+      svg: { fontCache: "global" }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <style>
+    :root { color-scheme:light; --paper:#f4f4f2; --paper-soft:#fbfbfa; --ink:#1f1e1b; --muted:#5f5a52; --line:#d8cbb8; --clay:#b85c38; --clay-dark:#873f2b; --blue:#526b7c; --sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif; --serif:Georgia,"Times New Roman","Songti SC",serif; }
+    * { box-sizing:border-box; } html { scroll-behavior:smooth; } body { margin:0; min-height:100vh; background:var(--paper); color:var(--ink); font-family:var(--sans); } a { color:inherit; text-decoration-color:rgba(31,30,27,.35); text-decoration-thickness:1px; text-underline-offset:4px; } a:hover { color:var(--clay-dark); } button { font:inherit; }
+    .site-shell { width:min(940px,calc(100% - 40px)); margin:0 auto; } .topbar { position:sticky; top:0; z-index:20; background:rgba(244,244,242,.88); backdrop-filter:blur(16px); } .topbar-inner { width:min(940px,calc(100% - 40px)); min-height:56px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:18px; }
+    .brand { display:inline-flex; align-items:center; gap:11px; color:var(--ink); text-decoration:none; } .brand-mark { width:28px; height:28px; display:grid; place-items:center; background:var(--ink); color:var(--paper); font-family:var(--serif); font-size:16px; } .brand span:last-child { font-size:15px; font-weight:680; }
+    .nav-actions,.site-nav { display:flex; align-items:center; } .nav-actions { gap:18px; } .site-nav { gap:20px; color:var(--muted); font-size:13px; } .site-nav a { text-decoration:none; } .site-nav a[aria-current="page"] { color:var(--ink); font-weight:650; }
+    .language-switch { display:grid; grid-template-columns:repeat(2,1fr); width:104px; padding:3px; border:1px solid var(--line); background:#e8e8e4; } .language-switch button { min-height:28px; border:0; background:transparent; color:var(--muted); cursor:pointer; } .language-switch button.is-active { background:var(--ink); color:var(--paper); }
+    .article { width:min(760px,100%); padding:34px 0 56px; animation:riseIn .92s cubic-bezier(.16,1,.3,1) both; } .back-link { display:inline-flex; margin-bottom:24px; color:var(--blue); font-size:13px; font-weight:650; text-decoration:none; } .article-meta { color:var(--clay-dark); font-size:12px; font-weight:760; letter-spacing:.08em; text-transform:uppercase; }
+    h1,p { margin-top:0; } h1 { margin:10px 0 16px; font-family:var(--serif); font-size:clamp(28px,4vw,38px); font-weight:500; line-height:1.16; } p,li { color:var(--muted); font-size:15px; line-height:1.82; } .lead { color:var(--ink); font-size:16px; font-weight:600; line-height:1.72; }
+    .formula-block { overflow-x:auto; margin:18px 0; padding:12px 14px; border:1px solid var(--line); background:var(--paper-soft); } .note { margin:18px 0; padding:14px 16px; border-left:3px solid var(--clay); background:rgba(251,248,242,.72); color:var(--ink); font-size:14px; line-height:1.78; } .references-title { margin:32px 0 10px; color:var(--ink); font-family:var(--serif); font-size:20px; } .paper-list { display:grid; gap:8px; padding-left:0; list-style:none; } .paper-list a { color:var(--clay-dark); font-weight:650; } .footer { padding:26px 0 36px; color:var(--muted); font-size:13px; }
+    @keyframes riseIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } } [data-lang-content][hidden] { display:none; }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; } } @media (max-width:560px) { .site-shell,.topbar-inner { width:min(100% - 28px,940px); } .topbar-inner { flex-direction:column; padding:12px 0; align-items:flex-start; } .nav-actions { width:100%; justify-content:space-between; gap:10px; } .site-nav { gap:14px; } }
+  </style>
+  <link rel="stylesheet" href="site-polish.css?v=20260809-6">
+  <script defer src="site-polish.js?v=20260809-6"></script>
+</head>
+<body data-page="blog">
+  <header class="topbar"><div class="topbar-inner">
+    <a class="brand" href="index.html" aria-label="Juntong Cui home"><span class="brand-mark">C</span><span data-i18n="brand"></span></a>
+    <div class="nav-actions"><nav class="site-nav" aria-label="Primary navigation"><a href="index.html" data-i18n="navHome"></a><a href="blog.html" aria-current="page" data-i18n="navBlog"></a><a href="photography.html" data-i18n="navPhotography"></a></nav><div class="language-switch" aria-label="Language switch"><button type="button" data-lang="zh">中文</button><button type="button" data-lang="en">EN</button></div></div>
+  </div></header>
+
+  <main class="site-shell">
+    <article class="article" data-lang-content="zh" hidden>
+      <a class="back-link" href="blog.html">← 返回博客</a>
+      <div class="article-meta">2026-08-08 · 机器学习 · 世界模型</div>
+      <h1>当视频生成开始预测动作后果：多模态能力还能全部归因于 LLM 吗？</h1>
+      <p class="lead">过去两年，潜在动作模型、动作条件预测器和模型预测控制连续出现在视频生成研究中。研究目标也由条件视频合成扩展到干预后的状态预测：系统不仅要生成下一帧，还要估计某个动作会改变哪些状态。能力归因因此变得具体——如果最终解码器是 LLM，时空表征、物理预测和可执行规划是否也都来自 LLM？</p>
+
+      <p>现有证据不支持全部归因于 LLM。视频理解、物理推理和规划都包含多个层次，其中一部分可以从语言预训练中迁移，另一部分依赖视频、动作和环境反馈。统一架构并不意味着能力具有单一来源。</p>
+      <p>视频理解首先包含物体识别、动作命名和事件描述。这些任务与语言概念高度相关，LLM 提供的语义知识具有明显作用。但视频理解还包括目标跟踪、运动方向、遮挡关系、状态变化和动作预期，这些信息主要来自视频的时序结构。</p>
+      <p>自回归视频模型通常学习条件视频分布：</p>
+      <div class="formula-block">\[p_\theta(x_{1:T}\mid c)=\prod_{t=1}^{T}p_\theta(x_t\mid x_{1:t-1},c),\]</div>
+      <p>其中 \(x_t\) 表示视频帧，\(c\) 可以是文本、图像、动作或轨迹。扩散模型采用不同的生成过程，但同样需要拟合视觉时空分布。训练数据中反复出现的下落、碰撞、流动和形变会形成相应的统计表征，目标函数中通常没有质量守恒、动量守恒或接触方程等显式约束。</p>
+      <p>V-JEPA 2 提供了较明确的能力分解。其视频编码器先通过大规模视频自监督训练形成时空表征；视觉表征与语言模型对齐后，视频问答性能进一步提高；使用机器人视频训练动作条件预测器 V-JEPA 2-AC 后，系统可以在模型预测控制中完成新环境下的机器人规划。三个训练阶段分别增加视频、语言和动作信息。</p>
+      <p>物理推理也需要区分不同形式。文本语料包含重力、碰撞和摩擦等常识，因此 LLM 可以回答相应的语言问题。具体场景中的状态预测还需要位置、速度、材料属性、接触关系和环境约束。这些连续变量通常无法从文本记录中完整恢复。</p>
+      <p>普通视频预测主要估计观察条件下的后续状态：</p>
+      <div class="formula-block">\[p(x_{t+1}\mid x_{\leq t}).\]</div>
+      <p>面向控制的物理推理还要估计动作干预后的状态：</p>
+      <div class="formula-block">\[p(x_{t+1}\mid \operatorname{do}(a_t),x_{\leq t}).\]</div>
+      <p>前一个分布可以从被动视频中估计；后一个分布需要动作记录、受控实验或具有充分状态覆盖的交互数据。如果动作选择还依赖未观测变量，普通条件分布 \(p(x_{t+1}\mid a_t,x_{\leq t})\) 与干预分布仍可能存在差异，因此还需要状态覆盖、随机化控制或相应的因果假设。</p>
+      <p>潜在动作模型尝试从没有动作标签的视频中提取可控变化：</p>
+      <div class="formula-block">\[z_t=Q_\phi(x_t,x_{t+1}),\qquad \hat{s}_{t+1}=F_\theta(s_t,z_t).\]</div>
+      <p>其中 \(z_t\) 表示相邻状态之间的低维变化，\(F_\theta\) 根据当前状态和潜在动作预测后续状态。Genie 采用时空视频分词器、自回归动力学模型和潜在动作模型，可以从没有真实动作标签的互联网视频中训练可控生成环境。这说明一部分动作结构可以直接从视频变化中形成。</p>
+      <p>潜在动作不能自动对应现实中的力、方向或关节控制量。只要预测损失保持不变，潜在动作编号可以交换，潜在空间也可以进行可逆变换。相机移动、主体运动和背景变化还可能被编码到同一个变量中。潜在动作主要提供可控变化的表示，其物理含义仍需通过动作标签、机器人本体感觉、干预实验或下游控制结果确认。</p>
+      <p>论文中所说的智能体通常位于训练或推理闭环。网络内部增加的组件一般称为动作条件、潜在状态、策略接口或价值函数。智能体产生交互轨迹，世界模型预测动作结果，控制器再根据目标选择动作。</p>
+      <p>在模型预测控制中，动作选择可以写为：</p>
+      <div class="formula-block">\[a_{t:t+H}^{*}=\arg\min_{a_{t:t+H}}D\!\left(\operatorname{Rollout}(s_t,a_{t:t+H}),s_{\mathrm{goal}}\right).\]</div>
+      <p>系统执行序列中的第一个动作，获得新的环境观测，再计算后续动作。真实反馈会持续检验动力学预测误差。LLM 可以解析自然语言目标、生成步骤和完成高层任务分解；计划进入物理环境后，动作条件世界模型还要判断动作会如何改变环境，控制算法则根据反馈修正后续动作。</p>
+      <p>因此，语言规划能力和可执行规划能力需要分别分析。高层步骤可以主要来自语言与代码训练，物理可行性还取决于当前视觉状态、动作条件转移和闭环反馈。语言上合理的步骤无法直接保证动作可行。</p>
+      <p>典型视觉语言模型可以写成：</p>
+      <div class="formula-block">\[p(y\mid x,q)=p_{\mathrm{LLM}}\!\left(y\mid V_\phi(x),q\right),\]</div>
+      <p>其中 \(V_\phi(x)\) 是视觉编码结果，\(q\) 是文本问题，\(y\) 是输出。最终结果由语言模型解码，与视觉相关的信息仍来自视觉编码器及其训练数据。仅根据输出模块的位置判断能力来源，会遗漏输入表征的作用。PaLM-E 的联合训练结果也显示，语言、视觉和机器人数据之间存在正迁移。</p>
+      <p>现有视频生成评测进一步说明，语言知识无法直接保证物理一致性。VideoPhy 测试了固体、流体及其交互场景。在该研究覆盖的模型中，最高结果仅在 39.6% 的样本上同时满足文本条件和物理规律。VideoPhy-2 增加了更复杂的动作，困难子集中的最高联合结果为 22%，质量守恒和动量守恒也是常见问题。这些结果对应特定模型和评测时间，但足以说明语言对齐、视觉质量和物理一致性需要分别测量。</p>
+      <p class="note">更准确的能力归因是：视频理解中的语义部分可以大量受益于 LLM，时空表征依赖视频训练；物理常识可以来自 LLM，场景动力学和动作后果依赖视频与交互数据；高层规划可以由 LLM 完成，可执行规划还依赖动作条件世界模型、控制算法和真实反馈。</p>
+      <p>未来系统可能使用统一的 Transformer 参数处理文本、图像、视频、音频和动作。参数统一不会消除信息来源的差异。视频学习仍需处理长期状态、多种可能未来和误差累积；三维视觉仍需处理几何、遮挡和跟踪；机器人学与控制理论仍需处理动作、反馈和稳定性；因果推断仍需区分观察相关性与干预结果。</p>
+      <p>多模态系统的统一可以发生在参数层面，也可以发生在输入输出形式上。物理能力的形成仍然要求连续观测、动作和环境反馈。LLM 能够组织这些信息，但无法单独提供训练语料中缺失的物理状态与干预结果。视频理解、物理推理和规划均有一部分来自 LLM，没有全部来自 LLM。</p>
+
+      <p class="references-title">参考资料</p>
+      <ul class="paper-list">
+        <li><a href="https://deepmind.google/research/publications/60474/" target="_blank" rel="noreferrer">Bruce et al., Genie: Generative Interactive Environments, 2024</a></li>
+        <li><a href="https://arxiv.org/abs/2506.09985" target="_blank" rel="noreferrer">Assran et al., V-JEPA 2: Self-Supervised Video Models Enable Understanding, Prediction and Planning, 2025</a></li>
+        <li><a href="https://arxiv.org/abs/2303.03378" target="_blank" rel="noreferrer">Driess et al., PaLM-E: An Embodied Multimodal Language Model, 2023</a></li>
+        <li><a href="https://arxiv.org/abs/2406.03520" target="_blank" rel="noreferrer">Bansal et al., VideoPhy: Evaluating Physical Commonsense for Video Generation, 2024</a></li>
+        <li><a href="https://arxiv.org/abs/2503.06800" target="_blank" rel="noreferrer">Bansal et al., VideoPhy-2: A Challenging Action-Centric Physical Commonsense Evaluation in Video Generation, 2025</a></li>
+      </ul>
+    </article>
+
+    <article class="article" data-lang-content="en">
+      <a class="back-link" href="blog.html">← Back to Blog</a>
+      <div class="article-meta">2026-08-08 · Machine Learning · World Models</div>
+      <h1>When Video Generation Predicts Action Consequences, Can Multimodal Capability Still Be Attributed Entirely to LLMs?</h1>
+      <p class="lead">Over the past two years, latent-action models, action-conditioned predictors, and model-predictive control have repeatedly appeared in video-generation research. The objective has expanded from conditional video synthesis to predicting post-intervention states: a system must generate the next frame and estimate which states an action will change. This makes capability attribution concrete. If the final decoder is an LLM, do temporal representation, physical prediction, and executable planning also come entirely from that LLM?</p>
+
+      <p>Current evidence does not support complete attribution to the LLM. Video understanding, physical reasoning, and planning each contain several levels. Language pretraining transfers to some of them, while video, action, and environmental feedback provide additional information. A unified architecture does not imply a single capability source.</p>
+      <p>Video understanding includes object recognition, action naming, and event description, where linguistic concepts contribute substantially. It also includes tracking, motion direction, occlusion, state change, and action anticipation, which depend on temporal structure in video.</p>
+      <p>An autoregressive video model typically learns a conditional video distribution:</p>
+      <div class="formula-block">\[p_\theta(x_{1:T}\mid c)=\prod_{t=1}^{T}p_\theta(x_t\mid x_{1:t-1},c).\]</div>
+      <p>Here \(x_t\) denotes a video frame and \(c\) may be text, an image, an action, or a trajectory. Diffusion models use a different generation process but must also fit a visual-temporal distribution. Repeated observations of falling, collision, flow, and deformation can produce corresponding statistical representations even when the objective contains no explicit conservation or contact equations.</p>
+      <p>V-JEPA 2 gives a useful decomposition. Its video encoder first forms temporal representations through large-scale self-supervised video training. Alignment with a language model then improves video question answering. An action-conditioned predictor, V-JEPA 2-AC, is subsequently trained on robot videos and used for model-predictive control in new environments. The three stages add video, language, and action information separately.</p>
+      <p>Physical reasoning also has several forms. Text corpora contain statements about gravity, collision, and friction, so an LLM can answer related verbal questions. Predicting a particular scene also requires position, velocity, material properties, contact relations, and environmental constraints. Text records rarely preserve these continuous variables in full.</p>
+      <p>Passive video prediction mainly estimates an observational distribution:</p>
+      <div class="formula-block">\[p(x_{t+1}\mid x_{\leq t}).\]</div>
+      <p>Control requires a post-intervention distribution:</p>
+      <div class="formula-block">\[p(x_{t+1}\mid \operatorname{do}(a_t),x_{\leq t}).\]</div>
+      <p>The first can be estimated from passive video. The second generally requires action records, controlled experiments, or interaction data with sufficient state coverage. When action selection depends on unobserved variables, an ordinary conditional distribution may still differ from an intervention distribution, motivating coverage, randomized control, or explicit causal assumptions.</p>
+      <p>A latent-action model attempts to recover controllable change from video without action labels:</p>
+      <div class="formula-block">\[z_t=Q_\phi(x_t,x_{t+1}),\qquad \hat{s}_{t+1}=F_\theta(s_t,z_t).\]</div>
+      <p>The variable \(z_t\) encodes a low-dimensional change between adjacent states. Genie combines a spatiotemporal video tokenizer, an autoregressive dynamics model, and a latent-action model to train controllable generated environments from internet video without ground-truth action labels. This shows that some action structure can be formed directly from visual change.</p>
+      <p>A latent action does not automatically correspond to a physical force, direction, or joint command. Its labels can be permuted, its space can undergo invertible transformations, and camera, subject, and background motion may share the same representation. Physical meaning therefore requires confirmation through action labels, proprioception, interventions, or downstream control.</p>
+      <p>The agent in these systems usually sits in a training or inference loop. Components added inside the network are typically action conditions, latent states, policy interfaces, or value functions. The agent produces interaction trajectories, the world model predicts action outcomes, and a controller selects actions toward a goal.</p>
+      <p>Model-predictive control can express that selection as:</p>
+      <div class="formula-block">\[a_{t:t+H}^{*}=\arg\min_{a_{t:t+H}}D\!\left(\operatorname{Rollout}(s_t,a_{t:t+H}),s_{\mathrm{goal}}\right).\]</div>
+      <p>The system executes the first action, receives a new observation, and replans. Environmental feedback continually tests dynamics error. An LLM can parse a natural-language goal and produce high-level task decomposition. Physical execution additionally requires an action-conditioned world model to predict environmental change and a controller to correct subsequent actions.</p>
+      <p>Language planning and executable planning therefore require separate analysis. High-level steps can come largely from language and code training. Feasibility also depends on the current visual state, action-conditioned transitions, and closed-loop feedback. Linguistically plausible steps do not guarantee feasible actions.</p>
+      <p>A typical vision-language model can be written as:</p>
+      <div class="formula-block">\[p(y\mid x,q)=p_{\mathrm{LLM}}\!\left(y\mid V_\phi(x),q\right).\]</div>
+      <p>Here \(V_\phi(x)\) is the visual representation, \(q\) is a textual query, and \(y\) is the output. The language model decodes the final result, while visually specific information still comes from the visual encoder and its training data. Capability attribution based only on the output module omits the contribution of input representations. PaLM-E likewise reports positive transfer across language, vision, and robot data under joint training.</p>
+      <p>Video-generation benchmarks further show that language knowledge does not ensure physical consistency. In VideoPhy, the best tested model jointly satisfied its caption and physical constraints on 39.6% of examples. On the hard subset of VideoPhy-2, the highest joint result was 22%, with mass and momentum conservation among the frequent violations. These figures apply to particular models and evaluation periods, but they show why language alignment, visual quality, and physical consistency require separate measurement.</p>
+      <p class="note">A more precise attribution is available: semantic aspects of video understanding benefit substantially from LLMs, while temporal representation depends on video training; verbal physical knowledge can come from LLMs, while scene dynamics and action consequences depend on video and interaction data; high-level planning can be produced by an LLM, while executable planning additionally requires an action-conditioned world model, control, and real feedback.</p>
+      <p>Future systems may use a single Transformer parameterization for text, images, video, audio, and action. Parameter unification does not remove differences among information sources. Video learning still faces long-horizon state, multiple possible futures, and accumulated error. Three-dimensional vision still faces geometry, occlusion, and tracking. Robotics and control still face action, feedback, and stability. Causal inference still separates observational association from intervention.</p>
+      <p>Multimodal systems can be unified at the parameter level and at their input-output interface. Physical capability still requires continuous observations, actions, and environmental feedback. LLMs can organize this information, but cannot independently provide physical states and intervention outcomes absent from their training data. Video understanding, physical reasoning, and planning each draw partly from LLMs; none is fully attributable to LLMs alone.</p>
+
+      <p class="references-title">References</p>
+      <ul class="paper-list">
+        <li><a href="https://deepmind.google/research/publications/60474/" target="_blank" rel="noreferrer">Bruce et al., Genie: Generative Interactive Environments, 2024</a></li>
+        <li><a href="https://arxiv.org/abs/2506.09985" target="_blank" rel="noreferrer">Assran et al., V-JEPA 2: Self-Supervised Video Models Enable Understanding, Prediction and Planning, 2025</a></li>
+        <li><a href="https://arxiv.org/abs/2303.03378" target="_blank" rel="noreferrer">Driess et al., PaLM-E: An Embodied Multimodal Language Model, 2023</a></li>
+        <li><a href="https://arxiv.org/abs/2406.03520" target="_blank" rel="noreferrer">Bansal et al., VideoPhy: Evaluating Physical Commonsense for Video Generation, 2024</a></li>
+        <li><a href="https://arxiv.org/abs/2503.06800" target="_blank" rel="noreferrer">Bansal et al., VideoPhy-2: A Challenging Action-Centric Physical Commonsense Evaluation in Video Generation, 2025</a></li>
+      </ul>
+    </article>
+  </main>
+
+  <footer class="site-shell footer"><span data-i18n="footerNote"></span></footer>
+  <script>
+    const translations = {
+      zh: { title:"当视频生成开始预测动作后果 · 崔君同", brand:"崔君同", navHome:"主页", navBlog:"博客", navPhotography:"摄影", footerNote:"© 2026 崔君同。本站托管于 GitHub Pages。" },
+      en: { title:"When Video Generation Predicts Action Consequences · Juntong Cui", brand:"Juntong Cui", navHome:"Home", navBlog:"Blog", navPhotography:"Photography", footerNote:"© 2026 Juntong Cui. Hosted on GitHub Pages." }
+    };
+    const savedLang = localStorage.getItem("site-language");
+    const initialLang = savedLang || "en";
+    function applyLanguage(lang) {
+      const dict = translations[lang] || translations.zh;
+      document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+      document.title = dict.title;
+      document.querySelectorAll("[data-i18n]").forEach((node) => { node.textContent = dict[node.getAttribute("data-i18n")] || ""; });
+      document.querySelectorAll("[data-lang-content]").forEach((node) => { node.hidden = node.dataset.langContent !== lang; });
+      document.querySelectorAll("[data-lang]").forEach((button) => { button.classList.toggle("is-active", button.dataset.lang === lang); button.setAttribute("aria-pressed", String(button.dataset.lang === lang)); });
+      localStorage.setItem("site-language", lang);
+      if (window.MathJax?.typesetPromise) window.MathJax.typesetPromise();
+    }
+    document.querySelectorAll("[data-lang]").forEach((button) => button.addEventListener("click", () => applyLanguage(button.dataset.lang)));
+    applyLanguage(initialLang);
+  </script>
+</body>
+</html>

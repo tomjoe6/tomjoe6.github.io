@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -567,8 +567,8 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="site-polish.css?v=20260711-6">
-  <script defer src="site-polish.js?v=20260711-6"></script>
+  <link rel="stylesheet" href="site-polish.css?v=20260809-6">
+  <script defer src="site-polish.js?v=20260809-6"></script>
 </head>
 <body data-page="photography">
   <header class="topbar">
@@ -677,7 +677,7 @@
       }
     };
 
-    const photos = Array.from({ length: 13 }, (_, index) => {
+    const photos = Array.from({ length: 14 }, (_, index) => {
       const id = String(index + 1).padStart(2, "0");
       return {
         slide: `assets/photography/slide-${id}.jpg`,
@@ -707,15 +707,15 @@
     };
 
     let currentIndex = 0;
-    let currentLang = "zh";
+    let currentLang = "en";
     let activeCarouselLayer = 0;
     let isCarouselAnimating = false;
     const decodedSlides = new Map();
     const decodedFullImages = new Map();
 
-    const fallbackLang = "zh";
+    const fallbackLang = "en";
     const savedLang = localStorage.getItem("site-language");
-    const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
+    const initialLang = savedLang || "en";
 
     function captionFor(index) {
       return currentLang === "zh" ? `照片 ${index + 1}` : `Photo ${index + 1}`;

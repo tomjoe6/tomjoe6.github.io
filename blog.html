@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -372,6 +372,18 @@
       animation-delay: .41s;
     }
 
+    .post-row:nth-child(5) {
+      animation-delay: .48s;
+    }
+
+    .post-row:nth-child(6) {
+      animation-delay: .55s;
+    }
+
+    .post-row:nth-child(7) {
+      animation-delay: .62s;
+    }
+
     @keyframes riseIn {
       from {
         opacity: 0;
@@ -441,8 +453,8 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="site-polish.css?v=20260711-6">
-  <script defer src="site-polish.js?v=20260711-6"></script>
+  <link rel="stylesheet" href="site-polish.css?v=20260809-6">
+  <script defer src="site-polish.js?v=20260809-6"></script>
 </head>
 <body data-page="blog">
   <header class="topbar">
@@ -484,14 +496,40 @@
       <article class="post-row" data-category="cross" data-published="2026-09-07">
         <div class="post-date">
           <time datetime="2026-09-07">2026-09-07</time>
+          <span class="post-category" data-i18n="postSevenCategory"></span>
+        </div>
+        <div>
+          <h2>
+            <a class="post-title-link" href="dlss5.html" data-i18n="postSevenTitle"></a>
+          </h2>
+          <p data-i18n="postSevenBody"></p>
+          <a class="post-source" href="dlss5.html" data-i18n="postSevenLink"></a>
+        </div>
+      </article>
+      <article class="post-row" data-category="ml" data-published="2026-08-08">
+        <div class="post-date">
+          <time datetime="2026-08-08">2026-08-08</time>
+          <span class="post-category" data-i18n="postSixCategory"></span>
+        </div>
+        <div>
+          <h2>
+            <a class="post-title-link" href="video-world-models-llm.html" data-i18n="postSixTitle"></a>
+          </h2>
+          <p data-i18n="postSixBody"></p>
+          <a class="post-source" href="video-world-models-llm.html" data-i18n="postSixLink"></a>
+        </div>
+      </article>
+      <article class="post-row" data-category="ml" data-published="2026-07-16">
+        <div class="post-date">
+          <time datetime="2026-07-16">2026-07-16</time>
           <span class="post-category" data-i18n="postFiveCategory"></span>
         </div>
         <div>
           <h2>
-            <a class="post-title-link" href="dlss5.html" data-i18n="postFiveTitle"></a>
+            <a class="post-title-link" href="drifting-models.html" data-i18n="postFiveTitle"></a>
           </h2>
           <p data-i18n="postFiveBody"></p>
-          <a class="post-source" href="dlss5.html" data-i18n="postFiveLink"></a>
+          <a class="post-source" href="drifting-models.html" data-i18n="postFiveLink"></a>
         </div>
       </article>
       <article class="post-row" data-category="ml" data-published="2026-07-10">
@@ -574,14 +612,22 @@
         catIC: "集成电路",
         catCross: "两学科交叉",
         catOther: "其他",
-        postFiveCategory: "两学科交叉",
-        postFiveTitle: "DLSS5 的新原理是什么",
-        postFiveBody: "从 neural reconstruction 到 generative rendering，整理 DLSS 5 如何用单步像素空间扩散、运动矢量与跨帧状态生成最终画面。",
-        postFiveLink: "阅读文章",
         postFourCategory: "机器学习",
         postFourTitle: "什么是压缩即智能",
         postFourBody: "从最优编码、交叉熵、MDL、Transformer 表征和规模律出发，解释为什么大模型的 next-token prediction 可以被理解为一种可泛化的世界压缩。",
         postFourLink: "阅读文章",
+        postFiveCategory: "机器学习",
+        postFiveTitle: "为什么 Drifting 更接近生成建模的第一性原理",
+        postFiveBody: "从 pushforward 分布、零漂移平衡点与训练期分布运输出发，理解何恺明等人的 Drifting 为什么能自然实现一步生成，以及它仍依赖哪些建模假设。",
+        postFiveLink: "阅读文章",
+        postSixCategory: "机器学习",
+        postSixTitle: "当视频生成开始预测动作后果：多模态能力还能全部归因于 LLM 吗？",
+        postSixBody: "从视频自监督、潜在动作、动作条件世界模型和模型预测控制出发，区分 LLM 在视频理解、物理推理与可执行规划中的具体作用。",
+        postSixLink: "阅读文章",
+        postSevenCategory: "两学科交叉",
+        postSevenTitle: "DLSS5 的新原理是什么",
+        postSevenBody: "从 neural reconstruction 到 generative rendering，整理 DLSS 5 如何用单步像素空间扩散、运动矢量与跨帧状态生成最终画面。",
+        postSevenLink: "阅读文章",
         postOneCategory: "机器学习",
         postOneTitle: "MNIST 识别流程、疑问解析及个人改进",
         postOneBody: "整理 MNIST 识别的训练与预测流程、Normalize 的作用、官方数据格式问题，以及自造本地测试集识别不准时的预处理改进。",
@@ -612,14 +658,22 @@
         catIC: "Integrated Circuits",
         catCross: "Interdisciplinary",
         catOther: "Other",
-        postFiveCategory: "Interdisciplinary",
-        postFiveTitle: "What Is New in DLSS 5?",
-        postFiveBody: "A note on DLSS 5's shift from neural reconstruction to generative rendering, with one-step pixel-space diffusion, motion vectors, and temporal state.",
-        postFiveLink: "Read article",
         postFourCategory: "Machine Learning",
         postFourTitle: "What Does 'Compression Is Intelligence' Mean?",
         postFourBody: "A note on why next-token prediction in large language models can be understood through optimal coding, cross-entropy, MDL, Transformer representations, and scaling laws.",
         postFourLink: "Read article",
+        postFiveCategory: "Machine Learning",
+        postFiveTitle: "Why Drifting Is Closer to First Principles in Generative Modeling",
+        postFiveBody: "A note on pushforward distributions, zero-drift equilibrium, and training-time transport in Deng et al.'s Drifting Models, including both its appeal and its assumptions.",
+        postFiveLink: "Read article",
+        postSixCategory: "Machine Learning",
+        postSixTitle: "When Video Generation Predicts Action Consequences, Can Multimodal Capability Still Be Attributed Entirely to LLMs?",
+        postSixBody: "A technical note separating the roles of video self-supervision, latent actions, action-conditioned world models, and LLMs in video understanding, physical reasoning, and executable planning.",
+        postSixLink: "Read article",
+        postSevenCategory: "Interdisciplinary",
+        postSevenTitle: "What Is New in DLSS 5?",
+        postSevenBody: "A note on DLSS 5's shift from neural reconstruction to generative rendering, with one-step pixel-space diffusion, motion vectors, and temporal state.",
+        postSevenLink: "Read article",
         postOneCategory: "Machine Learning",
         postOneTitle: "MNIST Recognition Workflow, Questions, and Personal Improvements",
         postOneBody: "A note on the MNIST training and prediction workflow, the role of Normalize, the official binary data format, and preprocessing improvements for handmade local test images.",
@@ -638,9 +692,9 @@
       }
     };
 
-    const fallbackLang = "zh";
+    const fallbackLang = "en";
     const savedLang = localStorage.getItem("site-language");
-    const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
+    const initialLang = savedLang || "en";
     let activeCategory = "all";
 
     function sortPostsByDate() {

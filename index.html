@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -488,8 +488,8 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="site-polish.css?v=20260711-6">
-  <script defer src="site-polish.js?v=20260711-6"></script>
+  <link rel="stylesheet" href="site-polish.css?v=20260809-6">
+  <script defer src="site-polish.js?v=20260809-6"></script>
 </head>
 <body data-page="home">
   <header class="topbar">
@@ -561,7 +561,6 @@
     <section class="section" id="about" data-animate="3">
       <h2 class="section-label" data-i18n="aboutTitle"></h2>
       <div class="section-body">
-        <p class="lead-copy" data-i18n="aboutLead"></p>
         <p data-i18n="aboutBody"></p>
       </div>
     </section>
@@ -629,10 +628,9 @@
         heroSchool: "上海交通大学 · 本科生",
         heroLocation: "上海，中国",
         aboutTitle: "关于",
-        aboutLead: "我目前关注多模态大模型、世界模型与视频生成。",
-        aboutBody: "我希望理解模型如何把视觉、语言、时间和环境状态组织成可预测、可生成的表示：多模态大模型如何对齐不同模态，世界模型如何学习动态变化，视频生成又如何把语义、运动和物理一致性落到连续帧中。这个网站会持续记录我在这些方向上的学习、项目和实习经历。",
-        educationTitle: "教育经历",
-        eduTime: "2024 至今",
+        aboutBody: "主要研究视频生成，希望提升连续画面的一致性，以及生成内容对事实和物理规律的遵循。也在关注世界模型、多模态模型等，欢迎大家交流相关想法和工作！",
+        educationTitle: "教育",
+        eduTime: "2024- ",
         eduSchool: "上海交通大学",
         eduRole: "集成电路学院 · 本科生",
         eduBody: "正在接受集成电路相关训练，持续学习电路、系统、计算机体系结构和工程实践。",
@@ -660,8 +658,7 @@
         heroSchool: "Undergraduate Student · Shanghai Jiao Tong University",
         heroLocation: "Shanghai, China",
         aboutTitle: "About",
-        aboutLead: "I am currently interested in multimodal large models, world models, and video generation.",
-        aboutBody: "I want to understand how models organize vision, language, time, and environmental state into representations that can predict and generate: how multimodal models align different modalities, how world models learn dynamics, and how video generation maintains semantic, motion, and physical consistency across frames. This website collects my learning notes, projects, and internship experience in these directions.",
+        aboutBody: "My current research focuses on video generation, especially improving consistency across frames and adherence to factual and physical constraints. I also follow work on world models and multimodal models, and welcome conversations and collaborations in these areas.",
         educationTitle: "Education",
         eduTime: "2024 - Now",
         eduSchool: "Shanghai Jiao Tong University",
@@ -681,9 +678,9 @@
       }
     };
 
-    const fallbackLang = "zh";
+    const fallbackLang = "en";
     const savedLang = localStorage.getItem("site-language");
-    const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
+    const initialLang = savedLang || "en";
 
     function applyLanguage(lang) {
       const dict = translations[lang] || translations[fallbackLang];

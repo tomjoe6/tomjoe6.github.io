@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A note on Generative Modeling via Drifting by Deng et al., including Kaiming He.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <title>为什么 Drifting 更接近生成建模的第一性原理 · 崔君同</title>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [["\\(", "\\)"], ["$", "$"]], displayMath: [["\\[", "\\]"]] },
+      svg: { fontCache: "global" }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <style>
+    :root { color-scheme: light; --paper:#f4f4f2; --paper-soft:#fbfbfa; --ink:#1f1e1b; --muted:#5f5a52; --line:#d8cbb8; --clay:#b85c38; --clay-dark:#873f2b; --blue:#526b7c; --sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif; --serif:Georgia,"Times New Roman","Songti SC",serif; }
+    * { box-sizing:border-box; } html { scroll-behavior:smooth; } body { margin:0; min-height:100vh; background:var(--paper); color:var(--ink); font-family:var(--sans); } a { color:inherit; text-decoration-color:rgba(31,30,27,.35); text-decoration-thickness:1px; text-underline-offset:4px; } a:hover { color:var(--clay-dark); } button { font:inherit; }
+    .site-shell { width:min(940px,calc(100% - 40px)); margin:0 auto; } .topbar { position:sticky; top:0; z-index:20; background:rgba(244,244,242,.88); backdrop-filter:blur(16px); } .topbar-inner { width:min(940px,calc(100% - 40px)); min-height:56px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:18px; }
+    .brand { display:inline-flex; align-items:center; gap:11px; color:var(--ink); text-decoration:none; } .brand-mark { width:28px; height:28px; display:grid; place-items:center; background:var(--ink); color:var(--paper); font-family:var(--serif); font-size:16px; } .brand span:last-child { font-size:15px; font-weight:680; }
+    .nav-actions,.site-nav { display:flex; align-items:center; } .nav-actions { gap:18px; } .site-nav { gap:20px; color:var(--muted); font-size:13px; } .site-nav a { text-decoration:none; } .site-nav a[aria-current="page"] { color:var(--ink); font-weight:650; }
+    .language-switch { display:grid; grid-template-columns:repeat(2,1fr); width:104px; padding:3px; border:1px solid var(--line); background:#e8e8e4; } .language-switch button { min-height:28px; border:0; background:transparent; color:var(--muted); cursor:pointer; } .language-switch button.is-active { background:var(--ink); color:var(--paper); }
+    .article { width:min(760px,100%); padding:34px 0 56px; animation:riseIn .92s cubic-bezier(.16,1,.3,1) both; } .back-link { display:inline-flex; margin-bottom:24px; color:var(--blue); font-size:13px; font-weight:650; text-decoration:none; } .article-meta { color:var(--clay-dark); font-size:12px; font-weight:760; letter-spacing:.08em; text-transform:uppercase; }
+    h1,h2,p { margin-top:0; } h1 { margin:10px 0 16px; font-family:var(--serif); font-size:clamp(28px,4vw,38px); font-weight:500; line-height:1.16; } h2 { margin:34px 0 12px; font-family:var(--serif); font-size:22px; font-weight:500; line-height:1.24; } p,li { color:var(--muted); font-size:15px; line-height:1.82; } .lead { color:var(--ink); font-size:16px; font-weight:600; line-height:1.72; }
+    .formula-block { overflow-x:auto; margin:18px 0; padding:12px 14px; border:1px solid var(--line); background:var(--paper-soft); } .formula-label { display:block; margin-bottom:6px; color:var(--blue); font-size:12px; font-weight:650; } .note { margin:18px 0; padding:14px 16px; border-left:3px solid var(--clay); background:rgba(251,248,242,.72); color:var(--ink); font-size:14px; line-height:1.78; } .paper-list { display:grid; gap:8px; padding-left:0; list-style:none; } .paper-list a { color:var(--clay-dark); font-weight:650; } .footer { padding:26px 0 36px; color:var(--muted); font-size:13px; }
+    @keyframes riseIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } } [data-lang-content][hidden] { display:none; }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; } } @media (max-width:560px) { .site-shell,.topbar-inner { width:min(100% - 28px,940px); } .topbar-inner { flex-direction:column; padding:12px 0; align-items:flex-start; } .nav-actions { width:100%; justify-content:space-between; gap:10px; } .site-nav { gap:14px; } }
+  </style>
+  <link rel="stylesheet" href="site-polish.css?v=20260809-6">
+  <script defer src="site-polish.js?v=20260809-6"></script>
+</head>
+<body data-page="blog">
+  <header class="topbar"><div class="topbar-inner">
+    <a class="brand" href="index.html" aria-label="Juntong Cui home"><span class="brand-mark">C</span><span data-i18n="brand"></span></a>
+    <div class="nav-actions"><nav class="site-nav" aria-label="Primary navigation"><a href="index.html" data-i18n="navHome"></a><a href="blog.html" aria-current="page" data-i18n="navBlog"></a><a href="photography.html" data-i18n="navPhotography"></a></nav><div class="language-switch" aria-label="Language switch"><button type="button" data-lang="zh">中文</button><button type="button" data-lang="en">EN</button></div></div>
+  </div></header>
+
+  <main class="site-shell">
+    <article class="article" data-lang-content="zh" hidden>
+      <a class="back-link" href="blog.html">← 返回博客</a>
+      <div class="article-meta">2026-07-16 · 机器学习 · 生成模型</div>
+      <h1>为什么 Drifting 更接近生成建模的第一性原理</h1>
+      <p class="lead">首先，<em>Generative Modeling via Drifting</em> 改变的是分布运输发生的时机。扩散模型通常在推理时把噪声带向数据；这篇工作把同类修正交给训练中的参数更新，保留一个直接生成器。</p>
+
+      <p>令 \(\epsilon\sim p_\epsilon\)，\(x=f_\theta(\epsilon)\)，网络输出的分布是严格的 pushforward，见式 1。</p>
+      <div class="formula-block"><span class="formula-label">式 1</span>\[q_\theta=(f_\theta)_\#p_\epsilon.\]</div>
+      <p>扩散模型通常先指定一条分布路径，并在推理时解动力系统，见式 2。</p>
+      <div class="formula-block"><span class="formula-label">式 2</span>\[\frac{\mathrm d x_t}{\mathrm d t}=v_t(x_t),\qquad \partial_t q_t+\nabla\cdot(q_t v_t)=0.\]</div>
+
+      <p>论文为目标分布 \(p\) 与当前生成分布 \(q\) 定义漂移场 \(V_{p,q}(x)\)，规定当前样本应被怎样修正，见式 3。</p>
+      <div class="formula-block"><span class="formula-label">式 3</span>\[x_{i+1}=x_i+V_{p,q_i}(x_i),\qquad x_i=f_{\theta_i}(\epsilon).\]</div>
+      <p>场需要满足的平衡条件见式 4。</p>
+      <div class="formula-block"><span class="formula-label">式 4</span>\[p=q\quad\Longrightarrow\quad V_{p,q}(x)=0.\]</div>
+      <p>分布匹配后，样本不再移动。论文用反对称性保证这一点：交换数据与生成样本，修正方向随之反转。</p>
+      <p>数据样本提供吸引，生成样本提供排斥，实现来自 mean shift，定义见式 5。</p>
+      <div class="formula-block"><span class="formula-label">式 5</span>\[\begin{aligned}V^+_p(x)&=\frac{\mathbb E_p[k(x,y^+)(y^+-x)]}{\mathbb E_p[k(x,y^+)]},\\V^-_q(x)&=\frac{\mathbb E_q[k(x,y^-)(y^--x)]}{\mathbb E_q[k(x,y^-)]},\\V_{p,q}(x)&=V^+_p(x)-V^-_q(x).\end{aligned}\]</div>
+      <p>这里比较的是两个局部重心：数据云把样本拉向自己，生成云把样本推出过密区域。它不能从理论上消除所有 mode collapse，但场中确实包含了反向的密度反馈。</p>
+
+      <p>训练目标是让网络输出追上 drift 后的自己，见式 6。</p>
+      <div class="formula-block"><span class="formula-label">式 6</span>\[\mathcal L_{\mathrm{drift}}=\mathbb E_\epsilon\left[\left\|f_\theta(\epsilon)-\operatorname{sg}\left(f_\theta(\epsilon)+V_{p,q_\theta}(f_\theta(\epsilon))\right)\right\|_2^2\right].\]</div>
+      <p class="note">数值上，残差对应漂移；但这里不是对漂移大小直接做全梯度下降。stop-gradient 固定了“估计场，再沿场更新”的顺序；后续理论工作正是在分析这个顺序对应什么样的动力学。</p>
+
+      <p>VAE 以概率图模型和 ELBO 为中心，面对的是重建、先验、近似后验之间的折中；Diffusion 与 flow matching 的强项是把高维分布匹配改为稳定的局部回归，但仍把运输路径保留在推理时；Drifting 没有预先规定每个样本在推理时必须经过的路径，而是在当前分布不匹配时估计局部修正，并让训练更新积累这些修正。</p>
+
+      <p>“更第一性”在这里指建模方式，不是数学上的绝对优越。flow matching 同样在做分布运输。Drifting 的直接性在于，它以生成分布等于数据分布为固定，把分布变化放在训练时。</p>
+      <p>原论文也说：对任意场，零漂移并不意味着两个分布相同，它只给出充分条件。后续工作把 Gaussian-kernel 情形联系到平滑分布的 score difference 与 Wasserstein gradient flow，讨论了实际算法与理想流之间的差异。</p>
+      <p>总的来说，这篇工作的价值在于给出另一种解释：一步生成可以来自训练期完成的分布运输。视频生成、世界模型和控制会更在意这一点，推理时延会直接限制系统反应速度。</p>
+
+      <h2>参考来源</h2>
+      <ul class="paper-list">
+        <li><a href="https://arxiv.org/abs/2602.04770" target="_blank" rel="noreferrer">Deng et al., Generative Modeling via Drifting, 2026</a></li>
+        <li><a href="https://lambertae.github.io/projects/drifting/" target="_blank" rel="noreferrer">Project page and code</a></li>
+        <li><a href="https://arxiv.org/abs/2210.02747" target="_blank" rel="noreferrer">Lipman et al., Flow Matching for Generative Modeling, 2022</a></li>
+        <li><a href="https://arxiv.org/abs/2006.11239" target="_blank" rel="noreferrer">Song et al., Score-Based Generative Modeling through SDEs, 2020</a></li>
+        <li><a href="https://arxiv.org/abs/2605.05118" target="_blank" rel="noreferrer">On the Wasserstein Gradient Flow Interpretation of Drifting Models, 2026</a></li>
+        <li><a href="https://arxiv.org/abs/2603.09936" target="_blank" rel="noreferrer">Generative Drifting is Secretly Score Matching, 2026</a></li>
+      </ul>
+    </article>
+
+    <article class="article" data-lang-content="en">
+      <a class="back-link" href="blog.html">← Back to Blog</a>
+      <div class="article-meta">2026-07-16 · Machine Learning · Generative Models</div>
+      <h1>Why Drifting Is Closer to First Principles in Generative Modeling</h1>
+      <p class="lead"><em>Generative Modeling via Drifting</em> changes when distribution transport happens. Rather than moving a sample from noise to data at inference time, it uses parameter updates during training to move the generator's output distribution toward data.</p>
+
+      <p>For \(\epsilon\sim p_\epsilon\) and \(x=f_\theta(\epsilon)\), the generated distribution is the pushforward</p>
+      <div class="formula-block">\[q_\theta=(f_\theta)_\#p_\epsilon.\]</div>
+      <p>The objective is \(q_\theta=p_{\mathrm{data}}\). Noise prediction, adversarial discrimination, and variational bounds are useful routes toward that equality, not the equality itself. Diffusion and flow models often specify a path and solve transport dynamics at inference:</p>
+      <div class="formula-block">\[\frac{\mathrm d x_t}{\mathrm d t}=v_t(x_t),\qquad \partial_t q_t+\nabla\cdot(q_t v_t)=0.\]</div>
+      <p>Drifting uses iterative parameter optimization to carry out this transport during training, leaving a direct noise-to-data map at inference.</p>
+
+      <h2>Transport during training</h2>
+      <p>It defines a field \(V_{p,q}(x)\) that moves samples from the current generated distribution:</p>
+      <div class="formula-block">\[x_{i+1}=x_i+V_{p,q_i}(x_i),\qquad p=q\Longrightarrow V_{p,q}(x)=0.\]</div>
+      <p>For the kernelized construction, real samples attract and generated samples repel:</p>
+      <div class="formula-block">\[\begin{aligned}V^+_p(x)&=\frac{\mathbb E_p[k(x,y^+)(y^+-x)]}{\mathbb E_p[k(x,y^+)]},\\V^-_q(x)&=\frac{\mathbb E_q[k(x,y^-)(y^--x)]}{\mathbb E_q[k(x,y^-)]},\\V_{p,q}(x)&=V^+_p(x)-V^-_q(x).\end{aligned}\]</div>
+      <p>Matching is formulated as a local equilibrium: data mass attracts a sample, while generated mass repels it from occupied regions.</p>
+
+      <p>The generator regresses to a drifted but detached target:</p>
+      <div class="formula-block">\[\mathcal L_{\mathrm{drift}}=\mathbb E_\epsilon\left[\left\|f_\theta(\epsilon)-\operatorname{sg}\left(f_\theta(\epsilon)+V_{p,q_\theta}(f_\theta(\epsilon))\right)\right\|_2^2\right].\]</div>
+      <p>Stop-gradient fixes the field estimate during backpropagation. Each SGD step approximates a step along that field, and training writes the complete transport into \(\theta\). Inference then needs one evaluation of \(f_\theta\), rather than numerical integration.</p>
+
+      <h2>What changes</h2>
+      <p>GANs obtain a direction from a learned critic in a min-max game. VAEs center a latent-variable model and its ELBO. Diffusion, score models, and flow matching create stable local objectives, but generally retain a transport trajectory at inference. Drifting is more direct in one specific sense: it uses \(q_\theta=p_{\mathrm{data}}\) as the fixed point and treats training updates as distribution time, rather than prescribing a noise path that every inference sample must traverse.</p>
+      <h2>Limits</h2>
+      <p>This does not make it universally more fundamental. Its field depends on kernels, bandwidths, feature spaces, and mini-batch estimates; a zero arbitrary field need not identify equal distributions. The original paper gives sufficient conditions for its construction, and subsequent analyses connect special cases to score differences and Wasserstein gradient flows. The useful claim is narrower: high-quality one-step generation can emerge when transport is completed during training, which matters for video, world models, and control where latency limits response time.</p>
+
+      <h2>References</h2>
+      <ul class="paper-list">
+        <li><a href="https://arxiv.org/abs/2602.04770" target="_blank" rel="noreferrer">Deng et al., Generative Modeling via Drifting, 2026</a></li>
+        <li><a href="https://lambertae.github.io/projects/drifting/" target="_blank" rel="noreferrer">Project page and code</a></li>
+        <li><a href="https://arxiv.org/abs/2210.02747" target="_blank" rel="noreferrer">Flow Matching for Generative Modeling, 2022</a></li>
+        <li><a href="https://arxiv.org/abs/2605.05118" target="_blank" rel="noreferrer">On the Wasserstein Gradient Flow Interpretation of Drifting Models, 2026</a></li>
+      </ul>
+    </article>
+  </main>
+
+  <footer class="site-shell footer"><span data-i18n="footerNote"></span></footer>
+  <script>
+    const translations = {
+      zh: { title: "为什么 Drifting 更接近生成建模的第一性原理 · 崔君同", brand: "崔君同", navHome: "主页", navBlog: "博客", navPhotography: "摄影", footerNote: "© 2026 崔君同。本站托管于 GitHub Pages。" },
+      en: { title: "Why Drifting Is Closer to First Principles in Generative Modeling · Juntong Cui", brand: "Juntong Cui", navHome: "Home", navBlog: "Blog", navPhotography: "Photography", footerNote: "© 2026 Juntong Cui. Hosted on GitHub Pages." }
+    };
+    const savedLang = localStorage.getItem("site-language");
+    const initialLang = savedLang || "en";
+    function applyLanguage(lang) {
+      const dict = translations[lang] || translations.zh;
+      document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+      document.title = dict.title;
+      document.querySelectorAll("[data-i18n]").forEach((node) => { node.textContent = dict[node.getAttribute("data-i18n")] || ""; });
+      document.querySelectorAll("[data-lang-content]").forEach((node) => { node.hidden = node.dataset.langContent !== lang; });
+      document.querySelectorAll("[data-lang]").forEach((button) => { button.classList.toggle("is-active", button.dataset.lang === lang); button.setAttribute("aria-pressed", String(button.dataset.lang === lang)); });
+      localStorage.setItem("site-language", lang);
+      if (window.MathJax?.typesetPromise) window.MathJax.typesetPromise();
+    }
+    document.querySelectorAll("[data-lang]").forEach((button) => button.addEventListener("click", () => applyLanguage(button.dataset.lang)));
+    applyLanguage(initialLang);
+  </script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 (() => {
   const nav = document.querySelector(".site-nav");
   if (!nav) return;
-  const siteVersion = "20260711-6";
+  const siteVersion = "20260809-6";
 
   const pageFromLink = (link) => {
     const file = new URL(link.href, window.location.href).pathname.split("/").pop().toLowerCase();
@@ -50,10 +50,14 @@
       window.location.assign(destination.href);
     };
     const onTransitionEnd = (transitionEvent) => {
-      if (transitionEvent.target === nav && transitionEvent.pseudoElement === "::before") finish();
+      if (
+        transitionEvent.target === nav &&
+        transitionEvent.pseudoElement === "::before" &&
+        transitionEvent.propertyName === "transform"
+      ) finish();
     };
 
     nav.addEventListener("transitionend", onTransitionEnd);
-    window.setTimeout(finish, 430);
+    window.setTimeout(finish, 280);
   });
 })();

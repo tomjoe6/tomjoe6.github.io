@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -324,8 +324,8 @@
       }
     }
   </style>
-  <link rel="stylesheet" href="site-polish.css?v=20260711-6">
-  <script defer src="site-polish.js?v=20260711-6"></script>
+  <link rel="stylesheet" href="site-polish.css?v=20260809-6">
+  <script defer src="site-polish.js?v=20260809-6"></script>
 </head>
 <body data-page="blog">
   <header class="topbar">
@@ -349,7 +349,7 @@
   </header>
 
   <main class="site-shell">
-    <article class="article" data-lang-content="zh">
+    <article class="article" data-lang-content="zh" hidden>
       <a class="back-link" href="blog.html">← 返回博客</a>
       <div class="article-meta">2026-07-10 · 机器学习 · 大模型</div>
       <h1>什么是压缩即智能</h1>
@@ -411,7 +411,7 @@
       </ul>
     </article>
 
-    <article class="article" data-lang-content="en" hidden>
+    <article class="article" data-lang-content="en">
       <a class="back-link" href="blog.html">← Back to Blog</a>
       <div class="article-meta">2026-07-10 · Machine Learning · Large Models</div>
       <h1>What Does 'Compression Is Intelligence' Mean?</h1>
@@ -498,9 +498,9 @@
       }
     };
 
-    const fallbackLang = "zh";
+    const fallbackLang = "en";
     const savedLang = localStorage.getItem("site-language");
-    const initialLang = savedLang || (navigator.language && navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en");
+    const initialLang = savedLang || "en";
 
     function applyLanguage(lang) {
       const dict = translations[lang] || translations[fallbackLang];
