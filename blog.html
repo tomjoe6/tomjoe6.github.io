@@ -493,6 +493,19 @@
     </div>
 
     <section class="post-list" aria-label="Blog posts" data-animate="3">
+      <article class="post-row" data-category="ml" data-published="2026-09-14">
+        <div class="post-date">
+          <time datetime="2026-09-14">2026-09-14</time>
+          <span class="post-category" data-i18n="postEightCategory"></span>
+        </div>
+        <div>
+          <h2>
+            <a class="post-title-link" href="lora-rank.html" data-i18n="postEightTitle"></a>
+          </h2>
+          <p data-i18n="postEightBody"></p>
+          <a class="post-source" href="lora-rank.html" data-i18n="postEightLink"></a>
+        </div>
+      </article>
       <article class="post-row" data-category="cross" data-published="2026-09-07">
         <div class="post-date">
           <time datetime="2026-09-07">2026-09-07</time>
@@ -628,6 +641,10 @@
         postSevenTitle: "DLSS5 的新原理是什么",
         postSevenBody: "从 neural reconstruction 到 generative rendering，整理 DLSS 5 如何用单步像素空间扩散、运动矢量与跨帧状态生成最终画面。",
         postSevenLink: "阅读文章",
+        postEightCategory: "机器学习",
+        postEightTitle: "给定基础权重，LoRA 的 r 怎么定",
+        postEightBody: "从奇异值谱、Eckart–Young 截断误差、内在维度与参与比出发，把 LoRA 的秩 r 当成一个可测的量：先测 ΔW 需要多少个方向，再定 r。",
+        postEightLink: "阅读文章",
         postOneCategory: "机器学习",
         postOneTitle: "MNIST 识别流程、疑问解析及个人改进",
         postOneBody: "整理 MNIST 识别的训练与预测流程、Normalize 的作用、官方数据格式问题，以及自造本地测试集识别不准时的预处理改进。",
@@ -674,6 +691,10 @@
         postSevenTitle: "What Is New in DLSS 5?",
         postSevenBody: "A note on DLSS 5's shift from neural reconstruction to generative rendering, with one-step pixel-space diffusion, motion vectors, and temporal state.",
         postSevenLink: "Read article",
+        postEightCategory: "Machine Learning",
+        postEightTitle: "How to Choose LoRA's Rank r Given a Base Checkpoint",
+        postEightBody: "A note on treating LoRA's rank as a measured quantity: read the singular-value spectrum of ΔW, use the Eckart–Young bound for the energy criterion, and check the trained adapter with the participation ratio.",
+        postEightLink: "Read article",
         postOneCategory: "Machine Learning",
         postOneTitle: "MNIST Recognition Workflow, Questions, and Personal Improvements",
         postOneBody: "A note on the MNIST training and prediction workflow, the role of Normalize, the official binary data format, and preprocessing improvements for handmade local test images.",

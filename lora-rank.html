@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A note on choosing the LoRA rank r by measuring the singular-value spectrum of the fine-tuning update.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <title>给定基础权重，LoRA 的 r 怎么定 · 崔君同</title>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [["\\(", "\\)"], ["$", "$"]], displayMath: [["\\[", "\\]"]] },
+      svg: { fontCache: "global" }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <style>
+    :root { color-scheme: light; --paper:#f4f4f2; --paper-soft:#fbfbfa; --ink:#1f1e1b; --muted:#5f5a52; --line:#d8cbb8; --clay:#b85c38; --clay-dark:#873f2b; --blue:#526b7c; --sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif; --serif:Georgia,"Times New Roman","Songti SC",serif; }
+    * { box-sizing:border-box; } html { scroll-behavior:smooth; } body { margin:0; min-height:100vh; background:var(--paper); color:var(--ink); font-family:var(--sans); } a { color:inherit; text-decoration-color:rgba(31,30,27,.35); text-decoration-thickness:1px; text-underline-offset:4px; } a:hover { color:var(--clay-dark); } button { font:inherit; }
+    .site-shell { width:min(940px,calc(100% - 40px)); margin:0 auto; } .topbar { position:sticky; top:0; z-index:20; background:rgba(244,244,242,.88); backdrop-filter:blur(16px); } .topbar-inner { width:min(940px,calc(100% - 40px)); min-height:56px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:18px; }
+    .brand { display:inline-flex; align-items:center; gap:11px; color:var(--ink); text-decoration:none; } .brand-mark { width:28px; height:28px; display:grid; place-items:center; background:var(--ink); color:var(--paper); font-family:var(--serif); font-size:16px; } .brand span:last-child { font-size:15px; font-weight:680; }
+    .nav-actions,.site-nav { display:flex; align-items:center; } .nav-actions { gap:18px; } .site-nav { gap:20px; color:var(--muted); font-size:13px; } .site-nav a { text-decoration:none; } .site-nav a[aria-current="page"] { color:var(--ink); font-weight:650; }
+    .language-switch { display:grid; grid-template-columns:repeat(2,1fr); width:104px; padding:3px; border:1px solid var(--line); background:#e8e8e4; } .language-switch button { min-height:28px; border:0; background:transparent; color:var(--muted); cursor:pointer; } .language-switch button.is-active { background:var(--ink); color:var(--paper); }
+    .article { width:min(760px,100%); padding:34px 0 56px; animation:riseIn .92s cubic-bezier(.16,1,.3,1) both; } .back-link { display:inline-flex; margin-bottom:24px; color:var(--blue); font-size:13px; font-weight:650; text-decoration:none; } .article-meta { color:var(--clay-dark); font-size:12px; font-weight:760; letter-spacing:.08em; text-transform:uppercase; }
+    h1,h2,p { margin-top:0; } h1 { margin:10px 0 16px; font-family:var(--serif); font-size:clamp(28px,4vw,38px); font-weight:500; line-height:1.16; } h2 { margin:34px 0 12px; font-family:var(--serif); font-size:22px; font-weight:500; line-height:1.24; } p,li { color:var(--muted); font-size:15px; line-height:1.82; } ul { margin:14px 0; padding-left:22px; } li { margin-bottom:6px; } .lead { color:var(--ink); font-size:16px; font-weight:600; line-height:1.72; }
+    .formula-block { overflow-x:auto; margin:18px 0; padding:12px 14px; border:1px solid var(--line); background:var(--paper-soft); } .formula-label { display:block; margin-bottom:6px; color:var(--blue); font-size:12px; font-weight:650; } .note { margin:18px 0; padding:14px 16px; border-left:3px solid var(--clay); background:rgba(251,248,242,.72); color:var(--ink); font-size:14px; line-height:1.78; } .paper-list { display:grid; gap:8px; padding-left:0; list-style:none; } .paper-list a { color:var(--clay-dark); font-weight:650; } .footer { padding:26px 0 36px; color:var(--muted); font-size:13px; }
+    @keyframes riseIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } } [data-lang-content][hidden] { display:none; }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; } } @media (max-width:560px) { .site-shell,.topbar-inner { width:min(100% - 28px,940px); } .topbar-inner { flex-direction:column; padding:12px 0; align-items:flex-start; } .nav-actions { width:100%; justify-content:space-between; gap:10px; } .site-nav { gap:14px; } }
+  </style>
+  <link rel="stylesheet" href="site-polish.css?v=20260809-6">
+  <script defer src="site-polish.js?v=20260809-6"></script>
+</head>
+<body data-page="blog">
+  <header class="topbar"><div class="topbar-inner">
+    <a class="brand" href="index.html" aria-label="Juntong Cui home"><span class="brand-mark">C</span><span data-i18n="brand"></span></a>
+    <div class="nav-actions"><nav class="site-nav" aria-label="Primary navigation"><a href="index.html" data-i18n="navHome"></a><a href="blog.html" aria-current="page" data-i18n="navBlog"></a><a href="photography.html" data-i18n="navPhotography"></a></nav><div class="language-switch" aria-label="Language switch"><button type="button" data-lang="zh">中文</button><button type="button" data-lang="en">EN</button></div></div>
+  </div></header>
+
+  <main class="site-shell">
+    <article class="article" data-lang-content="zh" hidden>
+      <a class="back-link" href="blog.html">← 返回博客</a>
+      <div class="article-meta">2026-09-14 · 机器学习 · 参数高效微调</div>
+      <h1>给定基础权重，LoRA 的 r 怎么定</h1>
+      <p class="lead">r 不是超参，是待测量。给定基础权重 \(W_0\)，真正的问题不是“r 该设多大”，而是“这次微调需要多少个方向”。答案在 \(\Delta W\) 的奇异值谱里：先测它，再定 r。</p>
+
+      <h2>秩与奇异值谱</h2>
+      <p>一个 \(d\times k\) 的矩阵有 \(\min(d,k)\) 个奇异值，是从大到小排列的非负数，衡量每个改动方向各有多重要。秩则是一个整数，等于非零奇异值的个数，只回答“有几个非零方向”这一个问题。</p>
+      <p>以 \(d=k=5120\) 的层为例，\(\Delta W\) 有 5120 个奇异值。全参微调之后它通常是满秩的：5120 个奇异值全部非零，只是绝大多数极小。所以在这个尺度上问“秩是多少”得不到任何信息，有信息的是衰减速度。</p>
+      <div class="formula-block"><span class="formula-label">式 1</span>\[\begin{aligned}\Delta W&=W_{\mathrm{ft}}-W_0=U\Sigma V^{\top},\\ \Sigma&=\operatorname{diag}(\sigma_1,\dots,\sigma_{\min(d,k)}),\qquad \sigma_1\ge\sigma_2\ge\cdots\ge\sigma_{\min(d,k)}\ge 0,\\ \operatorname{rank}(\Delta W)&=\bigl|\{\,i:\sigma_i>0\,\}\bigr|.\end{aligned}\]</div>
+      <p>这里 \(U\) 和 \(V\) 的列分别是左右奇异向量，\(\sigma_i\) 是奇异值。秩只看 \(\sigma_i\) 是否为零，完全不管它们有多小，这正是它在微调场景里失效的原因。</p>
+
+      <h2>LoRA 的秩上界</h2>
+      <p>LoRA 把这层改动限制在一个低秩乘积上：</p>
+      <div class="formula-block"><span class="formula-label">式 2</span>\[W=W_0+\frac{\alpha}{r}BA,\qquad B\in\mathbb{R}^{d\times r},\quad A\in\mathbb{R}^{r\times k},\quad r\ll\min(d,k).\]</div>
+      <p>初始化通常取 \(A\sim\mathcal{N}(0,\sigma^2)\)、\(B=0\)，于是 \(\Delta W=0\)，训练从原模型出发，起点没有扰动。约束来自一行代数：</p>
+      <div class="formula-block"><span class="formula-label">式 3</span>\[\operatorname{rank}(\Delta W)=\operatorname{rank}(BA)\le\min(\operatorname{rank}A,\operatorname{rank}B)\le r.\]</div>
+      <p>这是硬上限，不是正则化：r 设小了，最优解落在可达集合之外，怎么训都够不到。但“够不到”并不等于“效果差”。只要被丢掉的那些方向对 loss 贡献极小，就无所谓。</p>
+
+      <h2>截断 SVD 与能量占比</h2>
+      <p>由 Eckart–Young 定理，截断 SVD 是最优的秩 r 近似，无论用 Frobenius 范数还是谱范数衡量：</p>
+      <div class="formula-block"><span class="formula-label">式 4</span>\[\|\Delta W-\Delta W_r\|_F=\min_{\operatorname{rank}(M)\le r}\|\Delta W-M\|_F=\Bigl(\sum_{i>r}\sigma_i^2\Bigr)^{1/2},\qquad \|\Delta W-\Delta W_r\|_2=\sigma_{r+1}.\]</div>
+      <p>于是前 r 项的能量占比</p>
+      <div class="formula-block"><span class="formula-label">式 5</span>\[E(r)=\frac{\sum_{i\le r}\sigma_i^2}{\sum_{i=1}^{\min(d,k)}\sigma_i^2}=1-\frac{\|\Delta W-\Delta W_r\|_F^2}{\|\Delta W\|_F^2}\]</div>
+      <p>恰好衡量“秩 r 能保留多少改动”。判据因此非常具体。</p>
+
+      <h2>有全参 ckpt 时的直接测量</h2>
+      <p>逐层算 \(\Delta W=W_{\mathrm{ft}}-W_0\)，做 SVD，看 \(E(48)\)。48 只是一个取样点：先在一个有代表性的 r 上看曲线，再决定往哪边走。</p>
+      <ul>
+        <li>\(E(48)>0.90\)：r = 48 足够，甚至可以试 16；</li>
+        <li>\(0.70\le E(48)\le 0.90\)：提到 128 至 256；</li>
+        <li>\(E(48)<0.70\)：放弃 LoRA，改用全参。</li>
+      </ul>
+      <p>\(E(r)\) 应当逐层画，而不是只看全模型平均：同一句判据在不同层上会给出不同答案。</p>
+
+      <h2>内在维度与早期谱代理</h2>
+      <p>一种是内在维度法。把更新限制在一个随机 d 维子空间里训至收敛，画 loss–d 曲线找拐点：</p>
+      <div class="formula-block"><span class="formula-label">式 6</span>\[\theta=\theta_0+P\theta',\qquad P\in\mathbb{R}^{D\times d},\quad d\ll D,\qquad d^{*}=\min\bigl\{\,d:\ R(d)\ge 0.9\,R_{\mathrm{full}}\,\bigr\},\]</div>
+      <p>其中 \(R\) 是验证集指标，\(R_{\mathrm{full}}\) 是全参微调的结果。对应到 LoRA，有一个简单得多的做法：固定随机初始化的 \(A\)、只训 \(B\)，等价于只在一个随机 r 维子空间里更新。成本中等。</p>
+      <p>另一种是早期谱代理，成本最低，推荐先跑。全参先跑 200 到 500 步，对累计更新做 SVD：</p>
+      <div class="formula-block"><span class="formula-label">式 7</span>\[S_T=\sum_{t=1}^{T}\Delta W_t,\qquad \Delta W_t=W_t-W_{t-1},\]</div>
+      <p>再对 \(S_T\) 套用式 5 计算 \(E(r)\)。以 SGD 为例 \(\Delta W_t=-\eta_t g_t\)，用 Adam 一类优化器时换成对应的更新量即可。改动的主方向在早期即已成形，此时 \(E(r)\) 曲线基本稳定，这条路成本最低。</p>
+      <p class="note">“主方向早期成形”是经验观察，不是定理。它值得先跑一次的原因只有一个：比起全参训完再回头测，200 到 500 步的代价几乎可以忽略。</p>
+
+      <h2>模块选择、α 缩放与逐层 r</h2>
+      <p>改哪些模块：同等参数量下，“全部线性层配小 r”通常优于“只用 q、v 配大 r”，优先覆盖 q、k、v、o 与 FFN。参数量相同不代表表达能力相同：前者可选的更新方向更多，只是每个方向更窄。</p>
+      <p>α 的缩放。真正生效的是 \(\alpha/r\)：</p>
+      <div class="formula-block"><span class="formula-label">式 8</span>\[s=\frac{\alpha}{r},\qquad \Delta W=s\,BA.\]</div>
+      <p>常取 \(\alpha=2r\)，使有效尺度 \(s\) 恒为 2。改 r 必须同步改 α，否则等于偷偷改了学习率——把 r 从 \(r_1\) 换到 \(r_2\) 而 α 不变，更新整体乘上 \(r_1/r_2\)。若 r 很大，\(\alpha/r\) 会偏小，可考虑 \(\alpha/\sqrt{r}\) 一类的稳定化缩放。</p>
+      <p>逐层 r。\(E(r)\) 要按层分别算。通常越靠后的层衰减越慢、需要更大的 r，但逐层配置带来的收益往往不抵复杂度。</p>
+
+      <h2>训后的参与比校验</h2>
+      <p>对训好的 \(BA\) 做 SVD，算参与比：</p>
+      <div class="formula-block"><span class="formula-label">式 9</span>\[\mathrm{PR}=\frac{\bigl(\sum_{i=1}^{r}\sigma_i\bigr)^2}{\sum_{i=1}^{r}\sigma_i^2}\in[1,r].\]</div>
+      <p>奇异值分布均匀时它约等于 r，集中在单一方向时趋近 1。参与比远小于 r，说明 r 给多了，可以缩；奇异值尾部仍然很大，说明 r 卡住了该加。这一步能把冗余直接回收成推理开销：权重合并进 \(W\) 后推理没有额外成本，但在多套 adapter 并存、不合并权重时，开销与 r 成正比。</p>
+
+      <h2>边界</h2>
+      <p>\(E(r)>0.9\) 只说明改动方向被低秩捕获。式 4 逼近的是 \(\Delta W\) 的 Frobenius 误差，而训练优化的是任务 loss，两者只有在 loss 对 \(\Delta W\) 各方向的敏感度相同时才一致。所以这是“与全参差距小”的必要条件代理，而非充分条件：截断 SVD 是最优近似，不代表训练找得到它，loss 相当也不代表解相同。最终仍要靠 held-out 验证。</p>
+      <p>此外，所需的秩取决于数据量。数据越多，最优 \(\Delta W\) 越可能带上高秩分量：同一任务样本从两万增到两百万，所需 r 会变大。内在维度的工作也显示，任务离预训练分布越远，需要的维度越高。r 是一次测量，不是一次定终身。</p>
+      <p>核心一句：先测 \(\Delta W\) 的秩需求，再定 r。</p>
+
+      <h2>参考来源</h2>
+      <ul class="paper-list">
+        <li><a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noreferrer">Hu et al., LoRA: Low-Rank Adaptation of Large Language Models, 2021</a></li>
+        <li><a href="https://doi.org/10.1007/BF02288367" target="_blank" rel="noreferrer">Eckart &amp; Young, The Approximation of One Matrix by Another of Lower Rank, Psychometrika, 1936</a></li>
+        <li><a href="https://arxiv.org/abs/2012.13255" target="_blank" rel="noreferrer">Aghajanyan et al., Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning, 2020</a></li>
+        <li><a href="https://arxiv.org/abs/1804.08838" target="_blank" rel="noreferrer">Li et al., Measuring the Intrinsic Dimension of Objective Landscapes, 2018</a></li>
+        <li><a href="https://arxiv.org/abs/2305.14314" target="_blank" rel="noreferrer">Dettmers et al., QLoRA: Efficient Finetuning of Quantized LLMs, 2023</a></li>
+        <li><a href="https://arxiv.org/abs/2312.03732" target="_blank" rel="noreferrer">Kalajdzievski, A Rank Stabilization Scaling Factor for Fine-Tuning with LoRA, 2023</a></li>
+        <li><a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al., LoRA Learns Less and Forgets Less, 2024</a></li>
+        <li><a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al., LoRA vs Full Fine-tuning: An Illusion of Equivalence, 2024</a></li>
+      </ul>
+    </article>
+
+    <article class="article" data-lang-content="en">
+      <a class="back-link" href="blog.html">← Back to Blog</a>
+      <div class="article-meta">2026-09-14 · Machine Learning · Parameter-Efficient Fine-Tuning</div>
+      <h1>How to Choose LoRA's Rank r Given a Base Checkpoint</h1>
+      <p class="lead">Rank is not a hyperparameter to set; it is a quantity to measure. Given a base checkpoint \(W_0\), the question is not how large r should be, but how many directions this fine-tuning actually needs. The answer sits in the singular-value spectrum of \(\Delta W\): measure it first, then pick r.</p>
+
+      <h2>Rank and the singular-value spectrum</h2>
+      <p>A \(d\times k\) matrix has \(\min(d,k)\) singular values: non-negative numbers sorted from largest to smallest, each measuring how important one direction of change is. The rank is an integer equal to the number of nonzero singular values, and it answers exactly one question: how many nonzero directions are there.</p>
+      <p>Take a layer with \(d=k=5120\). Then \(\Delta W\) has 5120 singular values. After full fine-tuning it is usually full rank: all 5120 are nonzero, but most of them are tiny. Asking "what is the rank" at this scale carries no information. The decay rate does.</p>
+      <div class="formula-block"><span class="formula-label">Equation 1</span>\[\begin{aligned}\Delta W&=W_{\mathrm{ft}}-W_0=U\Sigma V^{\top},\\ \Sigma&=\operatorname{diag}(\sigma_1,\dots,\sigma_{\min(d,k)}),\qquad \sigma_1\ge\sigma_2\ge\cdots\ge\sigma_{\min(d,k)}\ge 0,\\ \operatorname{rank}(\Delta W)&=\bigl|\{\,i:\sigma_i>0\,\}\bigr|.\end{aligned}\]</div>
+      <p>Here the columns of \(U\) and \(V\) are the left and right singular vectors, and \(\sigma_i\) are the singular values. Rank only looks at whether each \(\sigma_i\) is zero, and ignores how small it is. That is precisely why it fails as a tool in this setting.</p>
+
+      <h2>The rank cap in LoRA</h2>
+      <p>LoRA restricts the update to a low-rank product:</p>
+      <div class="formula-block"><span class="formula-label">Equation 2</span>\[W=W_0+\frac{\alpha}{r}BA,\qquad B\in\mathbb{R}^{d\times r},\quad A\in\mathbb{R}^{r\times k},\quad r\ll\min(d,k).\]</div>
+      <p>Initialization usually takes \(A\sim\mathcal{N}(0,\sigma^2)\) and \(B=0\), so \(\Delta W=0\) and training starts from the pretrained function with no perturbation. The constraint then follows from one line of algebra:</p>
+      <div class="formula-block"><span class="formula-label">Equation 3</span>\[\operatorname{rank}(\Delta W)=\operatorname{rank}(BA)\le\min(\operatorname{rank}A,\operatorname{rank}B)\le r.\]</div>
+      <p>This is a hard cap, not a regularizer. If r is too small, the optimum lies outside the reachable set and no amount of training gets there. But "out of reach" is not the same as "worse". It only matters if the discarded directions contribute substantially to the loss.</p>
+
+      <h2>Truncated SVD and the energy ratio</h2>
+      <p>By the Eckart–Young theorem, the truncated SVD is the optimal rank-r approximation in both the Frobenius and the spectral norm:</p>
+      <div class="formula-block"><span class="formula-label">Equation 4</span>\[\|\Delta W-\Delta W_r\|_F=\min_{\operatorname{rank}(M)\le r}\|\Delta W-M\|_F=\Bigl(\sum_{i>r}\sigma_i^2\Bigr)^{1/2},\qquad \|\Delta W-\Delta W_r\|_2=\sigma_{r+1}.\]</div>
+      <p>The retained energy fraction is therefore</p>
+      <div class="formula-block"><span class="formula-label">Equation 5</span>\[E(r)=\frac{\sum_{i\le r}\sigma_i^2}{\sum_{i=1}^{\min(d,k)}\sigma_i^2}=1-\frac{\|\Delta W-\Delta W_r\|_F^2}{\|\Delta W\|_F^2},\]</div>
+      <p>which measures exactly how much of the change rank r preserves. That makes the decision rule concrete.</p>
+
+      <h2>Measuring directly with a full checkpoint</h2>
+      <p>Compute \(\Delta W=W_{\mathrm{ft}}-W_0\) layer by layer, take the SVD, and read \(E(48)\). The value 48 is only a sampling point: read the curve at one representative rank, then decide which way to move.</p>
+      <ul>
+        <li>\(E(48)>0.90\): r = 48 is enough, and 16 is worth trying;</li>
+        <li>\(0.70\le E(48)\le 0.90\): move up to 128–256;</li>
+        <li>\(E(48)<0.70\): drop LoRA and use full fine-tuning.</li>
+      </ul>
+      <p>Plot \(E(r)\) per layer rather than as a model-wide average; the same rule gives different answers in different layers.</p>
+
+      <h2>Intrinsic dimension and the early spectral proxy</h2>
+      <p>The first is the intrinsic-dimension method. Restrict the update to a random d-dimensional subspace, train to convergence, and look for the knee of the loss–d curve:</p>
+      <div class="formula-block"><span class="formula-label">Equation 6</span>\[\theta=\theta_0+P\theta',\qquad P\in\mathbb{R}^{D\times d},\quad d\ll D,\qquad d^{*}=\min\bigl\{\,d:\ R(d)\ge 0.9\,R_{\mathrm{full}}\,\bigr\},\]</div>
+      <p>where \(R\) is a validation metric and \(R_{\mathrm{full}}\) is the full fine-tuning result. Translated back to LoRA, it reduces to something much cheaper: freeze a randomly initialized \(A\) and train only \(B\), which restricts updates to one random r-dimensional subspace. Moderate cost.</p>
+      <p>The second is the early spectral proxy, and it is the one to reach for first. Run full fine-tuning for 200–500 steps and take the SVD of the accumulated update:</p>
+      <div class="formula-block"><span class="formula-label">Equation 7</span>\[S_T=\sum_{t=1}^{T}\Delta W_t,\qquad \Delta W_t=W_t-W_{t-1},\]</div>
+      <p>then apply Equation 5 to \(S_T\) to get \(E(r)\). Under SGD, \(\Delta W_t=-\eta_t g_t\); with Adam-style optimizers, substitute the corresponding update. The dominant directions of the change take shape early, so the \(E(r)\) curve is already stable at that point. This is the cheapest route.</p>
+      <p class="note">"Dominant directions form early" is an empirical observation, not a theorem. The reason to run it anyway is simple: 200–500 steps cost almost nothing next to training to completion and measuring afterwards.</p>
+
+      <h2>Target modules, α scaling, and per-layer rank</h2>
+      <p>Which modules to adapt: at equal parameter budget, "all linear layers with a small r" usually beats "q and v only with a large r". Cover q, k, v, o and the FFN layers first. Equal parameter count is not equal expressive capacity: the broader configuration has more directions available, each a narrower one.</p>
+      <p>The α scaling. What actually takes effect is \(\alpha/r\):</p>
+      <div class="formula-block"><span class="formula-label">Equation 8</span>\[s=\frac{\alpha}{r},\qquad \Delta W=s\,BA.\]</div>
+      <p>The common choice \(\alpha=2r\) holds the effective scale \(s\) at 2. If you change r you must change α with it, or you have quietly changed the learning rate: moving from \(r_1\) to \(r_2\) with α fixed multiplies the whole update by \(r_1/r_2\). For very large r, \(\alpha/r\) becomes small, and a stabilization such as \(\alpha/\sqrt{r}\) is worth considering.</p>
+      <p>Per-layer rank. Read \(E(r)\) for each layer separately. Later layers tend to decay more slowly and want a larger r, but per-layer configuration rarely repays its complexity.</p>
+
+      <h2>Checking the trained adapter</h2>
+      <p>Take the SVD of the trained \(BA\) and compute the participation ratio:</p>
+      <div class="formula-block"><span class="formula-label">Equation 9</span>\[\mathrm{PR}=\frac{\bigl(\sum_{i=1}^{r}\sigma_i\bigr)^2}{\sum_{i=1}^{r}\sigma_i^2}\in[1,r].\]</div>
+      <p>It is approximately r when the singular values are spread evenly, and approaches 1 when they concentrate in a single direction. A participation ratio well below r means r was set too high and can be reduced; a heavy tail means r is binding and should be raised. This step turns redundancy directly into inference savings: merging the adapter into \(W\) removes inference cost entirely, but when several adapters must be served unmerged, cost scales with r.</p>
+
+      <h2>Limits</h2>
+      <p>\(E(r)>0.9\) only says that the update is captured by a low-rank subspace. Equation 4 approximates the Frobenius error of \(\Delta W\), whereas training minimizes a task loss; the two agree only if the loss is equally sensitive to every direction of \(\Delta W\). So this is a necessary-condition proxy for "close to full fine-tuning", not a sufficient one: the truncated SVD is the optimal approximation, but that does not mean training finds it, and comparable loss does not mean the same solution. Held-out validation still decides.</p>
+      <p>The required rank also depends on data volume. More data makes high-rank components of the optimal \(\Delta W\) more likely: for the same task, going from twenty thousand samples to two million raises the r you need. Work on intrinsic dimension points the same way, with tasks further from the pretraining distribution requiring more dimensions. R is a measurement, not a one-time decision.</p>
+      <p>In one line: measure what \(\Delta W\) needs, then set r.</p>
+
+      <h2>References</h2>
+      <ul class="paper-list">
+        <li><a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noreferrer">Hu et al., LoRA: Low-Rank Adaptation of Large Language Models, 2021</a></li>
+        <li><a href="https://doi.org/10.1007/BF02288367" target="_blank" rel="noreferrer">Eckart &amp; Young, The Approximation of One Matrix by Another of Lower Rank, Psychometrika, 1936</a></li>
+        <li><a href="https://arxiv.org/abs/2012.13255" target="_blank" rel="noreferrer">Aghajanyan et al., Intrinsic Dimensionality Explains the Effectiveness of Language Model Fine-Tuning, 2020</a></li>
+        <li><a href="https://arxiv.org/abs/1804.08838" target="_blank" rel="noreferrer">Li et al., Measuring the Intrinsic Dimension of Objective Landscapes, 2018</a></li>
+        <li><a href="https://arxiv.org/abs/2305.14314" target="_blank" rel="noreferrer">Dettmers et al., QLoRA: Efficient Finetuning of Quantized LLMs, 2023</a></li>
+        <li><a href="https://arxiv.org/abs/2312.03732" target="_blank" rel="noreferrer">Kalajdzievski, A Rank Stabilization Scaling Factor for Fine-Tuning with LoRA, 2023</a></li>
+        <li><a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al., LoRA Learns Less and Forgets Less, 2024</a></li>
+        <li><a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al., LoRA vs Full Fine-tuning: An Illusion of Equivalence, 2024</a></li>
+      </ul>
+    </article>
+  </main>
+
+  <footer class="site-shell footer"><span data-i18n="footerNote"></span></footer>
+  <script>
+    const translations = {
+      zh: { title: "给定基础权重，LoRA 的 r 怎么定 · 崔君同", brand: "崔君同", navHome: "主页", navBlog: "博客", navPhotography: "摄影", footerNote: "© 2026 崔君同。本站托管于 GitHub Pages。" },
+      en: { title: "How to Choose LoRA's Rank r Given a Base Checkpoint · Juntong Cui", brand: "Juntong Cui", navHome: "Home", navBlog: "Blog", navPhotography: "Photography", footerNote: "© 2026 Juntong Cui. Hosted on GitHub Pages." }
+    };
+    const savedLang = localStorage.getItem("site-language");
+    const initialLang = savedLang || "en";
+    function applyLanguage(lang) {
+      const dict = translations[lang] || translations.zh;
+      document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+      document.title = dict.title;
+      document.querySelectorAll("[data-i18n]").forEach((node) => { node.textContent = dict[node.getAttribute("data-i18n")] || ""; });
+      document.querySelectorAll("[data-lang-content]").forEach((node) => { node.hidden = node.dataset.langContent !== lang; });
+      document.querySelectorAll("[data-lang]").forEach((button) => { button.classList.toggle("is-active", button.dataset.lang === lang); button.setAttribute("aria-pressed", String(button.dataset.lang === lang)); });
+      localStorage.setItem("site-language", lang);
+      if (window.MathJax?.typesetPromise) window.MathJax.typesetPromise();
+    }
+    document.querySelectorAll("[data-lang]").forEach((button) => button.addEventListener("click", () => applyLanguage(button.dataset.lang)));
+    applyLanguage(initialLang);
+  </script>
+</body>
+</html>
