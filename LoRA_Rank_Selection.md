@@ -12,7 +12,8 @@
 $$
 \begin{aligned}
 \Delta W &= W_{\mathrm{ft}}-W_0 = U\Sigma V^{\top}, \\
-\Sigma &= \operatorname{diag}(\sigma_1,\dots,\sigma_{\min(d,k)}),\qquad \sigma_1\ge\sigma_2\ge\cdots\ge\sigma_{\min(d,k)}\ge 0, \\
+\Sigma &= \operatorname{diag}(\sigma_1,\dots,\sigma_{\min(d,k)}), \\
+&\quad \sigma_1\ge\sigma_2\ge\cdots\ge\sigma_{\min(d,k)}\ge 0, \\
 \operatorname{rank}(\Delta W) &= \bigl|\{\,i:\sigma_i>0\,\}\bigr|.
 \end{aligned}
 $$
@@ -40,7 +41,10 @@ $$
 由 Eckart–Young 定理，截断 SVD 是最优的秩 r 近似，无论用 Frobenius 范数还是谱范数衡量，见式 4。
 
 $$
-\|\Delta W-\Delta W_r\|_F=\min_{\operatorname{rank}(M)\le r}\|\Delta W-M\|_F=\Bigl(\sum_{i>r}\sigma_i^2\Bigr)^{1/2},\qquad \|\Delta W-\Delta W_r\|_2=\sigma_{r+1}.
+\begin{aligned}
+\|\Delta W-\Delta W_r\|_F &= \min_{\operatorname{rank}(M)\le r}\|\Delta W-M\|_F = \Bigl(\sum_{i>r}\sigma_i^2\Bigr)^{1/2}, \\
+\|\Delta W-\Delta W_r\|_2 &= \sigma_{r+1}.
+\end{aligned}
 $$
 
 于是前 r 项的能量占比，见式 5。
