@@ -90,6 +90,13 @@
       <div class="formula-block" id="zh-eq9"><span class="formula-label">式 9</span>\[\mathrm{PR}=\frac{\bigl(\sum_{i=1}^{r}\sigma_i\bigr)^2}{\sum_{i=1}^{r}\sigma_i^2}\in[1,r].\]</div>
       <p>奇异值分布均匀时它约等于 r，集中在单一方向时趋近 1。参与比远小于 r，说明 r 给多了，可以缩；奇异值尾部仍然很大，说明 r 卡住了该加。这一步能把冗余直接换成推理上的节省：权重合并进 \(W\) 后推理没有额外成本，但在多套 adapter 并存、不合并权重时，开销与 r 成正比。</p>
 
+      <h2>怎么定 r</h2>
+      <p>起点用默认值：全部线性层、r = 16，α 同步取 2r。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 试过的配置里，这就是他们的建议——按显存约束挑 r，16 配全部模块是个好起点。</p>
+
+      <p>要更准，就把 r 定在 held-out 达到全参九成的那一点（<a class="eq-ref" href="#zh-eq6">式 6</a>）：有全参 ckpt 就冻结随机 A、只训 B；没有就把更新限制在随机 d 维子空间里扫。早期谱代理能先给个量级，但只是粗估。</p>
+
+      <p>训完用参与比收尾：远小于 r 就缩，奇异值尾部还大就加。逐层配置的收益通常不抵复杂度。所有数字最后都在 held-out 上过一遍——两三个点，不是挨个试。</p>
+
       <h2>边界</h2>
       <p>\(E(r)\ge 0.9975\)（即 5% 相对误差，由<a class="eq-ref" href="#zh-eq4">式 4</a>、<a class="eq-ref" href="#zh-eq5">式 5</a> 反推）说明改动方向被低秩捕获。<a class="eq-ref" href="#zh-eq4">式 4</a> 逼近的是 \(\Delta W\) 的 Frobenius 误差，训练优化的是 loss，两者只有在 loss 对 \(\Delta W\) 各方向的敏感度相同时才一致。所以这是与全参差距小的必要条件代理，而非充分条件：截断 SVD 是最优近似，不代表训练找得到它，loss 相当也不代表解相同。最终仍要靠 held-out 验证。</p>
       <p>此外，所需的秩取决于数据量。数据越多，最优 \(\Delta W\) 越可能带上高秩分量，同一任务样本从两万增到两百万，所需 r 会变大；任务离预训练分布越远，需要的维度越高。</p>
@@ -165,6 +172,13 @@
       <p>Take the SVD of the trained \(BA\) and compute the participation ratio:</p>
       <div class="formula-block" id="en-eq9"><span class="formula-label">Equation 9</span>\[\mathrm{PR}=\frac{\bigl(\sum_{i=1}^{r}\sigma_i\bigr)^2}{\sum_{i=1}^{r}\sigma_i^2}\in[1,r].\]</div>
       <p>It is approximately r when the singular values are spread evenly, and approaches 1 when they concentrate in a single direction. A participation ratio well below r means r was set too high and can be reduced; a heavy tail means r is binding and should be raised. This step turns redundancy directly into inference savings: merging the adapter into \(W\) removes inference cost entirely, but when several adapters must be served unmerged, cost scales with r.</p>
+
+      <h2>How to pick r</h2>
+      <p>Start from the default: all linear layers, r = 16, with &alpha; set to 2r alongside it. In the configurations <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> tested, that is their advice &mdash; size r against memory, and 16 across all modules is a good starting point.</p>
+
+      <p>For more precision, set r at the point where held-out reaches 90% of full fine-tuning (<a class="eq-ref" href="#en-eq6">Equation 6</a>): with a full checkpoint, freeze a random A and train only B; without one, train inside a random d-dimensional subspace instead. The early-spectrum proxy gives an order of magnitude up front, but only a rough one.</p>
+
+      <p>After training, finish with the participation ratio: well below r, shrink; tail still large, grow. Per-layer configuration rarely repays its complexity. And run every number past held-out in the end &mdash; two or three rank values, not a sweep.</p>
 
       <h2>Limits</h2>
       <p>\(E(r)\ge 0.9975\) — a 5% relative error, inverted from <a class="eq-ref" href="#en-eq4">Equation 4</a> and <a class="eq-ref" href="#en-eq5">Equation 5</a> — says that the update is captured by a low-rank subspace. <a class="eq-ref" href="#en-eq4">Equation 4</a> approximates the Frobenius error of \(\Delta W\), while training minimizes a loss; the two agree only if the loss is equally sensitive to every direction of \(\Delta W\). So this is a necessary-condition proxy for being close to full fine-tuning, not a sufficient one: the truncated SVD is the optimal approximation, but that does not mean training finds it, and comparable loss does not mean the same solution. Held-out validation still decides.</p>
