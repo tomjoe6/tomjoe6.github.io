@@ -73,7 +73,7 @@
       <p>另一种是早期谱代理，成本低。全参先跑 200 到 500 步，对累计更新做 SVD，见<a class="eq-ref" href="#zh-eq7">式 7</a>。</p>
       <div class="formula-block" id="zh-eq7"><span class="formula-label">式 7</span>\[S_T=\sum_{t=1}^{T}\Delta W_t,\qquad \Delta W_t=W_t-W_{t-1},\]</div>
       <p>再对 \(S_T\) 套用<a class="eq-ref" href="#zh-eq5">式 5</a> 计算 \(E(r)\)。以 SGD 为例 \(\Delta W_t=-\eta_t g_t\)，用 Adam 一类优化器时换成对应的更新量即可。改动的主方向在早期即已成形，此时 \(E(r)\) 曲线基本稳定，这条路成本最低。</p>
-      <p class="note">主方向早期成形观察比起全参训完再回头测，200 到 500 步的代价可以忽略。</p>
+      <p class="note">主方向早期成形观察比起全参训完再回头测，200 到 500 步的代价🉑以忽略。</p>
 
       <h2>模块选择、α 缩放与逐层 r</h2>
       <p>同等参数量下，“全部线性层配小 r”通常优于“只用 q、v 配大 r”，优先覆盖 q、k、v、o 与 FFN。参数量相同不代表表达能力相同：前者可选的更新方向更多，只是每个方向更窄。</p>
