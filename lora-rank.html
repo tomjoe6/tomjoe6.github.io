@@ -40,14 +40,14 @@
       <a class="back-link" href="blog.html">← 返回博客</a>
       <div class="article-meta">2026-09-14 · 机器学习 · 参数高效微调</div>
       <h1>LoRA 的 r 怎么定</h1>
-      <p>没有准确公式可算，只能估计范围</p>
+      <p>没有准确公式可算，只能估计</p>
       <h2>秩与奇异值谱</h2>
       <p>一个 \(d\times k\) 的矩阵有 \(\min(d,k)\) 个奇异值。秩等于非零奇异值的个数，回答有几个非零方向。</p>
       <p>以 \(d=k=5120\) 的层为例，\(\Delta W\) 有 5120 个奇异值。全参微调之后通常是满秩的：5120 个奇异值全部非零，只是大多数极小。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 在代码、数学任务上测到的 \(\Delta W\) 谱就是这种样子，衰减很慢。所以在这个尺度上问秩是多少得不到任何信息，有信息的是衰减速度。</p>
       <div class="formula-block" id="zh-eq1"><span class="formula-label">式 1</span>\[\begin{aligned}&\Delta W=W_{\mathrm{ft}}-W_0=U\Sigma V^{\top},\\ &\Sigma=\operatorname{diag}(\sigma_1,\dots,\sigma_{\min(d,k)}),\\ &\sigma_1\ge\sigma_2\ge\cdots\ge\sigma_{\min(d,k)}\ge 0,\\ &\operatorname{rank}(\Delta W)=\bigl|\{\,i:\sigma_i>0\,\}\bigr|.\end{aligned}\]</div>
       <p>这里 \(U\) 和 \(V\) 的列分别是左右奇异向量，\(\sigma_i\) 是奇异值。秩只看 \(\sigma_i\) 是否为零，这正是它在微调场景里失效的原因。</p>
 
-      <h2>LoRA 的秩上界</h2>
+      <h2>LoRA</h2>
       <p>LoRA 把这层改动限制在一个低秩乘积上，见<a class="eq-ref" href="#zh-eq2">式 2</a>。</p>
       <div class="formula-block" id="zh-eq2"><span class="formula-label">式 2</span>\[W=W_0+\frac{\alpha}{r}BA,\qquad B\in\mathbb{R}^{d\times r},\quad A\in\mathbb{R}^{r\times k},\quad r\ll\min(d,k).\]</div>
       <p>初始化通常取 \(A\sim\mathcal{N}(0,\sigma^2)\)、\(B=0\)，于是 \(\Delta W=0\)，训练从原模型出发，起点没有扰动。约束来自一行代数，见<a class="eq-ref" href="#zh-eq3">式 3</a>。</p>
@@ -65,12 +65,10 @@
       <p>逐层算 \(\Delta W=W_{\mathrm{ft}}-W_0\)，做 SVD，得到奇异值谱 \(\sigma_1\ge\dots\ge\sigma_{\min(d,k)}\ge 0\)，画 \(E(r)\) 整条曲线，不要只看一个 r 点。</p>
       <p>这个谱用于判断要不要LoRA。根据 <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 在代码、数学任务上的测量，4096×4096 的 \(W_q\) 要 1500 以上的秩才解释 \(\Delta W\) 90% 的方差，比常用 LoRA 秩大一两个数量级；同一批实验里，他们给出的实用建议是按显存约束挑 r，16 配全部模块是个好起点。<a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a> 测到的全参更新有效秩也在 400 以上。所以谱衰减慢不是「r 该取大」的信号，而是这个任务上 LoRA 追不上全参。</p>
       <p>\(E(r)\) 数的是能量——谱上大的方向对任务可以并不重要，真实的 loss 增量由曲率决定，二阶近似下是 \(\tfrac12\sum_{i>r}h_i\sigma_i^2\)，\(h_i\) 是 loss 在方向 i 上的曲率。所以拿 \(E(r)\) 反推 r 得不到🉑用的数。这个谱的用处是判断该不该上 LoRA。</p>
-
-<p>把内在维度那个判据搬到 LoRA 上：冻结随机初始化的 A、只训 B，拿全参的指标当 \(R_{\mathrm{full}}\)，取最小的 r 使 held-out 达到 0.9 \(R_{\mathrm{full}}\)（判据同<a class="eq-ref" href="#zh-eq6">式 6</a>）。只训 B，每个点的成本比训完整 LoRA 低，而随机 A 和训过的 A 差不多（<a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>；<a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA，Hao et al. 2024</a>）。</p>
       <p>\(E(r)\) 高只说明全参解可以被低秩逼近：根据 <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a>，低秩下 LoRA 学出的更新与全参谱不同，会出现与预训练谱近似正交的新方向，有效秩不到全参的一半。所以最后仍要在 held-out 上确认——取两三个点，不是挨个试；逐层分别定，不要只看全模型平均。</p>
 
       <h2>甜点在哪</h2>
-      <p>r 往上加，曲线不是一直涨。欠秩时丢掉的是被截掉的那些方向，截断误差降不下来；过了某个点，它已经接近零，而每多一维秩要多付一份方差，量级是 \(r\cdot d/n\)。两边相等的地方就是甜点。</p>
+      <p>r 往上加表现不是一直变好。欠秩时丢掉的是被截掉的那些方向，截断误差降不下来；过了某个点，它已经接近零，而每多一维秩要多付一份方差，量级是 \(r\cdot d/n\)。</p>
 
       <p><a href="https://arxiv.org/abs/2607.27680" target="_blank" rel="noreferrer">Arunan 2026</a> 把这个写成了界：目标更新有一个固有的秩，\(r\) 小于它时误差卡在截断项上，\(r\) 大于它时按 \(r\cdot d/n\) 线性涨——曲线是 U 形，过了甜点不只是不涨，是会掉。他们跑了 168 组 DistilBERT、RoBERTa 的微调，验证 loss 都是这个形状，其中两个 SST-2 配置在大秩上掉得统计显著。这条只对固定秩的经验风险最小化解成立；换成核范数一类会自动收敛到那个秩的估计器，过秩就无害了。所以实测看到的平台，有一部分是训练过程在替你兜底。</p>
 
@@ -81,7 +79,7 @@
       <h2>内在维度与早期谱代理</h2>
       <p>内在维度法。把更新限制在一个随机 d 维子空间里训至收敛，画 loss–d 曲线找拐点，见<a class="eq-ref" href="#zh-eq6">式 6</a>。</p>
       <div class="formula-block" id="zh-eq6"><span class="formula-label">式 6</span>\[\theta=\theta_0+P\theta',\qquad P\in\mathbb{R}^{D\times d},\quad d\ll D,\qquad d^{*}=\min\bigl\{\,d:\ R(d)\ge 0.9\,R_{\mathrm{full}}\,\bigr\},\]</div>
-      <p>其中 \(R\) 是验证集指标，\(R_{\mathrm{full}}\) 是全参微调的结果。对应到 LoRA，有一个简单得多的做法：固定随机初始化的 \(A\)、只训 \(B\)。\(\Delta W=BA\) 的行空间被限制在 \(A\) 的 r 维行空间内，可训练参数量 \(d\cdot r\)。根据 <a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>，只训 B 比只训 A 有效，随机不训练的 A 和训过的 A 差不多；<a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA（Hao et al. 2024）</a>把这个更新近似成对梯度做一次随机投影。成本中等。</p>
+      <p>其中 \(R\) 是验证集指标，\(R_{\mathrm{full}}\) 是全参微调的结果。对应到 LoRA，有一个简单得多的做法：固定随机初始化的 \(A\)、只训 \(B\)，取最小的 r 使 held-out 达到 0.9 \(R_{\mathrm{full}}\)（判据同<a class="eq-ref" href="#zh-eq6">式 6</a>）。\(\Delta W=BA\) 的行空间被限制在 \(A\) 的 r 维行空间内，可训练参数量 \(d\cdot r\)。根据 <a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>，只训 B 比只训 A 有效，随机不训练的 A 和训过的 A 差不多；<a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA（Hao et al. 2024）</a>把这个更新近似成对梯度做一次随机投影。成本中等。</p>
       <p>早期谱代理。全参先跑 200 到 500 步，对累计更新做 SVD，见<a class="eq-ref" href="#zh-eq7">式 7</a>。</p>
       <div class="formula-block" id="zh-eq7"><span class="formula-label">式 7</span>\[S_T=\sum_{t=1}^{T}\Delta W_t,\qquad \Delta W_t=W_t-W_{t-1},\]</div>
       <p>再对 \(S_T\) 套用<a class="eq-ref" href="#zh-eq5">式 5</a> 计算 \(E(r)\)。以 SGD 为例 \(\Delta W_t=-\eta_t g_t\)，用 Adam 一类优化器时换成对应的更新量即可。这条路的先例都是拿谱做初始化，不是拿它定 r——<a href="https://arxiv.org/abs/2308.06522" target="_blank" rel="noreferrer">SLoRA（Babakniya et al. 2023）</a>用一段全参后的 \(\Delta W\) 初始化 LoRA；<a href="https://arxiv.org/abs/2410.07170" target="_blank" rel="noreferrer">EVA（Paischer et al. 2024）</a>用激活的增量 SVD 初始化 A，并按解释方差把给定的秩预算分到各层（它的谱来自初始化时的激活，不是训了几百步的 \(\Delta W\)）。</p>
@@ -130,14 +128,14 @@
       <a class="back-link" href="blog.html">← Back to Blog</a>
       <div class="article-meta">2026-09-14 · Machine Learning · Parameter-Efficient Fine-Tuning</div>
       <h1>How to Choose LoRA's Rank r</h1>
-      <p>There is no exact formula, only a range to estimate.</p>
+      <p>There is no exact formula, only an estimate.</p>
       <h2>Rank and the singular-value spectrum</h2>
       <p>A \(d\times k\) matrix has \(\min(d,k)\) singular values. The rank equals the number of nonzero singular values, and it answers how many nonzero directions there are.</p>
       <p>Take a layer with \(d=k=5120\). Then \(\Delta W\) has 5120 singular values. After full fine-tuning it is usually full rank: all 5120 are nonzero, but most of them are tiny. <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> measure exactly this slow decay in \(\Delta W\) spectra on code and math tasks. Asking "what is the rank" at this scale carries no information. The decay rate does.</p>
       <div class="formula-block" id="en-eq1"><span class="formula-label">Equation 1</span>\[\begin{aligned}&\Delta W=W_{\mathrm{ft}}-W_0=U\Sigma V^{\top},\\ &\Sigma=\operatorname{diag}(\sigma_1,\dots,\sigma_{\min(d,k)}),\\ &\sigma_1\ge\sigma_2\ge\cdots\ge\sigma_{\min(d,k)}\ge 0,\\ &\operatorname{rank}(\Delta W)=\bigl|\{\,i:\sigma_i>0\,\}\bigr|.\end{aligned}\]</div>
       <p>Here the columns of \(U\) and \(V\) are the left and right singular vectors, and \(\sigma_i\) are the singular values. Rank only looks at whether each \(\sigma_i\) is zero. That is precisely why it fails as a tool in this setting.</p>
 
-      <h2>The rank cap in LoRA</h2>
+      <h2>LoRA</h2>
       <p>LoRA restricts the update to a low-rank product:</p>
       <div class="formula-block" id="en-eq2"><span class="formula-label">Equation 2</span>\[W=W_0+\frac{\alpha}{r}BA,\qquad B\in\mathbb{R}^{d\times r},\quad A\in\mathbb{R}^{r\times k},\quad r\ll\min(d,k).\]</div>
       <p>Initialization usually takes \(A\sim\mathcal{N}(0,\sigma^2)\) and \(B=0\), so \(\Delta W=0\) and training starts from the pretrained function with no perturbation. The constraint then follows from one line of algebra:</p>
@@ -155,12 +153,10 @@
       <p>Compute \(\Delta W=W_{\mathrm{ft}}-W_0\) layer by layer, take the SVD to get \(\sigma_1\ge\dots\ge\sigma_{\min(d,k)}\ge 0\), and plot the whole \(E(r)\) curve rather than a single rank.</p>
       <p>This spectrum is for deciding whether to use LoRA. Per <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a>, measured on code and math tasks, a \(4096\times4096\) \(W_q\) needs a rank above 1500 to explain 90% of the variance in \(\Delta W\), one to two orders of magnitude above typical LoRA ranks; on the same setup their practical recommendation is to size r against memory, with 16 across all modules a good starting point. <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a> measure effective ranks above 400 for full fine-tuning updates. So a slowly decaying spectrum is not a signal to raise r — it means LoRA trails full fine-tuning on this task.</p>
       <p>\(E(r)\) counts energy — a direction that is large in the spectrum can matter little for the task, and the real change in loss is set by curvature, \(\tfrac12\sum_{i>r}h_i\sigma_i^2\) to second order, where \(h_i\) is the curvature of the loss along direction i. So inverting \(E(r)\) does not give a usable rank. The spectrum is for deciding whether to use LoRA.</p>
-
-<p>Transplant the intrinsic-dimension criterion onto LoRA: freeze a randomly initialized A, train only B, take the full fine-tuning metric as \(R_{\mathrm{full}}\), and pick the smallest r whose held-out score reaches 0.9 \(R_{\mathrm{full}}\) (same criterion as <a class="eq-ref" href="#en-eq6">Equation 6</a>). Only B is trained, so each point costs less than a full LoRA run, and a random A performs nearly as well as a trained one (<a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>; <a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA, Hao et al. 2024</a>).</p>
       <p>A high \(E(r)\) only says the full-fine-tuning solution can be approximated at low rank: per<a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a>, at low rank LoRA learns an update whose spectrum differs from full fine-tuning, with new directions nearly orthogonal to the pretrained spectrum and an effective rank under half of full fine-tuning's. So still confirm on held-out data — two or three rank values, not a sweep — per layer rather than as a model-wide average.</p>
 
       <h2>Where the sweet spot is</h2>
-      <p>Adding rank does not keep helping. Under-ranking leaves the truncated directions on the table and that truncation error will not come down; past some point it is already near zero, while every extra unit of rank costs another unit of variance, on the order of \(r\cdot d/n\). The sweet spot is where the two meet.</p>
+      <p>Adding rank does not always improve things. Under-ranking leaves the truncated directions on the table and that truncation error will not come down; past some point it is already near zero, while every extra unit of rank costs another unit of variance, on the order of \(r\cdot d/n\).</p>
 
       <p><a href="https://arxiv.org/abs/2607.27680" target="_blank" rel="noreferrer">Arunan 2026</a> turns this into bounds: the target update has an intrinsic rank, and excess error sits on the truncation term below it and grows linearly as \(r\cdot d/n\) above it — the curve is U-shaped, so past the sweet spot it does not merely stop improving, it gets worse. Across 168 DistilBERT and RoBERTa fine-tuning runs the validation loss traced that U, with two SST-2 configurations degrading significantly at large rank. This holds for a fixed-rank empirical risk minimizer; use an estimator that converges on that rank by itself, such as a nuclear-norm penalty, and over-ranking is harmless. So part of the plateau people measure is the training procedure covering for them.</p>
 
@@ -171,7 +167,7 @@
       <h2>Intrinsic dimension and the early spectral proxy</h2>
       <p>The intrinsic-dimension method. Restrict the update to a random d-dimensional subspace, train to convergence, and look for the knee of the loss–d curve:</p>
       <div class="formula-block" id="en-eq6"><span class="formula-label">Equation 6</span>\[\theta=\theta_0+P\theta',\qquad P\in\mathbb{R}^{D\times d},\quad d\ll D,\qquad d^{*}=\min\bigl\{\,d:\ R(d)\ge 0.9\,R_{\mathrm{full}}\,\bigr\},\]</div>
-      <p>where \(R\) is a validation metric and \(R_{\mathrm{full}}\) is the full fine-tuning result. Translated back to LoRA, it reduces to something much cheaper: freeze a randomly initialized \(A\) and train only \(B\). The row space of \(\Delta W=BA\) is confined to the \(r\)-dimensional row space of \(A\), with \(d\cdot r\) trainable parameters. Per <a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>, training B alone is more effective than training A alone, and a random untrained A performs nearly as well as a fine-tuned one; <a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA (Hao et al. 2024)</a> approximates this update as a random projection of the gradient. Moderate cost.</p>
+      <p>where \(R\) is a validation metric and \(R_{\mathrm{full}}\) is the full fine-tuning result. Translated back to LoRA, it reduces to something much cheaper: freeze a randomly initialized \(A\), train only \(B\), and pick the smallest r whose held-out score reaches 0.9 \(R_{\mathrm{full}}\) (same criterion as <a class="eq-ref" href="#en-eq6">Equation 6</a>). The row space of \(\Delta W=BA\) is confined to the \(r\)-dimensional row space of \(A\), with \(d\cdot r\) trainable parameters. Per <a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>, training B alone is more effective than training A alone, and a random untrained A performs nearly as well as a fine-tuned one; <a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA (Hao et al. 2024)</a> approximates this update as a random projection of the gradient. Moderate cost.</p>
       <p>The early spectral proxy. Run full fine-tuning for 200–500 steps and take the SVD of the accumulated update:</p>
       <div class="formula-block" id="en-eq7"><span class="formula-label">Equation 7</span>\[S_T=\sum_{t=1}^{T}\Delta W_t,\qquad \Delta W_t=W_t-W_{t-1},\]</div>
       <p>then apply <a class="eq-ref" href="#en-eq5">Equation 5</a> to \(S_T\) to get \(E(r)\). Under SGD, \(\Delta W_t=-\eta_t g_t\); with Adam-style optimizers, substitute the corresponding update. The precedents for this route all use a spectrum for initialization rather than to set r —<a href="https://arxiv.org/abs/2308.06522" target="_blank" rel="noreferrer">SLoRA (Babakniya et al. 2023)</a> initializes LoRA from the SVD of a short full fine-tuning run; <a href="https://arxiv.org/abs/2410.07170" target="_blank" rel="noreferrer">EVA (Paischer et al. 2024)</a> initializes A from an incremental SVD of activations and uses the explained variance to split a given rank budget across layers (its spectrum comes from activations at initialization, not from a \(\Delta W\) measured a few hundred steps in).</p>
