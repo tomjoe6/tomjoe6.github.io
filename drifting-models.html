@@ -81,36 +81,40 @@
       <a class="back-link" href="blog.html">← Back to Blog</a>
       <div class="article-meta">2026-07-16 · Machine Learning · Generative Models</div>
       <h1>Why Drifting Is Closer to First Principles in Generative Modeling</h1>
-      <p class="lead"><em>Generative Modeling via Drifting</em> changes when distribution transport happens. Rather than moving a sample from noise to data at inference time, it uses parameter updates during training to move the generator's output distribution toward data.</p>
+      <p class="lead">First, <em>Generative Modeling via Drifting</em> changes when distribution transport happens. Diffusion models usually move noise toward data at inference time; this work hands the same kind of correction to parameter updates during training, keeping a direct generator.</p>
 
-      <p>For \(\epsilon\sim p_\epsilon\) and \(x=f_\theta(\epsilon)\), the generated distribution is the pushforward</p>
-      <div class="formula-block">\[q_\theta=(f_\theta)_\#p_\epsilon.\]</div>
-      <p>The objective is \(q_\theta=p_{\mathrm{data}}\). Noise prediction, adversarial discrimination, and variational bounds are useful routes toward that equality, not the equality itself. Diffusion and flow models often specify a path and solve transport dynamics at inference:</p>
-      <div class="formula-block">\[\frac{\mathrm d x_t}{\mathrm d t}=v_t(x_t),\qquad \partial_t q_t+\nabla\cdot(q_t v_t)=0.\]</div>
-      <p>Drifting uses iterative parameter optimization to carry out this transport during training, leaving a direct noise-to-data map at inference.</p>
+      <p>For \(\epsilon\sim p_\epsilon\) and \(x=f_\theta(\epsilon)\), the distribution of the network's output is a strict pushforward, see Equation 1.</p>
+      <div class="formula-block"><span class="formula-label">Equation 1</span>\[q_\theta=(f_\theta)_\#p_\epsilon.\]</div>
+      <p>Diffusion models usually prescribe a distribution path first and solve the dynamical system at inference time, see Equation 2.</p>
+      <div class="formula-block"><span class="formula-label">Equation 2</span>\[\frac{\mathrm d x_t}{\mathrm d t}=v_t(x_t),\qquad \partial_t q_t+\nabla\cdot(q_t v_t)=0.\]</div>
 
-      <h2>Transport during training</h2>
-      <p>It defines a field \(V_{p,q}(x)\) that moves samples from the current generated distribution:</p>
-      <div class="formula-block">\[x_{i+1}=x_i+V_{p,q_i}(x_i),\qquad p=q\Longrightarrow V_{p,q}(x)=0.\]</div>
-      <p>For the kernelized construction, real samples attract and generated samples repel:</p>
-      <div class="formula-block">\[\begin{aligned}V^+_p(x)&=\frac{\mathbb E_p[k(x,y^+)(y^+-x)]}{\mathbb E_p[k(x,y^+)]},\\V^-_q(x)&=\frac{\mathbb E_q[k(x,y^-)(y^--x)]}{\mathbb E_q[k(x,y^-)]},\\V_{p,q}(x)&=V^+_p(x)-V^-_q(x).\end{aligned}\]</div>
-      <p>Matching is formulated as a local equilibrium: data mass attracts a sample, while generated mass repels it from occupied regions.</p>
+      <p>The paper defines a drift field \(V_{p,q}(x)\) between the target distribution \(p\) and the current generated distribution \(q\), specifying how the current sample should be corrected, see Equation 3.</p>
+      <div class="formula-block"><span class="formula-label">Equation 3</span>\[x_{i+1}=x_i+V_{p,q_i}(x_i),\qquad x_i=f_{\theta_i}(\epsilon).\]</div>
+      <p>The equilibrium condition the field must satisfy is Equation 4.</p>
+      <div class="formula-block"><span class="formula-label">Equation 4</span>\[p=q\quad\Longrightarrow\quad V_{p,q}(x)=0.\]</div>
+      <p>Once the distributions match, samples stop moving. The paper guarantees this by antisymmetry: swap the data and the generated samples, and the correction direction reverses.</p>
+      <p>Data samples provide attraction and generated samples repulsion; the implementation comes from a mean shift, defined in Equation 5.</p>
+      <div class="formula-block"><span class="formula-label">Equation 5</span>\[\begin{aligned}V^+_p(x)&=\frac{\mathbb E_p[k(x,y^+)(y^+-x)]}{\mathbb E_p[k(x,y^+)]},\\V^-_q(x)&=\frac{\mathbb E_q[k(x,y^-)(y^--x)]}{\mathbb E_q[k(x,y^-)]},\\V_{p,q}(x)&=V^+_p(x)-V^-_q(x).\end{aligned}\]</div>
+      <p>What is compared are two local centers of mass: the data cloud pulls a sample toward itself, and the generated cloud pushes it out of overdense regions. This does not remove every mode collapse on theoretical grounds, but the field does contain a reverse density feedback.</p>
 
-      <p>The generator regresses to a drifted but detached target:</p>
-      <div class="formula-block">\[\mathcal L_{\mathrm{drift}}=\mathbb E_\epsilon\left[\left\|f_\theta(\epsilon)-\operatorname{sg}\left(f_\theta(\epsilon)+V_{p,q_\theta}(f_\theta(\epsilon))\right)\right\|_2^2\right].\]</div>
-      <p>Stop-gradient fixes the field estimate during backpropagation. Each SGD step approximates a step along that field, and training writes the complete transport into \(\theta\). Inference then needs one evaluation of \(f_\theta\), rather than numerical integration.</p>
+      <p>The training objective makes the network's output catch up with its drifted self, see Equation 6.</p>
+      <div class="formula-block"><span class="formula-label">Equation 6</span>\[\mathcal L_{\mathrm{drift}}=\mathbb E_\epsilon\left[\left\|f_\theta(\epsilon)-\operatorname{sg}\left(f_\theta(\epsilon)+V_{p,q_\theta}(f_\theta(\epsilon))\right)\right\|_2^2\right].\]</div>
+      <p class="note">Numerically the residual is the drift; but this is not full gradient descent on the drift magnitude. Stop-gradient fixes the order of &ldquo;estimate the field, then update along it&rdquo;; recent theoretical work is precisely analyzing what dynamics this order corresponds to.</p>
 
-      <h2>What changes</h2>
-      <p>GANs obtain a direction from a learned critic in a min-max game. VAEs center a latent-variable model and its ELBO. Diffusion, score models, and flow matching create stable local objectives, but generally retain a transport trajectory at inference. Drifting is more direct in one specific sense: it uses \(q_\theta=p_{\mathrm{data}}\) as the fixed point and treats training updates as distribution time, rather than prescribing a noise path that every inference sample must traverse.</p>
-      <h2>Limits</h2>
-      <p>This does not make it universally more fundamental. Its field depends on kernels, bandwidths, feature spaces, and mini-batch estimates; a zero arbitrary field need not identify equal distributions. The original paper gives sufficient conditions for its construction, and subsequent analyses connect special cases to score differences and Wasserstein gradient flows. The useful claim is narrower: high-quality one-step generation can emerge when transport is completed during training, which matters for video, world models, and control where latency limits response time.</p>
+      <p>VAEs center a probabilistic graphical model and its ELBO, facing the trade-off between reconstruction, prior, and approximate posterior; diffusion and flow matching turn high-dimensional distribution matching into stable local regression, but still keep the transport path at inference time; Drifting does not prescribe in advance a path that every sample must traverse at inference &mdash; it estimates a local correction wherever the current distribution mismatches, and lets training updates accumulate those corrections.</p>
+
+      <p>&ldquo;Closer to first principles&rdquo; here refers to the modeling approach, not mathematical superiority. Flow matching is also doing distribution transport. Drifting's directness lies in fixing &ldquo;generated distribution equals data distribution&rdquo; and placing the distribution change at training time.</p>
+      <p>The original paper also notes that zero drift for an arbitrary field does not mean the two distributions are identical &mdash; it only gives sufficient conditions. Subsequent work connects the Gaussian-kernel case to the score difference of smoothed distributions and to Wasserstein gradient flow, discussing the gap between the practical algorithm and the ideal flow.</p>
+      <p>Overall, the value of this work is an alternative explanation: one-step generation can come from distribution transport completed during training. Video generation, world models, and control care about this most, where inference latency directly limits system response time.</p>
 
       <h2>References</h2>
       <ul class="paper-list">
         <li><a href="https://arxiv.org/abs/2602.04770" target="_blank" rel="noreferrer">Deng et al., Generative Modeling via Drifting, 2026</a></li>
         <li><a href="https://lambertae.github.io/projects/drifting/" target="_blank" rel="noreferrer">Project page and code</a></li>
-        <li><a href="https://arxiv.org/abs/2210.02747" target="_blank" rel="noreferrer">Flow Matching for Generative Modeling, 2022</a></li>
+        <li><a href="https://arxiv.org/abs/2210.02747" target="_blank" rel="noreferrer">Lipman et al., Flow Matching for Generative Modeling, 2022</a></li>
+        <li><a href="https://arxiv.org/abs/2006.11239" target="_blank" rel="noreferrer">Song et al., Score-Based Generative Modeling through SDEs, 2020</a></li>
         <li><a href="https://arxiv.org/abs/2605.05118" target="_blank" rel="noreferrer">On the Wasserstein Gradient Flow Interpretation of Drifting Models, 2026</a></li>
+        <li><a href="https://arxiv.org/abs/2603.09936" target="_blank" rel="noreferrer">Generative Drifting is Secretly Score Matching, 2026</a></li>
       </ul>
     </article>
   </main>

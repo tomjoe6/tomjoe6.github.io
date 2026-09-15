@@ -445,6 +445,7 @@
       <p>which can be rewritten as:</p>
       <div class="formula-block">\[y=x+T(x)\cdot(H(x)-x)\]</div>
       <p>So Highway is essentially gated residual learning. Instead of directly learning \(H(x)\), it learns a residual term controlled by a gate.</p>
+      <p>If \(T(x)\to 0\), then \(y=x\) and information passes straight through; if \(T(x)\to 1\), then \(y=H(x)\) and the network performs a nonlinear transformation. In other words, the idea of Highway is to let the network learn by itself how much to transform.</p>
 
       <h2>ResNet: fixing the identity path</h2>
       <p>ResNet simplifies the formulation to:</p>
@@ -457,7 +458,7 @@
       <div class="formula-block">\[y=x\]</div>
 
       <h2>The difference in backpropagation</h2>
-      <p>For a single residual block:</p>
+      <p>Viewed through backpropagation, ResNet's advantage is even clearer. For a single residual block:</p>
       <div class="formula-block">\[y=x+F(x;W)\]</div>
       <p>we have:</p>
       <div class="formula-block">\[\frac{dy}{dx}=I+\frac{dF}{dx}\]</div>
