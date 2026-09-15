@@ -6,7 +6,7 @@
 
 一个 d×k 的矩阵有 min(d,k) 个奇异值。秩等于非零奇异值的个数，只回答有几个非零方向的问题。
 
-以 d=k=5120 的层为例，ΔW 有 5120 个奇异值。全参微调之后通常是满秩的：5120 个奇异值全部非零，只是大多数极小。所以在这个尺度上问秩是多少得不到任何信息，有信息的是衰减速度。
+以 d=k=5120 的层为例，ΔW 有 5120 个奇异值。全参微调之后通常是满秩的：5120 个奇异值全部非零，只是大多数极小。Biderman et al. 2024 在代码、数学任务上测到的 ΔW 谱就是这种样子，衰减很慢。所以在这个尺度上问秩是多少得不到任何信息，有信息的是衰减速度。
 
 $$
 \begin{aligned}
@@ -58,11 +58,11 @@ $$
 
 逐层算 ΔW = W_ft − W₀，做 SVD，得到奇异值谱 σ₁ ≥ … ≥ σ_min(d,k) ≥ 0，画 E(r) 整条曲线，不要只看一个 r 点。
 
-这个谱回答是「LoRA 能不能用」。根据 Biderman et al. 2024 在代码、数学任务上的测量，4096×4096 的 W_q 要 1500 以上的秩才解释 ΔW 90% 的方差，比常用 LoRA 秩大一两个数量级；同一批实验里，他们给出的实用建议是按显存约束挑 r，16 配全部模块是个好起点。Shuttleworth et al. 2024 测到的全参更新有效秩也在 400 以上。所以谱衰减慢不是「r 该取大」的信号，而是这个任务上 LoRA 追不上全参。
+这个谱用于判断要不要LoRA。根据 Biderman et al. 2024 在代码、数学任务上的测量，4096×4096 的 W_q 要 1500 以上的秩才解释 ΔW 90% 的方差，比常用 LoRA 秩大一两个数量级；同一批实验里，他们给出的实用建议是按显存约束挑 r，16 配全部模块是个好起点。Shuttleworth et al. 2024 测到的全参更新有效秩也在 400 以上。所以谱衰减慢不是「r 该取大」的信号，而是这个任务上 LoRA 追不上全参。
 
-E(r) 数的是能量，不是重要性——谱上大的方向对任务可以并不重要，真实的 loss 增量由曲率决定，二阶近似下是 ½ Σ_{i>r} h_i σ_i²。所以拿 E(r) 反推 r 得不到能用的数；这个谱的用处是判断该不该上 LoRA，不是给 r 定值。
+E(r) 数的是能量——谱上大的方向对任务可以并不重要，真实的 loss 增量由曲率决定，二阶近似下是 ½ Σ_{i>r} h_i σ_i²，h_i 是 loss 在方向 i 上的曲率。所以拿 E(r) 反推 r 得不到🉑用的数；这个谱的用处是判断该不该上 LoRA。
 
-要一个数字，就把内在维度那个判据搬到 LoRA 上：冻结随机初始化的 A、只训 B，拿全参的指标当 R_full，取最小的 r 使 held-out 达到 0.9 R_full（判据同式 6）。只训 B，每个点的成本比训完整 LoRA 低，而随机 A 和训过的 A 差不多（Zhu et al. 2024；FLoRA，Hao et al. 2024）。
+把内在维度那个判据搬到 LoRA 上：冻结随机初始化的 A、只训 B，拿全参的指标当 R_full，取最小的 r 使 held-out 达到 0.9 R_full（判据同式 6）。只训 B，每个点的成本比训完整 LoRA 低，而随机 A 和训过的 A 差不多（Zhu et al. 2024；FLoRA，Hao et al. 2024）。
 
 E(r) 高只说明全参解可以被低秩逼近，不说明 LoRA 找得到它：根据 Shuttleworth et al. 2024，低秩下 LoRA 学出的更新与全参谱不同，会出现与预训练谱近似正交的新方向，有效秩不到全参的一半。所以最后仍要在 held-out 上确认——取两三个点，不是挨个试；逐层分别定，不要只看全模型平均。
 
@@ -89,7 +89,7 @@ $$
 
 ## 模块选择、α 缩放与逐层 r
 
-同等参数量下，“全部线性层配小 r”通常优于“只用 q、v 配大 r”，优先覆盖 q、k、v、o 与 FFN。参数量相同不代表表达能力相同：前者可选的更新方向更多，只是每个方向更窄。
+模块选择。QLoRA（Dettmers et al. 2023）消融出来的结论是把 adapter 加到全部线性层（含 FFN），只配 q、v 会明显掉质量——覆盖面比秩更关键。所以同等参数量下，“全部线性层配小 r”优于“只用 q、v 配大 r”：参数量相同不代表表达能力相同，前者可选的更新方向更多，只是每个方向更窄。
 
 α 的缩放。真正生效的是 α/r，见式 8。
 
@@ -97,7 +97,7 @@ $$
 s=\frac{\alpha}{r},\qquad \Delta W=s\,BA.
 $$
 
-常取 α = 2r，使有效尺度 s 恒为 2。改 r 必须同步改 α，否则等于偷偷改了学习率——把 r 从 r₁ 换到 r₂ 而 α 不变，更新整体乘上 r₁/r₂。若 r 很大，α/r 会偏小，可考虑 α/√r 一类的稳定化缩放。
+Hu et al. 2021 用的是 α/r 这个缩放，常取 α = 2r，使有效尺度 s 恒为 2。改 r 必须同步改 α，否则等于偷偷改了学习率——把 r 从 r₁ 换到 r₂ 而 α 不变，更新整体乘上 r₁/r₂。r 很大时 α/r 会偏小：Kalajdzievski 2023 把缩放换成 α/√r；Shuttleworth et al. 2024 测到固定 α 配高秩会引入更多与预训练谱正交的新方向，换成 α/√r 后高秩 LoRA 才更像全参。
 
 逐层 r。E(r) 要按层分别算。根据 Biderman et al. 2024，首尾层的秩偏低、中间层偏高，MLP 比 attention 高；不过手调的逐层配置收益往往不抵复杂度——按解释方差在预算内自动分配（EVA）是同预算下权衡更好的一条路。
 
@@ -109,7 +109,7 @@ $$
 \mathrm{PR}=\frac{\bigl(\sum_{i=1}^{r}\sigma_i\bigr)^2}{\sum_{i=1}^{r}\sigma_i^2}\in[1,r].
 $$
 
-奇异值分布均匀时它约等于 r，集中在单一方向时趋近 1。参与比远小于 r，说明 r 给多了可以缩；奇异值尾部仍然很大，说明 r 卡住了该加。这一步能把冗余直接换成推理上的节省：权重合并进 W 后推理没有额外成本，但在多套 adapter 并存、不合并权重时，开销与 r 成正比。
+奇异值分布均匀时它约等于 r，集中在单一方向时趋近 1。训完还能砍秩这件事有先例：AdaLoRA（Zhang et al. 2023）在训练中按重要度给各层分配并裁剪秩，低预算下优于固定秩。所以参与比远小于 r 就可以缩，奇异值尾部仍然很大就该加。这一步能把冗余直接换成推理上的节省：权重合并进 W 后推理没有额外成本，但在多套 adapter 并存、不合并权重时，开销与 r 成正比。
 
 ## 最后，怎么定 r
 
@@ -123,7 +123,7 @@ $$
 
 E(r) ≥ 0.9975（即 5% 相对误差，由式 4、式 5 反推）说明改动方向被低秩捕获。式 4 逼近的是 ΔW 的 Frobenius 误差，训练优化的是 loss，两者只有在 loss 对 ΔW 各方向的敏感度相同时才一致。所以这是与全参差距小的必要条件代理，而非充分条件：截断 SVD 是最优近似，不代表训练找得到它，loss 相当也不代表解相同。最终仍要靠 held-out 验证。
 
-此外，所需的秩取决于数据量。数据越多，最优 ΔW 越可能带上高秩分量，同一任务样本从两万增到两百万，所需 r 会变大；任务离预训练分布越远，需要的维度越高。
+此外，所需的秩取决于数据量。Biderman et al. 2024 在持续预训练里把数据从 0.25B 加到 20B token，同一层 ΔW 解释到九成方差所需的秩随数据量一起涨；任务离预训练分布越远，需要的维度越高。
 
 
 ## 参考
@@ -134,6 +134,7 @@ E(r) ≥ 0.9975（即 5% 相对误差，由式 4、式 5 反推）说明改动�
 - [Li et al., *Measuring the Intrinsic Dimension of Objective Landscapes*, 2018](https://arxiv.org/abs/1804.08838)
 - [Dettmers et al., *QLoRA: Efficient Finetuning of Quantized LLMs*, 2023](https://arxiv.org/abs/2305.14314)
 - [Kalajdzievski, *A Rank Stabilization Scaling Factor for Fine-Tuning with LoRA*, 2023](https://arxiv.org/abs/2312.03732)
+- [Zhang et al., *AdaLoRA: Adaptive Budget Allocation for Parameter-Efficient Fine-Tuning*, ICLR 2023](https://arxiv.org/abs/2303.10512)
 - [Paischer et al., *Parameter Efficient Fine-tuning via Explained Variance Adaptation*, 2024](https://arxiv.org/abs/2410.07170)
 - [Biderman et al., *LoRA Learns Less and Forgets Less*, 2024](https://arxiv.org/abs/2405.09673)
 - [Shuttleworth et al., *LoRA vs Full Fine-tuning: An Illusion of Equivalence*, 2024](https://arxiv.org/abs/2410.21228)

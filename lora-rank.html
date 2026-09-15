@@ -42,7 +42,7 @@
       <h1>给定基础权重，LoRA 的 r 怎么定</h1>
       <h2>秩与奇异值谱</h2>
       <p>一个 \(d\times k\) 的矩阵有 \(\min(d,k)\) 个奇异值。秩等于非零奇异值的个数，只回答有几个非零方向的问题。</p>
-      <p>以 \(d=k=5120\) 的层为例，\(\Delta W\) 有 5120 个奇异值。全参微调之后通常是满秩的：5120 个奇异值全部非零，只是大多数极小。所以在这个尺度上问秩是多少得不到任何信息，有信息的是衰减速度。</p>
+      <p>以 \(d=k=5120\) 的层为例，\(\Delta W\) 有 5120 个奇异值。全参微调之后通常是满秩的：5120 个奇异值全部非零，只是大多数极小。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 在代码、数学任务上测到的 \(\Delta W\) 谱就是这种样子，衰减很慢。所以在这个尺度上问秩是多少得不到任何信息，有信息的是衰减速度。</p>
       <div class="formula-block" id="zh-eq1"><span class="formula-label">式 1</span>\[\begin{aligned}&\Delta W=W_{\mathrm{ft}}-W_0=U\Sigma V^{\top},\\ &\Sigma=\operatorname{diag}(\sigma_1,\dots,\sigma_{\min(d,k)}),\\ &\sigma_1\ge\sigma_2\ge\cdots\ge\sigma_{\min(d,k)}\ge 0,\\ &\operatorname{rank}(\Delta W)=\bigl|\{\,i:\sigma_i>0\,\}\bigr|.\end{aligned}\]</div>
       <p>这里 \(U\) 和 \(V\) 的列分别是左右奇异向量，\(\sigma_i\) 是奇异值。秩只看 \(\sigma_i\) 是否为零，这正是它在微调场景里失效的原因。</p>
 
@@ -62,10 +62,10 @@
 
       <h2>有全参 ckpt 时的直接测量</h2>
       <p>逐层算 \(\Delta W=W_{\mathrm{ft}}-W_0\)，做 SVD，得到奇异值谱 \(\sigma_1\ge\dots\ge\sigma_{\min(d,k)}\ge 0\)，画 \(E(r)\) 整条曲线，不要只看一个 r 点。</p>
-      <p>这个谱回答是「LoRA 能不能用」。根据 <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 在代码、数学任务上的测量，4096×4096 的 \(W_q\) 要 1500 以上的秩才解释 \(\Delta W\) 90% 的方差，比常用 LoRA 秩大一两个数量级；同一批实验里，他们给出的实用建议是按显存约束挑 r，16 配全部模块是个好起点。<a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a> 测到的全参更新有效秩也在 400 以上。所以谱衰减慢不是「r 该取大」的信号，而是这个任务上 LoRA 追不上全参。</p>
-      <p>\(E(r)\) 数的是能量，不是重要性——谱上大的方向对任务可以并不重要，真实的 loss 增量由曲率决定，二阶近似下是 \(\tfrac12\sum_{i>r}h_i\sigma_i^2\)。所以拿 \(E(r)\) 反推 r 得不到能用的数；这个谱的用处是判断该不该上 LoRA，不是给 r 定值。</p>
+      <p>这个谱用于判断要不要LoRA。根据 <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 在代码、数学任务上的测量，4096×4096 的 \(W_q\) 要 1500 以上的秩才解释 \(\Delta W\) 90% 的方差，比常用 LoRA 秩大一两个数量级；同一批实验里，他们给出的实用建议是按显存约束挑 r，16 配全部模块是个好起点。<a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a> 测到的全参更新有效秩也在 400 以上。所以谱衰减慢不是「r 该取大」的信号，而是这个任务上 LoRA 追不上全参。</p>
+      <p>\(E(r)\) 数的是能量——谱上大的方向对任务可以并不重要，真实的 loss 增量由曲率决定，二阶近似下是 \(\tfrac12\sum_{i>r}h_i\sigma_i^2\)，\(h_i\) 是 loss 在方向 i 上的曲率。所以拿 \(E(r)\) 反推 r 得不到🉑用的数。这个谱的用处是判断该不该上 LoRA。</p>
 
-<p>要一个数字，就把内在维度那个判据搬到 LoRA 上：冻结随机初始化的 A、只训 B，拿全参的指标当 \(R_{\mathrm{full}}\)，取最小的 r 使 held-out 达到 0.9 \(R_{\mathrm{full}}\)（判据同<a class="eq-ref" href="#zh-eq6">式 6</a>）。只训 B，每个点的成本比训完整 LoRA 低，而随机 A 和训过的 A 差不多（<a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>；<a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA，Hao et al. 2024</a>）。</p>
+<p>把内在维度那个判据搬到 LoRA 上：冻结随机初始化的 A、只训 B，拿全参的指标当 \(R_{\mathrm{full}}\)，取最小的 r 使 held-out 达到 0.9 \(R_{\mathrm{full}}\)（判据同<a class="eq-ref" href="#zh-eq6">式 6</a>）。只训 B，每个点的成本比训完整 LoRA 低，而随机 A 和训过的 A 差不多（<a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>；<a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA，Hao et al. 2024</a>）。</p>
       <p>\(E(r)\) 高只说明全参解可以被低秩逼近，不说明 LoRA 找得到它：根据 <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a>，低秩下 LoRA 学出的更新与全参谱不同，会出现与预训练谱近似正交的新方向，有效秩不到全参的一半。所以最后仍要在 held-out 上确认——取两三个点，不是挨个试；逐层分别定，不要只看全模型平均。</p>
 
       <h2>内在维度与早期谱代理</h2>
@@ -79,16 +79,16 @@
       <p class="note">跑这几百步比起跑完，代价🉑以忽略；但拿到的谱只能当粗估。</p>
 
       <h2>模块选择、α 缩放与逐层 r</h2>
-      <p>同等参数量下，“全部线性层配小 r”通常优于“只用 q、v 配大 r”，优先覆盖 q、k、v、o 与 FFN。参数量相同不代表表达能力相同：前者可选的更新方向更多，只是每个方向更窄。</p>
+      <p>模块选择。QLoRA（<a href="https://arxiv.org/abs/2305.14314" target="_blank" rel="noreferrer">Dettmers et al. 2023</a>）消融出来的结论是把 adapter 加到全部线性层（含 FFN），只配 q、v 会明显掉质量——覆盖面比秩更关键。所以同等参数量下，“全部线性层配小 r”优于“只用 q、v 配大 r”：参数量相同不代表表达能力相同，前者可选的更新方向更多，只是每个方向更窄。</p>
       <p>α 的缩放。真正生效的是 \(\alpha/r\)，见<a class="eq-ref" href="#zh-eq8">式 8</a>。</p>
       <div class="formula-block" id="zh-eq8"><span class="formula-label">式 8</span>\[s=\frac{\alpha}{r},\qquad \Delta W=s\,BA.\]</div>
-      <p>常取 \(\alpha=2r\)，使有效尺度 \(s\) 恒为 2。改 r 必须同步改 α，否则等于偷偷改了学习率——把 r 从 \(r_1\) 换到 \(r_2\) 而 α 不变，更新整体乘上 \(r_1/r_2\)。若 r 很大，\(\alpha/r\) 会偏小，可考虑 \(\alpha/\sqrt{r}\) 一类的稳定化缩放。</p>
+      <p><a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noreferrer">Hu et al. 2021</a> 用的是 \(\alpha/r\) 这个缩放，常取 \(\alpha=2r\)，使有效尺度 \(s\) 恒为 2。改 r 必须同步改 α，否则等于偷偷改了学习率——把 r 从 \(r_1\) 换到 \(r_2\) 而 α 不变，更新整体乘上 \(r_1/r_2\)。r 很大时 \(\alpha/r\) 会偏小：<a href="https://arxiv.org/abs/2312.03732" target="_blank" rel="noreferrer">Kalajdzievski 2023</a> 把缩放换成 \(\alpha/\sqrt{r}\)；<a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a> 测到固定 α 配高秩会引入更多与预训练谱正交的新方向，换成 \(\alpha/\sqrt{r}\) 后高秩 LoRA 才更像全参。</p>
       <p>逐层 r。\(E(r)\) 要按层分别算。根据 <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a>，首尾层的秩偏低、中间层偏高，MLP 比 attention 高；不过手调的逐层配置收益往往不抵复杂度——按解释方差在预算内自动分配（<a href="https://arxiv.org/abs/2410.07170" target="_blank" rel="noreferrer">EVA</a>）是同预算下权衡更好的一条路。</p>
 
       <h2>训后参与比校验</h2>
       <p>对训好的 \(BA\) 做 SVD，算参与比，见<a class="eq-ref" href="#zh-eq9">式 9</a>。</p>
       <div class="formula-block" id="zh-eq9"><span class="formula-label">式 9</span>\[\mathrm{PR}=\frac{\bigl(\sum_{i=1}^{r}\sigma_i\bigr)^2}{\sum_{i=1}^{r}\sigma_i^2}\in[1,r].\]</div>
-      <p>奇异值分布均匀时它约等于 r，集中在单一方向时趋近 1。参与比远小于 r，说明 r 给多了可以缩；奇异值尾部仍然很大，说明 r 卡住了该加。这一步能把冗余直接换成推理上的节省：权重合并进 \(W\) 后推理没有额外成本，但在多套 adapter 并存、不合并权重时，开销与 r 成正比。</p>
+      <p>奇异值分布均匀时它约等于 r，集中在单一方向时趋近 1。训完还能砍秩这件事有先例：<a href="https://arxiv.org/abs/2303.10512" target="_blank" rel="noreferrer">AdaLoRA（Zhang et al. 2023）</a>在训练中按重要度给各层分配并裁剪秩，低预算下优于固定秩。所以参与比远小于 r 就可以缩，奇异值尾部仍然很大就该加。这一步能把冗余直接换成推理上的节省：权重合并进 \(W\) 后推理没有额外成本，但在多套 adapter 并存、不合并权重时，开销与 r 成正比。</p>
 
       <h2>最后，怎么定 r</h2>
       <p>先算上界。适配器的参数量是 r·Σ_l(d_l + k_l)；覆盖全部线性层时，你能接受的参数量一确定，r 的上界就出来了。Llama-3-8B 那个规模（32 层、隐藏 4096、FFN 14336、7 个线性层）Σ(d+k) 约 2.8M，r = 16 对应约 45M 参数、全参的 0.5% 上下。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 说的“按显存约束挑 r”就是这个意思——在这个范围里，r 是成本旋钮，不是精度旋钮，16 配全部模块就是他们试过的配置里给的推荐。</p>
@@ -99,7 +99,7 @@
 
       <h2>边界</h2>
       <p>\(E(r)\ge 0.9975\)（即 5% 相对误差，由<a class="eq-ref" href="#zh-eq4">式 4</a>、<a class="eq-ref" href="#zh-eq5">式 5</a> 反推）说明改动方向被低秩捕获。<a class="eq-ref" href="#zh-eq4">式 4</a> 逼近的是 \(\Delta W\) 的 Frobenius 误差，训练优化的是 loss，两者只有在 loss 对 \(\Delta W\) 各方向的敏感度相同时才一致。所以这是与全参差距小的必要条件代理，而非充分条件：截断 SVD 是最优近似，不代表训练找得到它，loss 相当也不代表解相同。最终仍要靠 held-out 验证。</p>
-      <p>此外，所需的秩取决于数据量。数据越多，最优 \(\Delta W\) 越可能带上高秩分量，同一任务样本从两万增到两百万，所需 r 会变大；任务离预训练分布越远，需要的维度越高。</p>
+      <p>此外，所需的秩取决于数据量。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 在持续预训练里把数据从 0.25B 加到 20B token，同一层 \(\Delta W\) 解释到九成方差所需的秩随数据量一起涨；任务离预训练分布越远，需要的维度越高。</p>
 
       <h2>参考</h2>
       <ul class="paper-list">
@@ -109,6 +109,7 @@
         <li><a href="https://arxiv.org/abs/1804.08838" target="_blank" rel="noreferrer">Li et al., <em>Measuring the Intrinsic Dimension of Objective Landscapes</em>, 2018</a></li>
         <li><a href="https://arxiv.org/abs/2305.14314" target="_blank" rel="noreferrer">Dettmers et al., <em>QLoRA: Efficient Finetuning of Quantized LLMs</em>, 2023</a></li>
         <li><a href="https://arxiv.org/abs/2312.03732" target="_blank" rel="noreferrer">Kalajdzievski, <em>A Rank Stabilization Scaling Factor for Fine-Tuning with LoRA</em>, 2023</a></li>
+        <li><a href="https://arxiv.org/abs/2303.10512" target="_blank" rel="noreferrer">Zhang et al., <em>AdaLoRA: Adaptive Budget Allocation for Parameter-Efficient Fine-Tuning</em>, ICLR 2023</a></li>
         <li><a href="https://arxiv.org/abs/2410.07170" target="_blank" rel="noreferrer">Paischer et al., <em>Parameter Efficient Fine-tuning via Explained Variance Adaptation</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al., <em>LoRA Learns Less and Forgets Less</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al., <em>LoRA vs Full Fine-tuning: An Illusion of Equivalence</em>, 2024</a></li>
@@ -125,7 +126,7 @@
       <h1>How to Choose LoRA's Rank r Given a Base Checkpoint</h1>
       <h2>Rank and the singular-value spectrum</h2>
       <p>A \(d\times k\) matrix has \(\min(d,k)\) singular values. The rank equals the number of nonzero singular values, and it answers exactly one question: how many nonzero directions are there.</p>
-      <p>Take a layer with \(d=k=5120\). Then \(\Delta W\) has 5120 singular values. After full fine-tuning it is usually full rank: all 5120 are nonzero, but most of them are tiny. Asking "what is the rank" at this scale carries no information. The decay rate does.</p>
+      <p>Take a layer with \(d=k=5120\). Then \(\Delta W\) has 5120 singular values. After full fine-tuning it is usually full rank: all 5120 are nonzero, but most of them are tiny. <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> measure exactly this slow decay in \(\Delta W\) spectra on code and math tasks. Asking "what is the rank" at this scale carries no information. The decay rate does.</p>
       <div class="formula-block" id="en-eq1"><span class="formula-label">Equation 1</span>\[\begin{aligned}&\Delta W=W_{\mathrm{ft}}-W_0=U\Sigma V^{\top},\\ &\Sigma=\operatorname{diag}(\sigma_1,\dots,\sigma_{\min(d,k)}),\\ &\sigma_1\ge\sigma_2\ge\cdots\ge\sigma_{\min(d,k)}\ge 0,\\ &\operatorname{rank}(\Delta W)=\bigl|\{\,i:\sigma_i>0\,\}\bigr|.\end{aligned}\]</div>
       <p>Here the columns of \(U\) and \(V\) are the left and right singular vectors, and \(\sigma_i\) are the singular values. Rank only looks at whether each \(\sigma_i\) is zero. That is precisely why it fails as a tool in this setting.</p>
 
@@ -145,10 +146,10 @@
 
       <h2>Measuring directly with a full checkpoint</h2>
       <p>Compute \(\Delta W=W_{\mathrm{ft}}-W_0\) layer by layer, take the SVD to get \(\sigma_1\ge\dots\ge\sigma_{\min(d,k)}\ge 0\), and plot the whole \(E(r)\) curve rather than a single rank.</p>
-      <p>What this spectrum answers is &ldquo;can LoRA do this at all&rdquo;. Per <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a>, measured on code and math tasks, a \(4096\times4096\) \(W_q\) needs a rank above 1500 to explain 90% of the variance in \(\Delta W\), one to two orders of magnitude above typical LoRA ranks; on the same setup their practical recommendation is to size r against memory, with 16 across all modules a good starting point. <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a> measure effective ranks above 400 for full fine-tuning updates. So a slowly decaying spectrum is not a signal to raise r — it means LoRA trails full fine-tuning on this task.</p>
-      <p>\(E(r)\) counts energy, not importance — a direction that is large in the spectrum can matter little for the task, and the real change in loss is set by curvature, \(\tfrac12\sum_{i>r}h_i\sigma_i^2\) to second order. So inverting \(E(r)\) does not give a usable rank; the spectrum is for deciding whether to use LoRA, not for sizing it.</p>
+      <p>This spectrum is for deciding whether to use LoRA. Per <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a>, measured on code and math tasks, a \(4096\times4096\) \(W_q\) needs a rank above 1500 to explain 90% of the variance in \(\Delta W\), one to two orders of magnitude above typical LoRA ranks; on the same setup their practical recommendation is to size r against memory, with 16 across all modules a good starting point. <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a> measure effective ranks above 400 for full fine-tuning updates. So a slowly decaying spectrum is not a signal to raise r — it means LoRA trails full fine-tuning on this task.</p>
+      <p>\(E(r)\) counts energy — a direction that is large in the spectrum can matter little for the task, and the real change in loss is set by curvature, \(\tfrac12\sum_{i>r}h_i\sigma_i^2\) to second order, where \(h_i\) is the curvature of the loss along direction i. So inverting \(E(r)\) does not give a usable rank. The spectrum is for deciding whether to use LoRA.</p>
 
-<p>For a number, transplant the intrinsic-dimension criterion onto LoRA: freeze a randomly initialized A, train only B, take the full fine-tuning metric as \(R_{\mathrm{full}}\), and pick the smallest r whose held-out score reaches 0.9 \(R_{\mathrm{full}}\) (same criterion as <a class="eq-ref" href="#en-eq6">Equation 6</a>). Only B is trained, so each point costs less than a full LoRA run, and a random A performs nearly as well as a trained one (<a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>; <a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA, Hao et al. 2024</a>).</p>
+<p>Transplant the intrinsic-dimension criterion onto LoRA: freeze a randomly initialized A, train only B, take the full fine-tuning metric as \(R_{\mathrm{full}}\), and pick the smallest r whose held-out score reaches 0.9 \(R_{\mathrm{full}}\) (same criterion as <a class="eq-ref" href="#en-eq6">Equation 6</a>). Only B is trained, so each point costs less than a full LoRA run, and a random A performs nearly as well as a trained one (<a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>; <a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA, Hao et al. 2024</a>).</p>
       <p>A high \(E(r)\) only says the full-fine-tuning solution can be approximated at low rank, not that LoRA finds it: per <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a>, at low rank LoRA learns an update whose spectrum differs from full fine-tuning, with new directions nearly orthogonal to the pretrained spectrum and an effective rank under half of full fine-tuning's. So still confirm on held-out data — two or three rank values, not a sweep — per layer rather than as a model-wide average.</p>
 
       <h2>Intrinsic dimension and the early spectral proxy</h2>
@@ -162,16 +163,16 @@
       <p class="note">A few hundred steps are negligible next to a full run, but the spectrum they give you is only a rough estimate.</p>
 
       <h2>Target modules, α scaling, and per-layer rank</h2>
-      <p>At equal parameter budget, "all linear layers with a small r" usually beats "q and v only with a large r". Cover q, k, v, o and the FFN layers first. Equal parameter count is not equal expressive capacity: the broader configuration has more directions available, each a narrower one.</p>
+      <p>Target modules. The ablation result from QLoRA (<a href="https://arxiv.org/abs/2305.14314" target="_blank" rel="noreferrer">Dettmers et al. 2023</a>) is to put adapters on all linear layers including the FFN — q and v alone lose noticeable quality. Coverage matters more than rank. So at equal parameter budget, "all linear layers with a small r" beats "q and v only with a large r": equal parameter count is not equal expressive capacity, the broader configuration has more directions available, each a narrower one.</p>
       <p>The α scaling. What actually takes effect is \(\alpha/r\):</p>
       <div class="formula-block" id="en-eq8"><span class="formula-label">Equation 8</span>\[s=\frac{\alpha}{r},\qquad \Delta W=s\,BA.\]</div>
-      <p>The common choice \(\alpha=2r\) holds the effective scale \(s\) at 2. If you change r you must change α with it, or you have quietly changed the learning rate: moving from \(r_1\) to \(r_2\) with α fixed multiplies the whole update by \(r_1/r_2\). For very large r, \(\alpha/r\) becomes small, and a stabilization such as \(\alpha/\sqrt{r}\) is worth considering.</p>
+      <p><a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noreferrer">Hu et al. 2021</a> use the \(\alpha/r\) scaling; the common choice \(\alpha=2r\) holds the effective scale \(s\) at 2. If you change r you must change α with it, or you have quietly changed the learning rate: moving from \(r_1\) to \(r_2\) with α fixed multiplies the whole update by \(r_1/r_2\). For very large r, \(\alpha/r\) becomes small: <a href="https://arxiv.org/abs/2312.03732" target="_blank" rel="noreferrer">Kalajdzievski 2023</a> replaces the scaling with \(\alpha/\sqrt{r}\), and <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a> measure that a fixed α at high rank introduces more directions orthogonal to the pretrained spectrum — with \(\alpha/\sqrt{r}\), high-rank LoRA resembles full fine-tuning much more closely.</p>
       <p>Per-layer rank. Read \(E(r)\) for each layer separately. Per <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a>, first and last layers rank lower and middle layers higher, and MLP modules rank above attention; but hand-tuned per-layer configuration rarely repays its complexity — allocating the budget automatically by explained variance (<a href="https://arxiv.org/abs/2410.07170" target="_blank" rel="noreferrer">EVA</a>) is a better trade-off at the same budget.</p>
 
       <h2>Checking the trained adapter</h2>
       <p>Take the SVD of the trained \(BA\) and compute the participation ratio:</p>
       <div class="formula-block" id="en-eq9"><span class="formula-label">Equation 9</span>\[\mathrm{PR}=\frac{\bigl(\sum_{i=1}^{r}\sigma_i\bigr)^2}{\sum_{i=1}^{r}\sigma_i^2}\in[1,r].\]</div>
-      <p>It is approximately r when the singular values are spread evenly, and approaches 1 when they concentrate in a single direction. A participation ratio well below r means r was set too high and can be reduced; a heavy tail means r is binding and should be raised. This step turns redundancy directly into inference savings: merging the adapter into \(W\) removes inference cost entirely, but when several adapters must be served unmerged, cost scales with r.</p>
+      <p>It is approximately r when the singular values are spread evenly, and approaches 1 when they concentrate in a single direction. There is precedent for cutting rank after training: <a href="https://arxiv.org/abs/2303.10512" target="_blank" rel="noreferrer">AdaLoRA (Zhang et al. 2023)</a> allocates and prunes rank across layers by importance during training, and beats a fixed rank at low budget. So a participation ratio well below r means r can be reduced, and a heavy tail means r is binding and should be raised. This step turns redundancy directly into inference savings: merging the adapter into \(W\) removes inference cost entirely, but when several adapters must be served unmerged, cost scales with r.</p>
 
       <h2>Finally, how to pick r</h2>
       <p>Start with the upper bound. The adapter holds r&middot;&Sigma;<sub>l</sub>(d<sub>l</sub>+k<sub>l</sub>) parameters; with every linear layer covered, the parameter count you are willing to pay fixes an upper bound on r. At Llama-3-8B scale (32 layers, hidden 4096, FFN 14336, seven linear layers) &Sigma;(d+k) is about 2.8M, so r = 16 means roughly 45M parameters, around 0.5% of the full model. That is what <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> mean by sizing r against memory &mdash; within this range r is a cost knob, not an accuracy knob, and 16 across all modules is the recommendation from the configurations they tested.</p>
@@ -182,7 +183,7 @@
 
       <h2>Limits</h2>
       <p>\(E(r)\ge 0.9975\) — a 5% relative error, inverted from <a class="eq-ref" href="#en-eq4">Equation 4</a> and <a class="eq-ref" href="#en-eq5">Equation 5</a> — says that the update is captured by a low-rank subspace. <a class="eq-ref" href="#en-eq4">Equation 4</a> approximates the Frobenius error of \(\Delta W\), while training minimizes a loss; the two agree only if the loss is equally sensitive to every direction of \(\Delta W\). So this is a necessary-condition proxy for being close to full fine-tuning, not a sufficient one: the truncated SVD is the optimal approximation, but that does not mean training finds it, and comparable loss does not mean the same solution. Held-out validation still decides.</p>
-      <p>The required rank also depends on data volume. More data makes high-rank components of the optimal \(\Delta W\) more likely: for the same task, going from twenty thousand samples to two million raises the r you need. Tasks further from the pretraining distribution need more dimensions as well.</p>
+      <p>The required rank also depends on data volume. In continued pretraining from 0.25B to 20B tokens, <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> find that the rank needed to explain 90% of the variance in a given layer's \(\Delta W\) rises with the data. Tasks further from the pretraining distribution need more dimensions as well.</p>
 
       <h2>References</h2>
       <ul class="paper-list">
@@ -192,6 +193,7 @@
         <li><a href="https://arxiv.org/abs/1804.08838" target="_blank" rel="noreferrer">Li et al., <em>Measuring the Intrinsic Dimension of Objective Landscapes</em>, 2018</a></li>
         <li><a href="https://arxiv.org/abs/2305.14314" target="_blank" rel="noreferrer">Dettmers et al., <em>QLoRA: Efficient Finetuning of Quantized LLMs</em>, 2023</a></li>
         <li><a href="https://arxiv.org/abs/2312.03732" target="_blank" rel="noreferrer">Kalajdzievski, <em>A Rank Stabilization Scaling Factor for Fine-Tuning with LoRA</em>, 2023</a></li>
+        <li><a href="https://arxiv.org/abs/2303.10512" target="_blank" rel="noreferrer">Zhang et al., <em>AdaLoRA: Adaptive Budget Allocation for Parameter-Efficient Fine-Tuning</em>, ICLR 2023</a></li>
         <li><a href="https://arxiv.org/abs/2410.07170" target="_blank" rel="noreferrer">Paischer et al., <em>Parameter Efficient Fine-tuning via Explained Variance Adaptation</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al., <em>LoRA Learns Less and Forgets Less</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al., <em>LoRA vs Full Fine-tuning: An Illusion of Equivalence</em>, 2024</a></li>
