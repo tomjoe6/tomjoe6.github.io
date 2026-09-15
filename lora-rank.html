@@ -40,7 +40,7 @@
       <a class="back-link" href="blog.html">← 返回博客</a>
       <div class="article-meta">2026-09-14 · 机器学习 · 参数高效微调</div>
       <h1>LoRA 的 r 怎么定</h1>
-      <p>应该是没有准确公式可算</p>
+      <p>没有准确公式可算，只能估计范围</p>
       <h2>秩与奇异值谱</h2>
       <p>一个 \(d\times k\) 的矩阵有 \(\min(d,k)\) 个奇异值。秩等于非零奇异值的个数，回答有几个非零方向。</p>
       <p>以 \(d=k=5120\) 的层为例，\(\Delta W\) 有 5120 个奇异值。全参微调之后通常是满秩的：5120 个奇异值全部非零，只是大多数极小。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 在代码、数学任务上测到的 \(\Delta W\) 谱就是这种样子，衰减很慢。所以在这个尺度上问秩是多少得不到任何信息，有信息的是衰减速度。</p>
@@ -91,7 +91,9 @@
       <p>奇异值分布均匀时它约等于 r，集中在单一方向时趋近 1。训完还能砍秩这件事有先例：<a href="https://arxiv.org/abs/2303.10512" target="_blank" rel="noreferrer">AdaLoRA（Zhang et al. 2023）</a>在训练中按重要度给各层分配并裁剪秩，低预算下优于固定秩。所以参与比远小于 r 就可以缩，奇异值尾部仍然很大就该加。这一步能把冗余直接换成推理上的节省：权重合并进 \(W\) 后推理没有额外成本，但在多套 adapter 并存、不合并权重时，开销与 r 成正比。</p>
 
       <h2>最后，怎么定 r</h2>
-      <p>先算 r 的上界。适配器的参数量是 r·Σ_l(d_l + k_l)，反过来就是 r ≤ 预算 / Σ_l(d_l + k_l)，一个除法。Llama-3-8B 的规模（32 层、隐藏 4096、FFN 14336、7 个线性层）Σ(d+k) 约 2.8M：预算给到全参的 0.5%（约 45M 参数），除下来 r ≈ 16。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 说的“按显存约束挑 r”就是这个意思——在这个范围里，r 是成本调节，16 配全部模块就是他们试过的配置里给的推荐。</p>
+      <p>到头来还是看硬件资源</p>
+
+      <p>先算 r 的成本上界。适配器的参数量是 r·Σ_l(d_l + k_l)，反过来就是 r ≤ 预算 / Σ_l(d_l + k_l)。Llama-3-8B 的规模（32 层、隐藏 4096、FFN 14336、7 个线性层）Σ(d+k) 约 2.8M：预算给到全参的 0.5%（约 45M 参数），除下来 r ≈ 16。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 说的“按显存约束挑 r”就是这个意思——在这个范围里，r 是成本调节，16 配全部模块就是他们试过的配置里给的推荐。</p>
 
       <p>r 的下界没有式子，只能按任务给量级：数据越多、离预训练分布越远，需要的秩越高。所以默认全模块、r = 16，α 同步取 2r。要更准，就在这个范围里把 r 定在 held-out 达到全参九成的那一点（<a class="eq-ref" href="#zh-eq6">式 6</a>）：有全参 ckpt 就冻结随机 A、只训 B；没有就把更新限制在随机 d 维子空间里扫。早期谱代理能先给个量级，但只是粗估。</p>
 
@@ -118,7 +120,7 @@
       <a class="back-link" href="blog.html">← Back to Blog</a>
       <div class="article-meta">2026-09-14 · Machine Learning · Parameter-Efficient Fine-Tuning</div>
       <h1>How to Choose LoRA's Rank r</h1>
-      <p>There is probably no exact formula.</p>
+      <p>There is no exact formula, only a range to estimate.</p>
       <h2>Rank and the singular-value spectrum</h2>
       <p>A \(d\times k\) matrix has \(\min(d,k)\) singular values. The rank equals the number of nonzero singular values, and it answers how many nonzero directions there are.</p>
       <p>Take a layer with \(d=k=5120\). Then \(\Delta W\) has 5120 singular values. After full fine-tuning it is usually full rank: all 5120 are nonzero, but most of them are tiny. <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> measure exactly this slow decay in \(\Delta W\) spectra on code and math tasks. Asking "what is the rank" at this scale carries no information. The decay rate does.</p>
@@ -169,7 +171,9 @@
       <p>It is approximately r when the singular values are spread evenly, and approaches 1 when they concentrate in a single direction. There is precedent for cutting rank after training: <a href="https://arxiv.org/abs/2303.10512" target="_blank" rel="noreferrer">AdaLoRA (Zhang et al. 2023)</a> allocates and prunes rank across layers by importance during training, and beats a fixed rank at low budget. So a participation ratio well below r means r can be reduced, and a heavy tail means r is binding and should be raised. This step turns redundancy directly into inference savings: merging the adapter into \(W\) removes inference cost entirely, but when several adapters must be served unmerged, cost scales with r.</p>
 
       <h2>Finally, how to pick r</h2>
-      <p>Start with the upper bound on r. The adapter holds r&middot;&Sigma;<sub>l</sub>(d<sub>l</sub>+k<sub>l</sub>) parameters, so r &le; budget / &Sigma;<sub>l</sub>(d<sub>l</sub>+k<sub>l</sub>) &mdash; one division. At Llama-3-8B scale (32 layers, hidden 4096, FFN 14336, seven linear layers) &Sigma;(d+k) is about 2.8M: give the adapter 0.5% of the full model (about 45M parameters) and r comes out at 16. That is what <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> mean by sizing r against memory &mdash; within this range r is a cost parameter, and 16 across all modules is the recommendation from the configurations they tested.</p>
+      <p>In the end it comes down to hardware.</p>
+
+      <p>Start with the cost upper bound on r. The adapter holds r&middot;&Sigma;<sub>l</sub>(d<sub>l</sub>+k<sub>l</sub>) parameters, so r &le; budget / &Sigma;<sub>l</sub>(d<sub>l</sub>+k<sub>l</sub>). At Llama-3-8B scale (32 layers, hidden 4096, FFN 14336, seven linear layers) &Sigma;(d+k) is about 2.8M: give the adapter 0.5% of the full model (about 45M parameters) and r comes out at 16. That is what <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> mean by sizing r against memory &mdash; within this range r is a cost parameter, and 16 across all modules is the recommendation from the configurations they tested.</p>
 
       <p>The lower bound on r has no formula; only the task gives an order of magnitude &mdash; more data and a task further from pretraining both push the needed rank up. So start at r = 16 across all modules, with &alpha; = 2r. For more precision, set r inside that range at the point where held-out reaches 90% of full fine-tuning (<a class="eq-ref" href="#en-eq6">Equation 6</a>): with a full checkpoint, freeze a random A and train only B; without one, train inside a random d-dimensional subspace instead. The early-spectrum proxy gives an order of magnitude up front, but only a rough one.</p>
 
