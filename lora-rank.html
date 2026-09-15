@@ -70,11 +70,10 @@
       <p>\(E(r)\) 高只说明全参解可以被低秩逼近：根据 <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a>，低秩下 LoRA 学出的更新与全参谱不同，会出现与预训练谱近似正交的新方向，有效秩不到全参的一半。所以最后仍要在 held-out 上确认——取两三个点，不是挨个试；逐层分别定，不要只看全模型平均。</p>
 
       <h2>内在维度与早期谱代理</h2>
-      <p>无全参 ckpt 时</p>
-      <p>一种是内在维度法。把更新限制在一个随机 d 维子空间里训至收敛，画 loss–d 曲线找拐点，见<a class="eq-ref" href="#zh-eq6">式 6</a>。</p>
+      <p>内在维度法。把更新限制在一个随机 d 维子空间里训至收敛，画 loss–d 曲线找拐点，见<a class="eq-ref" href="#zh-eq6">式 6</a>。</p>
       <div class="formula-block" id="zh-eq6"><span class="formula-label">式 6</span>\[\theta=\theta_0+P\theta',\qquad P\in\mathbb{R}^{D\times d},\quad d\ll D,\qquad d^{*}=\min\bigl\{\,d:\ R(d)\ge 0.9\,R_{\mathrm{full}}\,\bigr\},\]</div>
       <p>其中 \(R\) 是验证集指标，\(R_{\mathrm{full}}\) 是全参微调的结果。对应到 LoRA，有一个简单得多的做法：固定随机初始化的 \(A\)、只训 \(B\)。\(\Delta W=BA\) 的行空间被限制在 \(A\) 的 r 维行空间内，可训练参数量 \(d\cdot r\)。根据 <a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>，只训 B 比只训 A 有效，随机不训练的 A 和训过的 A 差不多；<a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA（Hao et al. 2024）</a>把这个更新近似成对梯度做一次随机投影。成本中等。</p>
-      <p>另一种是早期谱代理。全参先跑 200 到 500 步，对累计更新做 SVD，见<a class="eq-ref" href="#zh-eq7">式 7</a>。</p>
+      <p>早期谱代理。全参先跑 200 到 500 步，对累计更新做 SVD，见<a class="eq-ref" href="#zh-eq7">式 7</a>。</p>
       <div class="formula-block" id="zh-eq7"><span class="formula-label">式 7</span>\[S_T=\sum_{t=1}^{T}\Delta W_t,\qquad \Delta W_t=W_t-W_{t-1},\]</div>
       <p>再对 \(S_T\) 套用<a class="eq-ref" href="#zh-eq5">式 5</a> 计算 \(E(r)\)。以 SGD 为例 \(\Delta W_t=-\eta_t g_t\)，用 Adam 一类优化器时换成对应的更新量即可。这条路的先例都是拿谱做初始化，不是拿它定 r——<a href="https://arxiv.org/abs/2308.06522" target="_blank" rel="noreferrer">SLoRA（Babakniya et al. 2023）</a>用一段全参后的 \(\Delta W\) 初始化 LoRA；<a href="https://arxiv.org/abs/2410.07170" target="_blank" rel="noreferrer">EVA（Paischer et al. 2024）</a>用激活的增量 SVD 初始化 A，并按解释方差把给定的秩预算分到各层（它的谱来自初始化时的激活，不是训了几百步的 \(\Delta W\)）。</p>
       <p class="note">跑这几百步比起跑完，代价🉑以忽略；但拿到的谱只能当粗估。</p>
@@ -149,11 +148,10 @@
       <p>A high \(E(r)\) only says the full-fine-tuning solution can be approximated at low rank: per<a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a>, at low rank LoRA learns an update whose spectrum differs from full fine-tuning, with new directions nearly orthogonal to the pretrained spectrum and an effective rank under half of full fine-tuning's. So still confirm on held-out data — two or three rank values, not a sweep — per layer rather than as a model-wide average.</p>
 
       <h2>Intrinsic dimension and the early spectral proxy</h2>
-      <p>Without a full checkpoint</p>
-      <p>The first is the intrinsic-dimension method. Restrict the update to a random d-dimensional subspace, train to convergence, and look for the knee of the loss–d curve:</p>
+      <p>The intrinsic-dimension method. Restrict the update to a random d-dimensional subspace, train to convergence, and look for the knee of the loss–d curve:</p>
       <div class="formula-block" id="en-eq6"><span class="formula-label">Equation 6</span>\[\theta=\theta_0+P\theta',\qquad P\in\mathbb{R}^{D\times d},\quad d\ll D,\qquad d^{*}=\min\bigl\{\,d:\ R(d)\ge 0.9\,R_{\mathrm{full}}\,\bigr\},\]</div>
       <p>where \(R\) is a validation metric and \(R_{\mathrm{full}}\) is the full fine-tuning result. Translated back to LoRA, it reduces to something much cheaper: freeze a randomly initialized \(A\) and train only \(B\). The row space of \(\Delta W=BA\) is confined to the \(r\)-dimensional row space of \(A\), with \(d\cdot r\) trainable parameters. Per <a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>, training B alone is more effective than training A alone, and a random untrained A performs nearly as well as a fine-tuned one; <a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA (Hao et al. 2024)</a> approximates this update as a random projection of the gradient. Moderate cost.</p>
-      <p>The second is the early spectral proxy. Run full fine-tuning for 200–500 steps and take the SVD of the accumulated update:</p>
+      <p>The early spectral proxy. Run full fine-tuning for 200–500 steps and take the SVD of the accumulated update:</p>
       <div class="formula-block" id="en-eq7"><span class="formula-label">Equation 7</span>\[S_T=\sum_{t=1}^{T}\Delta W_t,\qquad \Delta W_t=W_t-W_{t-1},\]</div>
       <p>then apply <a class="eq-ref" href="#en-eq5">Equation 5</a> to \(S_T\) to get \(E(r)\). Under SGD, \(\Delta W_t=-\eta_t g_t\); with Adam-style optimizers, substitute the corresponding update. The precedents for this route all use a spectrum for initialization rather than to set r —<a href="https://arxiv.org/abs/2308.06522" target="_blank" rel="noreferrer">SLoRA (Babakniya et al. 2023)</a> initializes LoRA from the SVD of a short full fine-tuning run; <a href="https://arxiv.org/abs/2410.07170" target="_blank" rel="noreferrer">EVA (Paischer et al. 2024)</a> initializes A from an incremental SVD of activations and uses the explained variance to split a given rank budget across layers (its spectrum comes from activations at initialization, not from a \(\Delta W\) measured a few hundred steps in).</p>
       <p class="note">A few hundred steps are negligible next to a full run, but the spectrum they give you is only a rough estimate.</p>
