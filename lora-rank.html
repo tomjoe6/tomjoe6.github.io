@@ -67,7 +67,7 @@
       <p>\(E(r)\) 数的是能量——谱上大的方向对任务可以并不重要，真实的 loss 增量由曲率决定，二阶近似下是 \(\tfrac12\sum_{i>r}h_i\sigma_i^2\)，\(h_i\) 是 loss 在方向 i 上的曲率。所以拿 \(E(r)\) 反推 r 得不到🉑用的数。这个谱的用处是判断该不该上 LoRA。</p>
 
 <p>把内在维度那个判据搬到 LoRA 上：冻结随机初始化的 A、只训 B，拿全参的指标当 \(R_{\mathrm{full}}\)，取最小的 r 使 held-out 达到 0.9 \(R_{\mathrm{full}}\)（判据同<a class="eq-ref" href="#zh-eq6">式 6</a>）。只训 B，每个点的成本比训完整 LoRA 低，而随机 A 和训过的 A 差不多（<a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>；<a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA，Hao et al. 2024</a>）。</p>
-      <p>\(E(r)\) 高只说明全参解可以被低秩逼近，不说明 LoRA 找得到它：根据 <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a>，低秩下 LoRA 学出的更新与全参谱不同，会出现与预训练谱近似正交的新方向，有效秩不到全参的一半。所以最后仍要在 held-out 上确认——取两三个点，不是挨个试；逐层分别定，不要只看全模型平均。</p>
+      <p>\(E(r)\) 高只说明全参解可以被低秩逼近：根据 <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a>，低秩下 LoRA 学出的更新与全参谱不同，会出现与预训练谱近似正交的新方向，有效秩不到全参的一半。所以最后仍要在 held-out 上确认——取两三个点，不是挨个试；逐层分别定，不要只看全模型平均。</p>
 
       <h2>内在维度与早期谱代理</h2>
       <p>无全参 ckpt 时</p>
@@ -92,15 +92,11 @@
       <p>奇异值分布均匀时它约等于 r，集中在单一方向时趋近 1。训完还能砍秩这件事有先例：<a href="https://arxiv.org/abs/2303.10512" target="_blank" rel="noreferrer">AdaLoRA（Zhang et al. 2023）</a>在训练中按重要度给各层分配并裁剪秩，低预算下优于固定秩。所以参与比远小于 r 就可以缩，奇异值尾部仍然很大就该加。这一步能把冗余直接换成推理上的节省：权重合并进 \(W\) 后推理没有额外成本，但在多套 adapter 并存、不合并权重时，开销与 r 成正比。</p>
 
       <h2>最后，怎么定 r</h2>
-      <p>先算上界。适配器的参数量是 r·Σ_l(d_l + k_l)，反过来就是 r ≤ 预算 / Σ_l(d_l + k_l)，一个除法。Llama-3-8B 的规模（32 层、隐藏 4096、FFN 14336、7 个线性层）Σ(d+k) 约 2.8M：预算给到全参的 0.5%（约 45M 参数），除下来 r ≈ 16。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 说的“按显存约束挑 r”就是这个意思——在这个范围里，r 是成本调节，16 配全部模块就是他们试过的配置里给的推荐。</p>
+      <p>先算 r 的上界。适配器的参数量是 r·Σ_l(d_l + k_l)，反过来就是 r ≤ 预算 / Σ_l(d_l + k_l)，一个除法。Llama-3-8B 的规模（32 层、隐藏 4096、FFN 14336、7 个线性层）Σ(d+k) 约 2.8M：预算给到全参的 0.5%（约 45M 参数），除下来 r ≈ 16。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 说的“按显存约束挑 r”就是这个意思——在这个范围里，r 是成本调节，16 配全部模块就是他们试过的配置里给的推荐。</p>
 
-      <p>下界没有式子，只能按任务给量级：数据越多、离预训练分布越远，需要的秩越高（见边界）。所以默认全模块、r = 16，α 同步取 2r。要更准，就在这个范围里把 r 定在 held-out 达到全参九成的那一点（<a class="eq-ref" href="#zh-eq6">式 6</a>）：有全参 ckpt 就冻结随机 A、只训 B；没有就把更新限制在随机 d 维子空间里扫。早期谱代理能先给个量级，但只是粗估。</p>
+      <p>r 的下界没有式子，只能按任务给量级：数据越多、离预训练分布越远，需要的秩越高。所以默认全模块、r = 16，α 同步取 2r。要更准，就在这个范围里把 r 定在 held-out 达到全参九成的那一点（<a class="eq-ref" href="#zh-eq6">式 6</a>）：有全参 ckpt 就冻结随机 A、只训 B；没有就把更新限制在随机 d 维子空间里扫。早期谱代理能先给个量级，但只是粗估。</p>
 
       <p>训完用参与比收尾：远小于 r 就缩，奇异值尾部还大就加。手调的逐层配置通常不抵复杂度。所有数字最后都在 held-out 上过一遍——两三个点。</p>
-
-      <h2>边界</h2>
-      <p>\(E(r)\ge 0.9975\)（即 5% 相对误差，由<a class="eq-ref" href="#zh-eq4">式 4</a>、<a class="eq-ref" href="#zh-eq5">式 5</a> 反推）说明改动方向被低秩捕获。<a class="eq-ref" href="#zh-eq4">式 4</a> 逼近的是 \(\Delta W\) 的 Frobenius 误差，训练优化的是 loss，两者只有在 loss 对 \(\Delta W\) 各方向的敏感度相同时才一致。所以这是与全参差距小的必要条件代理，而非充分条件：截断 SVD 是最优近似，不代表训练找得到它，loss 相当也不代表解相同。最终仍要靠 held-out 验证。</p>
-      <p>此外，所需的秩取决于数据量。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 在持续预训练里把数据从 0.25B 加到 20B token，同一层 \(\Delta W\) 解释到九成方差所需的秩随数据量涨；任务离预训练分布越远，需要的维度越高。</p>
 
       <h2>参考</h2>
       <ul class="paper-list">
@@ -150,7 +146,7 @@
       <p>\(E(r)\) counts energy — a direction that is large in the spectrum can matter little for the task, and the real change in loss is set by curvature, \(\tfrac12\sum_{i>r}h_i\sigma_i^2\) to second order, where \(h_i\) is the curvature of the loss along direction i. So inverting \(E(r)\) does not give a usable rank. The spectrum is for deciding whether to use LoRA.</p>
 
 <p>Transplant the intrinsic-dimension criterion onto LoRA: freeze a randomly initialized A, train only B, take the full fine-tuning metric as \(R_{\mathrm{full}}\), and pick the smallest r whose held-out score reaches 0.9 \(R_{\mathrm{full}}\) (same criterion as <a class="eq-ref" href="#en-eq6">Equation 6</a>). Only B is trained, so each point costs less than a full LoRA run, and a random A performs nearly as well as a trained one (<a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>; <a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA, Hao et al. 2024</a>).</p>
-      <p>A high \(E(r)\) only says the full-fine-tuning solution can be approximated at low rank, not that LoRA finds it: per <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a>, at low rank LoRA learns an update whose spectrum differs from full fine-tuning, with new directions nearly orthogonal to the pretrained spectrum and an effective rank under half of full fine-tuning's. So still confirm on held-out data — two or three rank values, not a sweep — per layer rather than as a model-wide average.</p>
+      <p>A high \(E(r)\) only says the full-fine-tuning solution can be approximated at low rank: per<a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a>, at low rank LoRA learns an update whose spectrum differs from full fine-tuning, with new directions nearly orthogonal to the pretrained spectrum and an effective rank under half of full fine-tuning's. So still confirm on held-out data — two or three rank values, not a sweep — per layer rather than as a model-wide average.</p>
 
       <h2>Intrinsic dimension and the early spectral proxy</h2>
       <p>Without a full checkpoint</p>
@@ -175,15 +171,11 @@
       <p>It is approximately r when the singular values are spread evenly, and approaches 1 when they concentrate in a single direction. There is precedent for cutting rank after training: <a href="https://arxiv.org/abs/2303.10512" target="_blank" rel="noreferrer">AdaLoRA (Zhang et al. 2023)</a> allocates and prunes rank across layers by importance during training, and beats a fixed rank at low budget. So a participation ratio well below r means r can be reduced, and a heavy tail means r is binding and should be raised. This step turns redundancy directly into inference savings: merging the adapter into \(W\) removes inference cost entirely, but when several adapters must be served unmerged, cost scales with r.</p>
 
       <h2>Finally, how to pick r</h2>
-      <p>Start with the upper bound. The adapter holds r&middot;&Sigma;<sub>l</sub>(d<sub>l</sub>+k<sub>l</sub>) parameters, so r &le; budget / &Sigma;<sub>l</sub>(d<sub>l</sub>+k<sub>l</sub>) &mdash; one division. At Llama-3-8B scale (32 layers, hidden 4096, FFN 14336, seven linear layers) &Sigma;(d+k) is about 2.8M: give the adapter 0.5% of the full model (about 45M parameters) and r comes out at 16. That is what <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> mean by sizing r against memory &mdash; within this range r is a cost parameter, and 16 across all modules is the recommendation from the configurations they tested.</p>
+      <p>Start with the upper bound on r. The adapter holds r&middot;&Sigma;<sub>l</sub>(d<sub>l</sub>+k<sub>l</sub>) parameters, so r &le; budget / &Sigma;<sub>l</sub>(d<sub>l</sub>+k<sub>l</sub>) &mdash; one division. At Llama-3-8B scale (32 layers, hidden 4096, FFN 14336, seven linear layers) &Sigma;(d+k) is about 2.8M: give the adapter 0.5% of the full model (about 45M parameters) and r comes out at 16. That is what <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> mean by sizing r against memory &mdash; within this range r is a cost parameter, and 16 across all modules is the recommendation from the configurations they tested.</p>
 
-      <p>The lower bound has no formula; only the task gives an order of magnitude &mdash; more data and a task further from pretraining both push the needed rank up. So start at r = 16 across all modules, with &alpha; = 2r. For more precision, set r inside that range at the point where held-out reaches 90% of full fine-tuning (<a class="eq-ref" href="#en-eq6">Equation 6</a>): with a full checkpoint, freeze a random A and train only B; without one, train inside a random d-dimensional subspace instead. The early-spectrum proxy gives an order of magnitude up front, but only a rough one.</p>
+      <p>The lower bound on r has no formula; only the task gives an order of magnitude &mdash; more data and a task further from pretraining both push the needed rank up. So start at r = 16 across all modules, with &alpha; = 2r. For more precision, set r inside that range at the point where held-out reaches 90% of full fine-tuning (<a class="eq-ref" href="#en-eq6">Equation 6</a>): with a full checkpoint, freeze a random A and train only B; without one, train inside a random d-dimensional subspace instead. The early-spectrum proxy gives an order of magnitude up front, but only a rough one.</p>
 
       <p>After training, finish with the participation ratio: well below r, shrink; tail still large, grow. Hand-tuned per-layer configuration rarely repays its complexity. And run every number past held-out in the end &mdash; two or three rank values.</p>
-
-      <h2>Limits</h2>
-      <p>\(E(r)\ge 0.9975\) — a 5% relative error, inverted from <a class="eq-ref" href="#en-eq4">Equation 4</a> and <a class="eq-ref" href="#en-eq5">Equation 5</a> — says that the update is captured by a low-rank subspace. <a class="eq-ref" href="#en-eq4">Equation 4</a> approximates the Frobenius error of \(\Delta W\), while training minimizes a loss; the two agree only if the loss is equally sensitive to every direction of \(\Delta W\). So this is a necessary-condition proxy for being close to full fine-tuning, not a sufficient one: the truncated SVD is the optimal approximation, but that does not mean training finds it, and comparable loss does not mean the same solution. Held-out validation still decides.</p>
-      <p>The required rank also depends on data volume. In continued pretraining from 0.25B to 20B tokens, <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> find that the rank needed to explain 90% of the variance in a given layer's \(\Delta W\) rises with the data. Tasks further from the pretraining distribution need more dimensions as well.</p>
 
       <h2>References</h2>
       <ul class="paper-list">
