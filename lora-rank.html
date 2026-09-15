@@ -40,7 +40,6 @@
       <a class="back-link" href="blog.html">← 返回博客</a>
       <div class="article-meta">2026-09-14 · 机器学习 · 参数高效微调</div>
       <h1>给定基础权重，LoRA 的 r 怎么定</h1>
-      <p class="lead">LoRA 的 r 不用一个个试。需要多大的秩是可以测的：ΔW 的谱说明这份权重上 LoRA 够不够用，内在维度给出量级，最后用两三个点跑 held-out 确认。</p>
       <h2>秩与奇异值谱</h2>
       <p>一个 \(d\times k\) 的矩阵有 \(\min(d,k)\) 个奇异值。秩等于非零奇异值的个数，只回答有几个非零方向的问题。</p>
       <p>以 \(d=k=5120\) 的层为例，\(\Delta W\) 有 5120 个奇异值。全参微调之后通常是满秩的：5120 个奇异值全部非零，只是大多数极小。所以在这个尺度上问秩是多少得不到任何信息，有信息的是衰减速度。</p>
@@ -59,12 +58,12 @@
       <div class="formula-block" id="zh-eq4"><span class="formula-label">式 4</span>\[\begin{aligned}\|\Delta W-\Delta W_r\|_F&=\min_{\operatorname{rank}(M)\le r}\|\Delta W-M\|_F=\Bigl(\sum_{i>r}\sigma_i^2\Bigr)^{1/2},\\ \|\Delta W-\Delta W_r\|_2&=\sigma_{r+1}.\end{aligned}\]</div>
       <p>于是前 r 项的能量占比，见<a class="eq-ref" href="#zh-eq5">式 5</a>。</p>
       <div class="formula-block" id="zh-eq5"><span class="formula-label">式 5</span>\[E(r)=\frac{\sum_{i\le r}\sigma_i^2}{\sum_{i=1}^{\min(d,k)}\sigma_i^2}=1-\frac{\|\Delta W-\Delta W_r\|_F^2}{\|\Delta W\|_F^2}\]</div>
-      <p>它衡量“秩 r 能保留多少改动”，判据因此具体。</p>
+      <p>它衡量“秩 r 能保留多少改动”。</p>
 
       <h2>有全参 ckpt 时的直接测量</h2>
-      <p>逐层算 \(\Delta W=W_{\mathrm{ft}}-W_0\)，做 SVD，得到奇异值谱 \(\sigma_1\ge\dots\ge\sigma_{\min(d,k)}\ge 0\)，画 \(E(r)\) 的整条曲线，不要只看一个 r 点。</p>
+      <p>逐层算 \(\Delta W=W_{\mathrm{ft}}-W_0\)，做 SVD，得到奇异值谱 \(\sigma_1\ge\dots\ge\sigma_{\min(d,k)}\ge 0\)，画 \(E(r)\) 整条曲线，不要只看一个 r 点。</p>
       <p>读谱得到的答案通常很大。根据 <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 在代码、数学任务上的测量，4096×4096 的 \(W_q\) 要 1500 以上的秩才解释 \(\Delta W\) 90% 的方差，比常用 LoRA 秩大一两个数量级；数据越多秩越高，MLP 比 attention 高，首尾层比中间层低。<a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a> 测到的全参更新有效秩也在 400 以上。所以谱上一般没有能取 r 的拐点：\(\Delta W\) 本身不小秩，LoRA 也不是靠复现它起作用的——Biderman et al. 2024 报告，代码、数学这类任务上 LoRA 追不上全参，提高 r 也补不平。</p>
-      <p>如果非要用“低秩逼近 \(\Delta W\)”这个标准，就按可接受的相对误差反推 r：<a href="https://doi.org/10.1007/BF02288367" target="_blank" rel="noreferrer">Eckart–Young</a> 给出 \(\|\Delta W-\Delta W_r\|_F/\|\Delta W\|_F=\sqrt{1-E(r)}\)（<a class="eq-ref" href="#zh-eq4">式 4</a>、<a class="eq-ref" href="#zh-eq5">式 5</a>），要 5% 以内就取满足它的最小 r。这么算出来的 r 通常大得没法用，这本身就是结论。</p>
+      <p>如果非要用“低秩逼近 \(\Delta W\)”这个标准，就按可接受的相对误差反推 r：<a href="https://doi.org/10.1007/BF02288367" target="_blank" rel="noreferrer">Eckart–Young</a> 给出 \(\|\Delta W-\Delta W_r\|_F/\|\Delta W\|_F=\sqrt{1-E(r)}\)（<a class="eq-ref" href="#zh-eq4">式 4</a>、<a class="eq-ref" href="#zh-eq5">式 5</a>），要 5% 以内就取满足它的最小 r。这么算出来的 r 通常大得没法用。</p>
       <p>\(E(r)\) 高只说明全参解可以被低秩逼近，不说明 LoRA 找得到它：根据 <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a>，低秩下 LoRA 学出的更新与全参谱不同，会出现与预训练谱近似正交的新方向，有效秩不到全参的一半。\(E(r)\) 也只数能量、不数重要性——谱上大的方向对任务可以并不重要，真实的 loss 增量由曲率决定，二阶近似下是 \(\tfrac12\sum_{i>r}h_i\sigma_i^2\)。所以最后仍要在 held-out 上确认——取两三个点，不是挨个试；逐层分别定，不要只看全模型平均。</p>
 
       <h2>内在维度与早期谱代理</h2>
@@ -115,7 +114,6 @@
       <a class="back-link" href="blog.html">← Back to Blog</a>
       <div class="article-meta">2026-09-14 · Machine Learning · Parameter-Efficient Fine-Tuning</div>
       <h1>How to Choose LoRA's Rank r Given a Base Checkpoint</h1>
-      <p class="lead">LoRA's rank r does not have to be found by trial and error. The rank a checkpoint needs is measurable: the spectrum of ΔW tells you whether LoRA can do the job at all, intrinsic dimension gives the order of magnitude, and two or three rank values on held-out data confirm it.</p>
       <h2>Rank and the singular-value spectrum</h2>
       <p>A \(d\times k\) matrix has \(\min(d,k)\) singular values. The rank equals the number of nonzero singular values, and it answers exactly one question: how many nonzero directions are there.</p>
       <p>Take a layer with \(d=k=5120\). Then \(\Delta W\) has 5120 singular values. After full fine-tuning it is usually full rank: all 5120 are nonzero, but most of them are tiny. Asking "what is the rank" at this scale carries no information. The decay rate does.</p>
@@ -134,12 +132,12 @@
       <div class="formula-block" id="en-eq4"><span class="formula-label">Equation 4</span>\[\begin{aligned}\|\Delta W-\Delta W_r\|_F&=\min_{\operatorname{rank}(M)\le r}\|\Delta W-M\|_F=\Bigl(\sum_{i>r}\sigma_i^2\Bigr)^{1/2},\\ \|\Delta W-\Delta W_r\|_2&=\sigma_{r+1}.\end{aligned}\]</div>
       <p>The retained energy fraction is therefore</p>
       <div class="formula-block" id="en-eq5"><span class="formula-label">Equation 5</span>\[E(r)=\frac{\sum_{i\le r}\sigma_i^2}{\sum_{i=1}^{\min(d,k)}\sigma_i^2}=1-\frac{\|\Delta W-\Delta W_r\|_F^2}{\|\Delta W\|_F^2}\]</div>
-      <p>which measures how much of the change rank r preserves; that makes the decision rule concrete.</p>
+      <p>which measures how much of the change rank r preserves.</p>
 
       <h2>Measuring directly with a full checkpoint</h2>
       <p>Compute \(\Delta W=W_{\mathrm{ft}}-W_0\) layer by layer, take the SVD to get \(\sigma_1\ge\dots\ge\sigma_{\min(d,k)}\ge 0\), and plot the whole \(E(r)\) curve rather than a single rank.</p>
       <p>The answer the spectrum gives is usually large. Per <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a>, measured on code and math tasks, a \(4096\times4096\) \(W_q\) needs a rank above 1500 to explain 90% of the variance in \(\Delta W\), one to two orders of magnitude above typical LoRA ranks; rank grows with more data, MLP modules rank above attention, and first and last layers rank below middle ones. <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a> measure effective ranks above 400 for full fine-tuning updates. So the curve usually offers no knee to read an r off: \(\Delta W\) is not low rank, and LoRA does not work by reproducing it — Biderman et al. 2024 report that on code and math, LoRA trails full fine-tuning and raising r does not close the gap.</p>
-      <p>If you insist on the "low-rank approximation of \(\Delta W\)" standard, fix the relative error you can accept and invert it: <a href="https://doi.org/10.1007/BF02288367" target="_blank" rel="noreferrer">Eckart–Young</a> gives \(\|\Delta W-\Delta W_r\|_F/\|\Delta W\|_F=\sqrt{1-E(r)}\) (<a class="eq-ref" href="#en-eq4">Equation 4</a>, <a class="eq-ref" href="#en-eq5">Equation 5</a>), so a 5% budget means the smallest r that satisfies it. The r that comes out is usually far too large to use, which is itself the conclusion.</p>
+      <p>If you insist on the "low-rank approximation of \(\Delta W\)" standard, fix the relative error you can accept and invert it: <a href="https://doi.org/10.1007/BF02288367" target="_blank" rel="noreferrer">Eckart–Young</a> gives \(\|\Delta W-\Delta W_r\|_F/\|\Delta W\|_F=\sqrt{1-E(r)}\) (<a class="eq-ref" href="#en-eq4">Equation 4</a>, <a class="eq-ref" href="#en-eq5">Equation 5</a>), so a 5% budget means the smallest r that satisfies it. The r that comes out is usually far too large to use.</p>
       <p>A high \(E(r)\) only says the full-fine-tuning solution can be approximated at low rank, not that LoRA finds it: per <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a>, at low rank LoRA learns an update whose spectrum differs from full fine-tuning, with new directions nearly orthogonal to the pretrained spectrum and an effective rank under half of full fine-tuning's. \(E(r)\) also counts energy, not importance — a direction that is large in the spectrum can matter little for the task, and the real change in loss is set by curvature, \(\tfrac12\sum_{i>r}h_i\sigma_i^2\) to second order. So still confirm on held-out data — two or three rank values, not a sweep — per layer rather than as a model-wide average.</p>
 
       <h2>Intrinsic dimension and the early spectral proxy</h2>
