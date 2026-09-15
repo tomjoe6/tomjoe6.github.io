@@ -5,7 +5,7 @@
 
 ## 秩与奇异值谱
 
-一个 d×k 的矩阵有 min(d,k) 个奇异值。秩是一个整数，等于非零奇异值的个数，只回答有几个非零方向的问题。
+一个 d×k 的矩阵有 min(d,k) 个奇异值。秩等于非零奇异值的个数，只回答有几个非零方向的问题。
 
 以 d=k=5120 的层为例，ΔW 有 5120 个奇异值。全参微调之后通常是满秩的：5120 个奇异值全部非零，只是大多数极小。所以在这个尺度上问秩是多少得不到任何信息，有信息的是衰减速度。
 
@@ -18,7 +18,7 @@ $$
 \end{aligned}
 $$
 
-这里 U 和 V 的列分别是左右奇异向量，σᵢ 是奇异值。秩只看 σᵢ 是否为零，完全不管它们有多小，这正是它在微调场景里失效的原因。
+这里 U 和 V 的列分别是左右奇异向量，σᵢ 是奇异值。秩只看 σᵢ 是否为零，这正是它在微调场景里失效的原因。
 
 ## LoRA 的秩上界
 
@@ -57,13 +57,13 @@ $$
 
 ## 有全参 ckpt 时的直接测量
 
-逐层算 ΔW = W_ft − W₀，做 SVD，看 E(48)。48可作为起始点：先在一个有代表性的 r 上看曲线，再决定往哪边走。
+逐层算 ΔW = W_ft − W₀，做 SVD，得到奇异值谱 σ₁ ≥ … ≥ σ_min(d,k) ≥ 0，画 E(r) 的整条曲线，不要只看一个 r 点。
 
-- E(48) > 0.90：r = 48 足够，可以往下试；
-- 0.70 ≤ E(48) ≤ 0.90：提高；
-- E(48) < 0.70：放弃 LoRA，改用全参。
+读谱。前几十个奇异值之后曲线迅速拐平，说明全参解近似低秩，r 取拐点附近；到 min(d,k) 仍近似线性缓降、没有拐点，说明 ΔW 不低秩，LoRA 大概率不合适——根据 Biderman et al. 2024，代码、数学这类任务上 LoRA 追不上全参，提高 r 也补不平。
 
-E(r) 应当逐层画，同一句判据在不同层上会给出不同答案。
+算误差。按可接受的相对误差反推 r：Eckart–Young 给出 ‖ΔW − ΔW_r‖_F / ‖ΔW‖_F = √(1 − E(r))（式 4、式 5），要 5% 以内就取满足它的最小 r。
+
+校验。E(r) 高只说明全参解可以被低秩逼近，不说明 LoRA 找得到它：根据 Shuttleworth et al. 2024，低秩下 LoRA 学出的更新与全参谱不同，会出现与预训练谱近似正交的新方向，有效秩不到全参的一半。E(r) 也只数能量、不数重要性——谱上大的方向对任务可以并不重要，真实的 loss 增量由曲率决定，二阶近似下是 ½ Σ_{i>r} h_i σ_i²。所以最后仍要扫几个 r 跑 held-out，逐层分别定，不要只看全模型平均。
 
 ## 内在维度与早期谱代理
 
@@ -83,7 +83,7 @@ $$
 
 再对 S_T 套用式 5 计算 E(r)。以 SGD 为例 ΔW_t = −η_t g_t，用 Adam 一类优化器时换成对应的更新量即可。改动的主方向在早期即已成形，此时 E(r) 曲线基本稳定，这条路成本最低。
 
-主方向早期成形是经验观察，比起全参训完再回头测，200 到 500 步的代价🉑以忽略。
+主方向早期成形观察比起全参训完再回头测，200 到 500 步的代价🉑以忽略。
 
 ## 模块选择、α 缩放与逐层 r
 
@@ -111,13 +111,12 @@ $$
 
 ## 边界
 
-E(r) > 0.9 只说明改动方向被低秩捕获。式 4 逼近的是 ΔW 的 Frobenius 误差，而训练优化的是任务 loss，两者只有在 loss 对 ΔW 各方向的敏感度相同时才一致。所以这是“与全参差距小”的必要条件代理，而非充分条件：截断 SVD 是最优近似，不代表训练找得到它，loss 相当也不代表解相同。最终仍要靠 held-out 验证。
+E(r) > 0.9 说明改动方向被低秩捕获。式 4 逼近的是 ΔW 的 Frobenius 误差，训练优化的是 loss，两者只有在 loss 对 ΔW 各方向的敏感度相同时才一致。所以这是与全参差距小的必要条件代理，而非充分条件：截断 SVD 是最优近似，不代表训练找得到它，loss 相当也不代表解相同。最终仍要靠 held-out 验证。
 
-此外，所需的秩取决于数据量。数据越多，最优 ΔW 越可能带上高秩分量：同一任务样本从两万增到两百万，所需 r 会变大。内在维度的工作也显示，任务离预训练分布越远，需要的维度越高。r 是一次测量，不是一次定终身。
+此外，所需的秩取决于数据量。数据越多，最优 ΔW 越可能带上高秩分量，同一任务样本从两万增到两百万，所需 r 会变大。内在维度的工作也显示，任务离预训练分布越远，需要的维度越高。
 
-核心一句：先测 ΔW 的秩需求，再定 r。
 
-## 参考来源
+## 参考
 
 - [Hu et al., *LoRA: Low-Rank Adaptation of Large Language Models*, 2021](https://arxiv.org/abs/2106.09685)
 - [Eckart & Young, *The Approximation of One Matrix by Another of Lower Rank*, Psychometrika, 1936](https://doi.org/10.1007/BF02288367)
@@ -125,5 +124,6 @@ E(r) > 0.9 只说明改动方向被低秩捕获。式 4 逼近的是 ΔW 的 Fro
 - [Li et al., *Measuring the Intrinsic Dimension of Objective Landscapes*, 2018](https://arxiv.org/abs/1804.08838)
 - [Dettmers et al., *QLoRA: Efficient Finetuning of Quantized LLMs*, 2023](https://arxiv.org/abs/2305.14314)
 - [Kalajdzievski, *A Rank Stabilization Scaling Factor for Fine-Tuning with LoRA*, 2023](https://arxiv.org/abs/2312.03732)
+- [Paischer et al., *Parameter Efficient Fine-tuning via Explained Variance Adaptation*, 2024](https://arxiv.org/abs/2410.07170)
 - [Biderman et al., *LoRA Learns Less and Forgets Less*, 2024](https://arxiv.org/abs/2405.09673)
 - [Shuttleworth et al., *LoRA vs Full Fine-tuning: An Illusion of Equivalence*, 2024](https://arxiv.org/abs/2410.21228)
