@@ -51,7 +51,7 @@
       <div class="formula-block" id="zh-eq2"><span class="formula-label">式 2</span>\[W=W_0+\frac{\alpha}{r}BA,\qquad B\in\mathbb{R}^{d\times r},\quad A\in\mathbb{R}^{r\times k},\quad r\ll\min(d,k).\]</div>
       <p>初始化通常取 \(A\sim\mathcal{N}(0,\sigma^2)\)、\(B=0\)，于是 \(\Delta W=0\)，训练从原模型出发，起点没有扰动。约束来自一行代数，见<a class="eq-ref" href="#zh-eq3">式 3</a>。</p>
       <div class="formula-block" id="zh-eq3"><span class="formula-label">式 3</span>\[\operatorname{rank}(\Delta W)=\operatorname{rank}(BA)\le\min(\operatorname{rank}A,\operatorname{rank}B)\le r.\]</div>
-      <p>r 设小了，最优解落在可达集合之外，怎么训都训不到。但训不到并不等于差，只要被丢掉的那些方向对 loss 贡献极小，就无所谓。</p>
+      <p>r 设小了，最优解落在可达集合之外，怎么训都训不到。但训不到并不等于差，只要被丢掉的那些方向对 loss 贡献极小就无所谓。</p>
 
       <h2>截断 SVD 与能量占比</h2>
       <p>由 Eckart–Young 定理，截断 SVD 是最优的秩 r 近似，无论用 Frobenius 范数还是谱范数衡量，见<a class="eq-ref" href="#zh-eq4">式 4</a>。</p>
@@ -76,7 +76,7 @@
       <p class="note">主方向早期成形观察比起全参训完再回头测，200 到 500 步的代价🉑以忽略。</p>
 
       <h2>模块选择、α 缩放与逐层 r</h2>
-      <p>改哪些模块：同等参数量下，“全部线性层配小 r”通常优于“只用 q、v 配大 r”，优先覆盖 q、k、v、o 与 FFN。参数量相同不代表表达能力相同：前者可选的更新方向更多，只是每个方向更窄。</p>
+      <p>同等参数量下，“全部线性层配小 r”通常优于“只用 q、v 配大 r”，优先覆盖 q、k、v、o 与 FFN。参数量相同不代表表达能力相同：前者可选的更新方向更多，只是每个方向更窄。</p>
       <p>α 的缩放。真正生效的是 \(\alpha/r\)，见<a class="eq-ref" href="#zh-eq8">式 8</a>。</p>
       <div class="formula-block" id="zh-eq8"><span class="formula-label">式 8</span>\[s=\frac{\alpha}{r},\qquad \Delta W=s\,BA.\]</div>
       <p>常取 \(\alpha=2r\)，使有效尺度 \(s\) 恒为 2。改 r 必须同步改 α，否则等于偷偷改了学习率——把 r 从 \(r_1\) 换到 \(r_2\) 而 α 不变，更新整体乘上 \(r_1/r_2\)。若 r 很大，\(\alpha/r\) 会偏小，可考虑 \(\alpha/\sqrt{r}\) 一类的稳定化缩放。</p>
@@ -142,10 +142,10 @@
       <p>The second is the early spectral proxy, and it is cheap. Run full fine-tuning for 200–500 steps and take the SVD of the accumulated update:</p>
       <div class="formula-block" id="en-eq7"><span class="formula-label">Equation 7</span>\[S_T=\sum_{t=1}^{T}\Delta W_t,\qquad \Delta W_t=W_t-W_{t-1},\]</div>
       <p>then apply <a class="eq-ref" href="#en-eq5">Equation 5</a> to \(S_T\) to get \(E(r)\). Under SGD, \(\Delta W_t=-\eta_t g_t\); with Adam-style optimizers, substitute the corresponding update. The dominant directions of the change take shape early, so the \(E(r)\) curve is already stable at that point. This is the cheapest route.</p>
-      <p class="note">Dominant directions forming early is an observation: next to training to completion and measuring afterwards, 200–500 steps are negligible.</p>
+      <p class="note">The observation that dominant directions take shape early: compared with training to completion and measuring afterwards, 200–500 steps are negligible.</p>
 
       <h2>Target modules, α scaling, and per-layer rank</h2>
-      <p>Which modules to adapt: at equal parameter budget, "all linear layers with a small r" usually beats "q and v only with a large r". Cover q, k, v, o and the FFN layers first. Equal parameter count is not equal expressive capacity: the broader configuration has more directions available, each a narrower one.</p>
+      <p>At equal parameter budget, "all linear layers with a small r" usually beats "q and v only with a large r". Cover q, k, v, o and the FFN layers first. Equal parameter count is not equal expressive capacity: the broader configuration has more directions available, each a narrower one.</p>
       <p>The α scaling. What actually takes effect is \(\alpha/r\):</p>
       <div class="formula-block" id="en-eq8"><span class="formula-label">Equation 8</span>\[s=\frac{\alpha}{r},\qquad \Delta W=s\,BA.\]</div>
       <p>The common choice \(\alpha=2r\) holds the effective scale \(s\) at 2. If you change r you must change α with it, or you have quietly changed the learning rate: moving from \(r_1\) to \(r_2\) with α fixed multiplies the whole update by \(r_1/r_2\). For very large r, \(\alpha/r\) becomes small, and a stabilization such as \(\alpha/\sqrt{r}\) is worth considering.</p>
