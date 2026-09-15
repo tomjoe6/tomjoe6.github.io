@@ -349,6 +349,20 @@
       line-height: 1.18;
     }
 
+    .org-logos {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-right: 9px;
+      vertical-align: -.1em;
+    }
+
+    .org-logos img {
+      width: 1.06em;
+      height: 1.06em;
+      display: block;
+    }
+
     .timeline .role {
       margin-bottom: 5px;
       color: var(--ink);
@@ -588,7 +602,12 @@
           <article class="timeline-item">
             <div class="time" data-i18n="labTime"></div>
             <div>
-              <h3 data-i18n="labOrg"></h3>
+              <h3>
+                <span class="org-logos" aria-hidden="true">
+                  <img src="assets/logos/sjtu-emblem.svg" alt="">
+                </span>
+                <span data-i18n="labOrg"></span>
+              </h3>
               <div class="role">
                 <span data-i18n="labRole"></span>
                 <span aria-hidden="true"> · </span>
@@ -600,7 +619,13 @@
           <article class="timeline-item">
             <div class="time" data-i18n="hisiliconTime"></div>
             <div>
-              <h3 data-i18n="hisiliconOrg"></h3>
+              <h3>
+                <span class="org-logos" aria-hidden="true">
+                  <img src="assets/logos/hisilicon-mark.png" alt="">
+                  <img src="assets/logos/sjtu-emblem.svg" alt="">
+                </span>
+                <span data-i18n="hisiliconOrg"></span>
+              </h3>
               <div class="role" data-i18n="hisiliconRole"></div>
               <p data-i18n="hisiliconBody"></p>
             </div>
@@ -636,7 +661,7 @@
         eduBody: "正在接受集成电路相关训练，持续学习电路、系统、计算机体系结构和工程实践。",
         experienceTitle: "经历",
         hisiliconTime: "2025.6 - 2025.8",
-        hisiliconOrg: "海思 HiSilicon",
+        hisiliconOrg: "海思 · 上海交通大学",
         hisiliconRole: "实习生 · 多路选择器优化",
         hisiliconBody: "参与多路选择器相关优化工作，关注硬件实现中的结构、性能和工程细节。",
         labTime: "进行中",
@@ -666,7 +691,7 @@
         eduBody: "Studying integrated circuits with ongoing training in circuits, systems, computer architecture, and engineering practice.",
         experienceTitle: "Experience",
         hisiliconTime: "Jun. 2025 - Aug. 2025",
-        hisiliconOrg: "HiSilicon",
+        hisiliconOrg: "HiSilicon · Shanghai Jiao Tong University",
         hisiliconRole: "Intern · Multiplexer Optimization",
         hisiliconBody: "Worked on multiplexer-related optimization, focusing on structure, performance, and engineering details in hardware implementation.",
         labTime: "Ongoing",
