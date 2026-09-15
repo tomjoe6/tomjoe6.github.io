@@ -352,14 +352,14 @@
     .org-logos {
       display: inline-flex;
       align-items: center;
-      gap: 5px;
-      margin-right: 9px;
-      vertical-align: -.1em;
+      gap: 6px;
+      margin-right: 10px;
+      vertical-align: -.14em;
     }
 
     .org-logos img {
-      width: 1.06em;
-      height: 1.06em;
+      width: 1.25em;
+      height: 1.25em;
       display: block;
     }
 
@@ -586,7 +586,12 @@
           <article class="timeline-item">
             <div class="time" data-i18n="eduTime"></div>
             <div>
-              <h3 data-i18n="eduSchool"></h3>
+              <h3>
+                <span class="org-logos" aria-hidden="true">
+                  <img src="assets/logos/sjtu-emblem.svg" alt="">
+                </span>
+                <span data-i18n="eduSchool"></span>
+              </h3>
               <div class="role" data-i18n="eduRole"></div>
               <p data-i18n="eduBody"></p>
             </div>
