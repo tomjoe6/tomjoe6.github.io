@@ -91,9 +91,9 @@
       <p>奇异值分布均匀时它约等于 r，集中在单一方向时趋近 1。参与比远小于 r，说明 r 给多了，可以缩；奇异值尾部仍然很大，说明 r 卡住了该加。这一步能把冗余直接换成推理上的节省：权重合并进 \(W\) 后推理没有额外成本，但在多套 adapter 并存、不合并权重时，开销与 r 成正比。</p>
 
       <h2>怎么定 r</h2>
-      <p>起点用默认值：全部线性层、r = 16，α 同步取 2r。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 试过的配置里，这就是他们的建议——按显存约束挑 r，16 配全部模块是个好起点。</p>
+      <p>先算上界。适配器的参数量是 r·Σ_l(d_l + k_l)；覆盖全部线性层时，你能接受的参数量一确定，r 的上界就出来了。Llama-3-8B 那个规模（32 层、隐藏 4096、FFN 14336、7 个线性层）Σ(d+k) 约 2.8M，r = 16 对应约 45M 参数、全参的 0.5% 上下。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 说的“按显存约束挑 r”就是这个意思——在这个范围里，r 是成本旋钮，不是精度旋钮，16 配全部模块就是他们试过的配置里给的推荐。</p>
 
-      <p>要更准，就把 r 定在 held-out 达到全参九成的那一点（<a class="eq-ref" href="#zh-eq6">式 6</a>）：有全参 ckpt 就冻结随机 A、只训 B；没有就把更新限制在随机 d 维子空间里扫。早期谱代理能先给个量级，但只是粗估。</p>
+      <p>下界没有式子，只能按任务给量级：数据越多、离预训练分布越远，需要的秩越高（见边界）。所以默认全模块、r = 16，α 同步取 2r。要更准，就在这个范围里把 r 定在 held-out 达到全参九成的那一点（<a class="eq-ref" href="#zh-eq6">式 6</a>）：有全参 ckpt 就冻结随机 A、只训 B；没有就把更新限制在随机 d 维子空间里扫。早期谱代理能先给个量级，但只是粗估。</p>
 
       <p>训完用参与比收尾：远小于 r 就缩，奇异值尾部还大就加。逐层配置的收益通常不抵复杂度。所有数字最后都在 held-out 上过一遍——两三个点，不是挨个试。</p>
 
@@ -174,9 +174,9 @@
       <p>It is approximately r when the singular values are spread evenly, and approaches 1 when they concentrate in a single direction. A participation ratio well below r means r was set too high and can be reduced; a heavy tail means r is binding and should be raised. This step turns redundancy directly into inference savings: merging the adapter into \(W\) removes inference cost entirely, but when several adapters must be served unmerged, cost scales with r.</p>
 
       <h2>How to pick r</h2>
-      <p>Start from the default: all linear layers, r = 16, with &alpha; set to 2r alongside it. In the configurations <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> tested, that is their advice &mdash; size r against memory, and 16 across all modules is a good starting point.</p>
+      <p>Start with the upper bound. The adapter holds r&middot;&Sigma;<sub>l</sub>(d<sub>l</sub>+k<sub>l</sub>) parameters; with every linear layer covered, the parameter count you are willing to pay fixes an upper bound on r. At Llama-3-8B scale (32 layers, hidden 4096, FFN 14336, seven linear layers) &Sigma;(d+k) is about 2.8M, so r = 16 means roughly 45M parameters, around 0.5% of the full model. That is what <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> mean by sizing r against memory &mdash; within this range r is a cost knob, not an accuracy knob, and 16 across all modules is the recommendation from the configurations they tested.</p>
 
-      <p>For more precision, set r at the point where held-out reaches 90% of full fine-tuning (<a class="eq-ref" href="#en-eq6">Equation 6</a>): with a full checkpoint, freeze a random A and train only B; without one, train inside a random d-dimensional subspace instead. The early-spectrum proxy gives an order of magnitude up front, but only a rough one.</p>
+      <p>The lower bound has no formula; only the task gives an order of magnitude &mdash; more data and a task further from pretraining both push the needed rank up. So start at r = 16 across all modules, with &alpha; = 2r. For more precision, set r inside that range at the point where held-out reaches 90% of full fine-tuning (<a class="eq-ref" href="#en-eq6">Equation 6</a>): with a full checkpoint, freeze a random A and train only B; without one, train inside a random d-dimensional subspace instead. The early-spectrum proxy gives an order of magnitude up front, but only a rough one.</p>
 
       <p>After training, finish with the participation ratio: well below r, shrink; tail still large, grow. Per-layer configuration rarely repays its complexity. And run every number past held-out in the end &mdash; two or three rank values, not a sweep.</p>
 
