@@ -40,9 +40,9 @@
       <a class="back-link" href="blog.html">← 返回博客</a>
       <div class="article-meta">2026-09-14 · 机器学习 · 参数高效微调</div>
       <h1>LoRA 的 r 怎么定</h1>
-      <p>r 没有可以直接算出来的公式。谱回答的不是 r 是多少，而是这个任务上 LoRA 够不够用；能算出来的只有上界，按你愿意付的参数量卡。真正定 r 的那一步只能测——在 held-out 上取最小的 r，使指标达到全参的九成，两三个点就够。</p>
+      <p>应该是没有准确公式可算</p>
       <h2>秩与奇异值谱</h2>
-      <p>一个 \(d\times k\) 的矩阵有 \(\min(d,k)\) 个奇异值。秩等于非零奇异值的个数，只回答有几个非零方向的问题。</p>
+      <p>一个 \(d\times k\) 的矩阵有 \(\min(d,k)\) 个奇异值。秩等于非零奇异值的个数，回答有几个非零方向。</p>
       <p>以 \(d=k=5120\) 的层为例，\(\Delta W\) 有 5120 个奇异值。全参微调之后通常是满秩的：5120 个奇异值全部非零，只是大多数极小。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 在代码、数学任务上测到的 \(\Delta W\) 谱就是这种样子，衰减很慢。所以在这个尺度上问秩是多少得不到任何信息，有信息的是衰减速度。</p>
       <div class="formula-block" id="zh-eq1"><span class="formula-label">式 1</span>\[\begin{aligned}&\Delta W=W_{\mathrm{ft}}-W_0=U\Sigma V^{\top},\\ &\Sigma=\operatorname{diag}(\sigma_1,\dots,\sigma_{\min(d,k)}),\\ &\sigma_1\ge\sigma_2\ge\cdots\ge\sigma_{\min(d,k)}\ge 0,\\ &\operatorname{rank}(\Delta W)=\bigl|\{\,i:\sigma_i>0\,\}\bigr|.\end{aligned}\]</div>
       <p>这里 \(U\) 和 \(V\) 的列分别是左右奇异向量，\(\sigma_i\) 是奇异值。秩只看 \(\sigma_i\) 是否为零，这正是它在微调场景里失效的原因。</p>
@@ -92,11 +92,11 @@
       <p>奇异值分布均匀时它约等于 r，集中在单一方向时趋近 1。训完还能砍秩这件事有先例：<a href="https://arxiv.org/abs/2303.10512" target="_blank" rel="noreferrer">AdaLoRA（Zhang et al. 2023）</a>在训练中按重要度给各层分配并裁剪秩，低预算下优于固定秩。所以参与比远小于 r 就可以缩，奇异值尾部仍然很大就该加。这一步能把冗余直接换成推理上的节省：权重合并进 \(W\) 后推理没有额外成本，但在多套 adapter 并存、不合并权重时，开销与 r 成正比。</p>
 
       <h2>最后，怎么定 r</h2>
-      <p>先算上界。适配器的参数量是 r·Σ_l(d_l + k_l)；覆盖全部线性层时，你能接受的参数量一确定，r 的上界就出来了。Llama-3-8B 的规模（32 层、隐藏 4096、FFN 14336、7 个线性层）Σ(d+k) 约 2.8M，r = 16 对应约 45M 参数、全参的 0.5% 上下。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 说的“按显存约束挑 r”就是这个意思——在这个范围里，r 是成本调节，16 配全部模块就是他们试过的配置里给的推荐。</p>
+      <p>先算上界。适配器的参数量是 r·Σ_l(d_l + k_l)，反过来就是 r ≤ 预算 / Σ_l(d_l + k_l)，一个除法。Llama-3-8B 的规模（32 层、隐藏 4096、FFN 14336、7 个线性层）Σ(d+k) 约 2.8M：预算给到全参的 0.5%（约 45M 参数），除下来 r ≈ 16。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 说的“按显存约束挑 r”就是这个意思——在这个范围里，r 是成本调节，16 配全部模块就是他们试过的配置里给的推荐。</p>
 
       <p>下界没有式子，只能按任务给量级：数据越多、离预训练分布越远，需要的秩越高（见边界）。所以默认全模块、r = 16，α 同步取 2r。要更准，就在这个范围里把 r 定在 held-out 达到全参九成的那一点（<a class="eq-ref" href="#zh-eq6">式 6</a>）：有全参 ckpt 就冻结随机 A、只训 B；没有就把更新限制在随机 d 维子空间里扫。早期谱代理能先给个量级，但只是粗估。</p>
 
-      <p>训完用参与比收尾：远小于 r 就缩，奇异值尾部还大就加。手调的逐层配置通常不抵复杂度。所有数字最后都在 held-out 上过一遍——两三个点，不是挨个试。</p>
+      <p>训完用参与比收尾：远小于 r 就缩，奇异值尾部还大就加。手调的逐层配置通常不抵复杂度。所有数字最后都在 held-out 上过一遍——两三个点。</p>
 
       <h2>边界</h2>
       <p>\(E(r)\ge 0.9975\)（即 5% 相对误差，由<a class="eq-ref" href="#zh-eq4">式 4</a>、<a class="eq-ref" href="#zh-eq5">式 5</a> 反推）说明改动方向被低秩捕获。<a class="eq-ref" href="#zh-eq4">式 4</a> 逼近的是 \(\Delta W\) 的 Frobenius 误差，训练优化的是 loss，两者只有在 loss 对 \(\Delta W\) 各方向的敏感度相同时才一致。所以这是与全参差距小的必要条件代理，而非充分条件：截断 SVD 是最优近似，不代表训练找得到它，loss 相当也不代表解相同。最终仍要靠 held-out 验证。</p>
@@ -116,18 +116,16 @@
         <li><a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al., <em>LoRA vs Full Fine-tuning: An Illusion of Equivalence</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al., <em>Asymmetry in Low-Rank Adapters of Foundation Models</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">Hao et al., <em>Low-Rank Adapters Are Secretly Gradient Compressors</em>, 2024</a></li>
-        <li><a href="https://arxiv.org/abs/2308.06522" target="_blank" rel="noreferrer">Babakniya et al., <em>SLoRA: Federated Parameter Efficient Fine-Tuning of Language Models</em>, 2023</a></li>
-        <li><a href="https://arxiv.org/abs/2403.03507" target="_blank" rel="noreferrer">Zhao et al., <em>GaLore: Memory-Efficient LLM Training by Gradient Low-Rank Projection</em>, 2024</a></li>
-      </ul>
+        <li><a href="https://arxiv.org/abs/2308.06522" target="_blank" rel="noreferrer">Babakniya et al., <em>SLoRA: Federated Parameter Efficient Fine-Tuning of Language Models</em>, 2023</a></li>      </ul>
     </article>
 
     <article class="article" data-lang-content="en">
       <a class="back-link" href="blog.html">← Back to Blog</a>
       <div class="article-meta">2026-09-14 · Machine Learning · Parameter-Efficient Fine-Tuning</div>
       <h1>How to Choose LoRA's Rank r</h1>
-      <p>There is no formula that computes r. The spectrum does not answer what r should be; it answers whether LoRA can do this task at all. The only thing you can compute is an upper bound, set by the parameter count you are willing to pay. The step that actually fixes r is measurement — take the smallest r whose held-out score reaches 90% of full fine-tuning; two or three points are enough.</p>
+      <p>There is probably no exact formula.</p>
       <h2>Rank and the singular-value spectrum</h2>
-      <p>A \(d\times k\) matrix has \(\min(d,k)\) singular values. The rank equals the number of nonzero singular values, and it answers exactly one question: how many nonzero directions are there.</p>
+      <p>A \(d\times k\) matrix has \(\min(d,k)\) singular values. The rank equals the number of nonzero singular values, and it answers how many nonzero directions there are.</p>
       <p>Take a layer with \(d=k=5120\). Then \(\Delta W\) has 5120 singular values. After full fine-tuning it is usually full rank: all 5120 are nonzero, but most of them are tiny. <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> measure exactly this slow decay in \(\Delta W\) spectra on code and math tasks. Asking "what is the rank" at this scale carries no information. The decay rate does.</p>
       <div class="formula-block" id="en-eq1"><span class="formula-label">Equation 1</span>\[\begin{aligned}&\Delta W=W_{\mathrm{ft}}-W_0=U\Sigma V^{\top},\\ &\Sigma=\operatorname{diag}(\sigma_1,\dots,\sigma_{\min(d,k)}),\\ &\sigma_1\ge\sigma_2\ge\cdots\ge\sigma_{\min(d,k)}\ge 0,\\ &\operatorname{rank}(\Delta W)=\bigl|\{\,i:\sigma_i>0\,\}\bigr|.\end{aligned}\]</div>
       <p>Here the columns of \(U\) and \(V\) are the left and right singular vectors, and \(\sigma_i\) are the singular values. Rank only looks at whether each \(\sigma_i\) is zero. That is precisely why it fails as a tool in this setting.</p>
@@ -177,11 +175,11 @@
       <p>It is approximately r when the singular values are spread evenly, and approaches 1 when they concentrate in a single direction. There is precedent for cutting rank after training: <a href="https://arxiv.org/abs/2303.10512" target="_blank" rel="noreferrer">AdaLoRA (Zhang et al. 2023)</a> allocates and prunes rank across layers by importance during training, and beats a fixed rank at low budget. So a participation ratio well below r means r can be reduced, and a heavy tail means r is binding and should be raised. This step turns redundancy directly into inference savings: merging the adapter into \(W\) removes inference cost entirely, but when several adapters must be served unmerged, cost scales with r.</p>
 
       <h2>Finally, how to pick r</h2>
-      <p>Start with the upper bound. The adapter holds r&middot;&Sigma;<sub>l</sub>(d<sub>l</sub>+k<sub>l</sub>) parameters; with every linear layer covered, the parameter count you are willing to pay fixes an upper bound on r. At Llama-3-8B scale (32 layers, hidden 4096, FFN 14336, seven linear layers) &Sigma;(d+k) is about 2.8M, so r = 16 means roughly 45M parameters, around 0.5% of the full model. That is what <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> mean by sizing r against memory &mdash; within this range r is a cost parameter, and 16 across all modules is the recommendation from the configurations they tested.</p>
+      <p>Start with the upper bound. The adapter holds r&middot;&Sigma;<sub>l</sub>(d<sub>l</sub>+k<sub>l</sub>) parameters, so r &le; budget / &Sigma;<sub>l</sub>(d<sub>l</sub>+k<sub>l</sub>) &mdash; one division. At Llama-3-8B scale (32 layers, hidden 4096, FFN 14336, seven linear layers) &Sigma;(d+k) is about 2.8M: give the adapter 0.5% of the full model (about 45M parameters) and r comes out at 16. That is what <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> mean by sizing r against memory &mdash; within this range r is a cost parameter, and 16 across all modules is the recommendation from the configurations they tested.</p>
 
       <p>The lower bound has no formula; only the task gives an order of magnitude &mdash; more data and a task further from pretraining both push the needed rank up. So start at r = 16 across all modules, with &alpha; = 2r. For more precision, set r inside that range at the point where held-out reaches 90% of full fine-tuning (<a class="eq-ref" href="#en-eq6">Equation 6</a>): with a full checkpoint, freeze a random A and train only B; without one, train inside a random d-dimensional subspace instead. The early-spectrum proxy gives an order of magnitude up front, but only a rough one.</p>
 
-      <p>After training, finish with the participation ratio: well below r, shrink; tail still large, grow. Hand-tuned per-layer configuration rarely repays its complexity. And run every number past held-out in the end &mdash; two or three rank values, not a sweep.</p>
+      <p>After training, finish with the participation ratio: well below r, shrink; tail still large, grow. Hand-tuned per-layer configuration rarely repays its complexity. And run every number past held-out in the end &mdash; two or three rank values.</p>
 
       <h2>Limits</h2>
       <p>\(E(r)\ge 0.9975\) — a 5% relative error, inverted from <a class="eq-ref" href="#en-eq4">Equation 4</a> and <a class="eq-ref" href="#en-eq5">Equation 5</a> — says that the update is captured by a low-rank subspace. <a class="eq-ref" href="#en-eq4">Equation 4</a> approximates the Frobenius error of \(\Delta W\), while training minimizes a loss; the two agree only if the loss is equally sensitive to every direction of \(\Delta W\). So this is a necessary-condition proxy for being close to full fine-tuning, not a sufficient one: the truncated SVD is the optimal approximation, but that does not mean training finds it, and comparable loss does not mean the same solution. Held-out validation still decides.</p>
@@ -201,9 +199,7 @@
         <li><a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al., <em>LoRA vs Full Fine-tuning: An Illusion of Equivalence</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al., <em>Asymmetry in Low-Rank Adapters of Foundation Models</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">Hao et al., <em>Low-Rank Adapters Are Secretly Gradient Compressors</em>, 2024</a></li>
-        <li><a href="https://arxiv.org/abs/2308.06522" target="_blank" rel="noreferrer">Babakniya et al., <em>SLoRA: Federated Parameter Efficient Fine-Tuning of Language Models</em>, 2023</a></li>
-        <li><a href="https://arxiv.org/abs/2403.03507" target="_blank" rel="noreferrer">Zhao et al., <em>GaLore: Memory-Efficient LLM Training by Gradient Low-Rank Projection</em>, 2024</a></li>
-      </ul>
+        <li><a href="https://arxiv.org/abs/2308.06522" target="_blank" rel="noreferrer">Babakniya et al., <em>SLoRA: Federated Parameter Efficient Fine-Tuning of Language Models</em>, 2023</a></li>      </ul>
     </article>
   </main>
 
