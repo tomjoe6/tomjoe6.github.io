@@ -43,7 +43,7 @@
       <h2>秩与奇异值谱</h2>
       <p>一个 \(d\times k\) 的矩阵有 \(\min(d,k)\) 个奇异值。秩等于非零奇异值的个数，只回答有几个非零方向的问题。</p>
       <p>以 \(d=k=5120\) 的层为例，\(\Delta W\) 有 5120 个奇异值。全参微调之后通常是满秩的：5120 个奇异值全部非零，只是大多数极小。所以在这个尺度上问秩是多少得不到任何信息，有信息的是衰减速度。</p>
-      <div class="formula-block" id="zh-eq1"><span class="formula-label">式 1</span>\[\begin{aligned}\Delta W&=W_{\mathrm{ft}}-W_0=U\Sigma V^{\top},\\ \Sigma&=\operatorname{diag}(\sigma_1,\dots,\sigma_{\min(d,k)}),\\ &\quad \sigma_1\ge\sigma_2\ge\cdots\ge\sigma_{\min(d,k)}\ge 0,\\ \operatorname{rank}(\Delta W)&=\bigl|\{\,i:\sigma_i>0\,\}\bigr|.\end{aligned}\]</div>
+      <div class="formula-block" id="zh-eq1"><span class="formula-label">式 1</span>\[\begin{aligned}&\Delta W=W_{\mathrm{ft}}-W_0=U\Sigma V^{\top},\\ &\Sigma=\operatorname{diag}(\sigma_1,\dots,\sigma_{\min(d,k)}),\\ &\sigma_1\ge\sigma_2\ge\cdots\ge\sigma_{\min(d,k)}\ge 0,\\ &\operatorname{rank}(\Delta W)=\bigl|\{\,i:\sigma_i>0\,\}\bigr|.\end{aligned}\]</div>
       <p>这里 \(U\) 和 \(V\) 的列分别是左右奇异向量，\(\sigma_i\) 是奇异值。秩只看 \(\sigma_i\) 是否为零，这正是它在微调场景里失效的原因。</p>
 
       <h2>LoRA 的秩上界</h2>
@@ -126,7 +126,7 @@
       <h2>Rank and the singular-value spectrum</h2>
       <p>A \(d\times k\) matrix has \(\min(d,k)\) singular values. The rank equals the number of nonzero singular values, and it answers exactly one question: how many nonzero directions are there.</p>
       <p>Take a layer with \(d=k=5120\). Then \(\Delta W\) has 5120 singular values. After full fine-tuning it is usually full rank: all 5120 are nonzero, but most of them are tiny. Asking "what is the rank" at this scale carries no information. The decay rate does.</p>
-      <div class="formula-block" id="en-eq1"><span class="formula-label">Equation 1</span>\[\begin{aligned}\Delta W&=W_{\mathrm{ft}}-W_0=U\Sigma V^{\top},\\ \Sigma&=\operatorname{diag}(\sigma_1,\dots,\sigma_{\min(d,k)}),\\ &\quad \sigma_1\ge\sigma_2\ge\cdots\ge\sigma_{\min(d,k)}\ge 0,\\ \operatorname{rank}(\Delta W)&=\bigl|\{\,i:\sigma_i>0\,\}\bigr|.\end{aligned}\]</div>
+      <div class="formula-block" id="en-eq1"><span class="formula-label">Equation 1</span>\[\begin{aligned}&\Delta W=W_{\mathrm{ft}}-W_0=U\Sigma V^{\top},\\ &\Sigma=\operatorname{diag}(\sigma_1,\dots,\sigma_{\min(d,k)}),\\ &\sigma_1\ge\sigma_2\ge\cdots\ge\sigma_{\min(d,k)}\ge 0,\\ &\operatorname{rank}(\Delta W)=\bigl|\{\,i:\sigma_i>0\,\}\bigr|.\end{aligned}\]</div>
       <p>Here the columns of \(U\) and \(V\) are the left and right singular vectors, and \(\sigma_i\) are the singular values. Rank only looks at whether each \(\sigma_i\) is zero. That is precisely why it fails as a tool in this setting.</p>
 
       <h2>The rank cap in LoRA</h2>

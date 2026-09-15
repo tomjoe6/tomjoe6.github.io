@@ -10,10 +10,10 @@
 
 $$
 \begin{aligned}
-\Delta W &= W_{\mathrm{ft}}-W_0 = U\Sigma V^{\top}, \\
-\Sigma &= \operatorname{diag}(\sigma_1,\dots,\sigma_{\min(d,k)}), \\
-&\quad \sigma_1\ge\sigma_2\ge\cdots\ge\sigma_{\min(d,k)}\ge 0, \\
-\operatorname{rank}(\Delta W) &= \bigl|\{\,i:\sigma_i>0\,\}\bigr|.
+&\Delta W = W_{\mathrm{ft}}-W_0 = U\Sigma V^{\top}, \\
+&\Sigma = \operatorname{diag}(\sigma_1,\dots,\sigma_{\min(d,k)}), \\
+&\sigma_1\ge\sigma_2\ge\cdots\ge\sigma_{\min(d,k)}\ge 0, \\
+&\operatorname{rank}(\Delta W) = \bigl|\{\,i:\sigma_i>0\,\}\bigr|.
 \end{aligned}
 $$
 
