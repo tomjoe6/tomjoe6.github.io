@@ -271,6 +271,7 @@ html[data-nav-target="photography"] .site-nav::before {
 
 .article {
   width: min(720px, 100%);
+  margin: 0 auto;
   padding-top: 46px;
 }
 
