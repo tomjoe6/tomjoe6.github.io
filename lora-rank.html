@@ -69,6 +69,15 @@
 <p>把内在维度那个判据搬到 LoRA 上：冻结随机初始化的 A、只训 B，拿全参的指标当 \(R_{\mathrm{full}}\)，取最小的 r 使 held-out 达到 0.9 \(R_{\mathrm{full}}\)（判据同<a class="eq-ref" href="#zh-eq6">式 6</a>）。只训 B，每个点的成本比训完整 LoRA 低，而随机 A 和训过的 A 差不多（<a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>；<a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA，Hao et al. 2024</a>）。</p>
       <p>\(E(r)\) 高只说明全参解可以被低秩逼近：根据 <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a>，低秩下 LoRA 学出的更新与全参谱不同，会出现与预训练谱近似正交的新方向，有效秩不到全参的一半。所以最后仍要在 held-out 上确认——取两三个点，不是挨个试；逐层分别定，不要只看全模型平均。</p>
 
+      <h2>甜点在哪</h2>
+      <p>r 往上加，曲线不是一直涨。欠秩时丢掉的是被截掉的那些方向，截断误差降不下来；过了某个点，它已经接近零，而每多一维秩要多付一份方差，量级是 \(r\cdot d/n\)。两边相等的地方就是甜点。</p>
+
+      <p><a href="https://arxiv.org/abs/2607.27680" target="_blank" rel="noreferrer">Arunan 2026</a> 把这个写成了界：目标更新有一个固有的秩，\(r\) 小于它时误差卡在截断项上，\(r\) 大于它时按 \(r\cdot d/n\) 线性涨——曲线是 U 形，过了甜点不只是不涨，是会掉。他们跑了 168 组 DistilBERT、RoBERTa 的微调，验证 loss 都是这个形状，其中两个 SST-2 配置在大秩上掉得统计显著。这条只对固定秩的经验风险最小化解成立；换成核范数一类会自动收敛到那个秩的估计器，过秩就无害了。所以实测看到的平台，有一部分是训练过程在替你兜底。</p>
+
+      <p>位置算不出来。U 形的底就是那个固有秩，它由任务的谱定，不由模型结构定。实测也是这么回事：GPT-3 175B 上 WikiSQL 的准确率从 r=1 到 r=64 基本不动（<a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noreferrer">Hu et al. 2021</a>）；同一个 Llama-2-7B，math 上指令微调到 r=256 才追平全参，持续预训练连 r=256 都追不上（<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a>）。结构一样，任务一换，甜点差两个数量级。</p>
+
+      <p>所以只能扫。扫之前先确认 \(\alpha\) 跟着 \(r\) 走，否则测到的是缩放不是模型。</p>
+
       <h2>内在维度与早期谱代理</h2>
       <p>内在维度法。把更新限制在一个随机 d 维子空间里训至收敛，画 loss–d 曲线找拐点，见<a class="eq-ref" href="#zh-eq6">式 6</a>。</p>
       <div class="formula-block" id="zh-eq6"><span class="formula-label">式 6</span>\[\theta=\theta_0+P\theta',\qquad P\in\mathbb{R}^{D\times d},\quad d\ll D,\qquad d^{*}=\min\bigl\{\,d:\ R(d)\ge 0.9\,R_{\mathrm{full}}\,\bigr\},\]</div>
@@ -90,7 +99,7 @@
       <div class="formula-block" id="zh-eq9"><span class="formula-label">式 9</span>\[\mathrm{PR}=\frac{\bigl(\sum_{i=1}^{r}\sigma_i\bigr)^2}{\sum_{i=1}^{r}\sigma_i^2}\in[1,r].\]</div>
       <p>奇异值分布均匀时它约等于 r，集中在单一方向时趋近 1。训完还能砍秩这件事有先例：<a href="https://arxiv.org/abs/2303.10512" target="_blank" rel="noreferrer">AdaLoRA（Zhang et al. 2023）</a>在训练中按重要度给各层分配并裁剪秩，低预算下优于固定秩。所以参与比远小于 r 就可以缩，奇异值尾部仍然很大就该加。这一步能把冗余直接换成推理上的节省：权重合并进 \(W\) 后推理没有额外成本，但在多套 adapter 并存、不合并权重时，开销与 r 成正比。</p>
 
-      <h2>最后，怎么定 r</h2>
+      <h2>结论</h2>
       <p>到头来还是看硬件资源</p>
 
       <p>先算 r 的成本上界。适配器的参数量是 r·Σ_l(d_l + k_l)，反过来就是 r ≤ 预算 / Σ_l(d_l + k_l)。Llama-3-8B 的规模（32 层、隐藏 4096、FFN 14336、7 个线性层）Σ(d+k) 约 2.8M：预算给到全参的 0.5%（约 45M 参数），除下来 r ≈ 16。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 说的“按显存约束挑 r”就是这个意思——在这个范围里，r 是成本调节，16 配全部模块就是他们试过的配置里给的推荐。</p>
@@ -113,7 +122,8 @@
         <li><a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al., <em>LoRA vs Full Fine-tuning: An Illusion of Equivalence</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al., <em>Asymmetry in Low-Rank Adapters of Foundation Models</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">Hao et al., <em>Low-Rank Adapters Are Secretly Gradient Compressors</em>, 2024</a></li>
-        <li><a href="https://arxiv.org/abs/2308.06522" target="_blank" rel="noreferrer">Babakniya et al., <em>SLoRA: Federated Parameter Efficient Fine-Tuning of Language Models</em>, 2023</a></li>      </ul>
+        <li><a href="https://arxiv.org/abs/2308.06522" target="_blank" rel="noreferrer">Babakniya et al., <em>SLoRA: Federated Parameter Efficient Fine-Tuning of Language Models</em>, 2023</a></li>
+        <li><a href="https://arxiv.org/abs/2607.27680" target="_blank" rel="noreferrer">Arunan, <em>Tight Sample Complexity for Low-Rank Adaptation: Matching Bounds and Rank Selection</em>, 2026</a></li>      </ul>
     </article>
 
     <article class="article" data-lang-content="en">
@@ -149,6 +159,15 @@
 <p>Transplant the intrinsic-dimension criterion onto LoRA: freeze a randomly initialized A, train only B, take the full fine-tuning metric as \(R_{\mathrm{full}}\), and pick the smallest r whose held-out score reaches 0.9 \(R_{\mathrm{full}}\) (same criterion as <a class="eq-ref" href="#en-eq6">Equation 6</a>). Only B is trained, so each point costs less than a full LoRA run, and a random A performs nearly as well as a trained one (<a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>; <a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA, Hao et al. 2024</a>).</p>
       <p>A high \(E(r)\) only says the full-fine-tuning solution can be approximated at low rank: per<a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a>, at low rank LoRA learns an update whose spectrum differs from full fine-tuning, with new directions nearly orthogonal to the pretrained spectrum and an effective rank under half of full fine-tuning's. So still confirm on held-out data — two or three rank values, not a sweep — per layer rather than as a model-wide average.</p>
 
+      <h2>Where the sweet spot is</h2>
+      <p>Adding rank does not keep helping. Under-ranking leaves the truncated directions on the table and that truncation error will not come down; past some point it is already near zero, while every extra unit of rank costs another unit of variance, on the order of \(r\cdot d/n\). The sweet spot is where the two meet.</p>
+
+      <p><a href="https://arxiv.org/abs/2607.27680" target="_blank" rel="noreferrer">Arunan 2026</a> turns this into bounds: the target update has an intrinsic rank, and excess error sits on the truncation term below it and grows linearly as \(r\cdot d/n\) above it — the curve is U-shaped, so past the sweet spot it does not merely stop improving, it gets worse. Across 168 DistilBERT and RoBERTa fine-tuning runs the validation loss traced that U, with two SST-2 configurations degrading significantly at large rank. This holds for a fixed-rank empirical risk minimizer; use an estimator that converges on that rank by itself, such as a nuclear-norm penalty, and over-ranking is harmless. So part of the plateau people measure is the training procedure covering for them.</p>
+
+      <p>Where the bottom sits is still not computable. It is set by the task's spectrum, not by the model's structure. Measurements agree: on GPT-3 175B, WikiSQL accuracy barely moves from r=1 to r=64 (<a href="https://arxiv.org/abs/2106.09685" target="_blank" rel="noreferrer">Hu et al. 2021</a>); on one Llama-2-7B, math instruction tuning needs r=256 to match full fine-tuning while continued pretraining does not catch up even there (<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a>). Same structure, different task, sweet spots two orders of magnitude apart.</p>
+
+      <p>So you scan for it. Before scanning, make sure \(\alpha\) moves with \(r\) — otherwise you are measuring the scaling, not the model.</p>
+
       <h2>Intrinsic dimension and the early spectral proxy</h2>
       <p>The intrinsic-dimension method. Restrict the update to a random d-dimensional subspace, train to convergence, and look for the knee of the loss–d curve:</p>
       <div class="formula-block" id="en-eq6"><span class="formula-label">Equation 6</span>\[\theta=\theta_0+P\theta',\qquad P\in\mathbb{R}^{D\times d},\quad d\ll D,\qquad d^{*}=\min\bigl\{\,d:\ R(d)\ge 0.9\,R_{\mathrm{full}}\,\bigr\},\]</div>
@@ -170,7 +189,7 @@
       <div class="formula-block" id="en-eq9"><span class="formula-label">Equation 9</span>\[\mathrm{PR}=\frac{\bigl(\sum_{i=1}^{r}\sigma_i\bigr)^2}{\sum_{i=1}^{r}\sigma_i^2}\in[1,r].\]</div>
       <p>It is approximately r when the singular values are spread evenly, and approaches 1 when they concentrate in a single direction. There is precedent for cutting rank after training: <a href="https://arxiv.org/abs/2303.10512" target="_blank" rel="noreferrer">AdaLoRA (Zhang et al. 2023)</a> allocates and prunes rank across layers by importance during training, and beats a fixed rank at low budget. So a participation ratio well below r means r can be reduced, and a heavy tail means r is binding and should be raised. This step turns redundancy directly into inference savings: merging the adapter into \(W\) removes inference cost entirely, but when several adapters must be served unmerged, cost scales with r.</p>
 
-      <h2>Finally, how to pick r</h2>
+      <h2>Conclusion</h2>
       <p>In the end it comes down to hardware.</p>
 
       <p>Start with the cost upper bound on r. The adapter holds r&middot;&Sigma;<sub>l</sub>(d<sub>l</sub>+k<sub>l</sub>) parameters, so r &le; budget / &Sigma;<sub>l</sub>(d<sub>l</sub>+k<sub>l</sub>). At Llama-3-8B scale (32 layers, hidden 4096, FFN 14336, seven linear layers) &Sigma;(d+k) is about 2.8M: give the adapter 0.5% of the full model (about 45M parameters) and r comes out at 16. That is what <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> mean by sizing r against memory &mdash; within this range r is a cost parameter, and 16 across all modules is the recommendation from the configurations they tested.</p>
@@ -193,7 +212,8 @@
         <li><a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al., <em>LoRA vs Full Fine-tuning: An Illusion of Equivalence</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al., <em>Asymmetry in Low-Rank Adapters of Foundation Models</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">Hao et al., <em>Low-Rank Adapters Are Secretly Gradient Compressors</em>, 2024</a></li>
-        <li><a href="https://arxiv.org/abs/2308.06522" target="_blank" rel="noreferrer">Babakniya et al., <em>SLoRA: Federated Parameter Efficient Fine-Tuning of Language Models</em>, 2023</a></li>      </ul>
+        <li><a href="https://arxiv.org/abs/2308.06522" target="_blank" rel="noreferrer">Babakniya et al., <em>SLoRA: Federated Parameter Efficient Fine-Tuning of Language Models</em>, 2023</a></li>
+        <li><a href="https://arxiv.org/abs/2607.27680" target="_blank" rel="noreferrer">Arunan, <em>Tight Sample Complexity for Low-Rank Adaptation: Matching Bounds and Rank Selection</em>, 2026</a></li>      </ul>
     </article>
   </main>
 

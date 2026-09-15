@@ -68,6 +68,16 @@ E(r) 数的是能量——谱上大的方向对任务可以并不重要，真实
 
 E(r) 高只说明全参解可以被低秩逼近：根据 Shuttleworth et al. 2024，低秩下 LoRA 学出的更新与全参谱不同，会出现与预训练谱近似正交的新方向，有效秩不到全参的一半。所以最后仍要在 held-out 上确认——取两三个点，不是挨个试；逐层分别定，不要只看全模型平均。
 
+## 甜点在哪
+
+r 往上加，曲线不是一直涨。欠秩时丢掉的是被截掉的那些方向，截断误差降不下来；过了某个点，它已经接近零，而每多一维秩要多付一份方差，量级是 r·d/n。两边相等的地方就是甜点。
+
+Arunan 2026 把这个写成了界：目标更新有一个固有的秩，r 小于它时误差卡在截断项上，r 大于它时按 r·d/n 线性涨——曲线是 U 形，过了甜点不只是不涨，是会掉。他们跑了 168 组 DistilBERT、RoBERTa 的微调，验证 loss 都是这个形状，其中两个 SST-2 配置在大秩上掉得统计显著。这条只对固定秩的经验风险最小化解成立；换成核范数一类会自动收敛到那个秩的估计器，过秩就无害了。所以实测看到的平台，有一部分是训练过程在替你兜底。
+
+位置算不出来。U 形的底就是那个固有秩，它由任务的谱定，不由模型结构定。实测也是这么回事：GPT-3 175B 上 WikiSQL 的准确率从 r=1 到 r=64 基本不动（Hu et al. 2021）；同一个 Llama-2-7B，math 上指令微调到 r=256 才追平全参，持续预训练连 r=256 都追不上（Biderman et al. 2024）。结构一样，任务一换，甜点差两个数量级。
+
+所以只能扫。扫之前先确认 α 跟着 r 走，否则测到的是缩放不是模型。
+
 ## 内在维度与早期谱代理
 
 内在维度法。把更新限制在一个随机 d 维子空间里训至收敛，画 loss–d 曲线找拐点，见式 6。
@@ -112,7 +122,7 @@ $$
 
 奇异值分布均匀时它约等于 r，集中在单一方向时趋近 1。训完还能砍秩这件事有先例：AdaLoRA（Zhang et al. 2023）在训练中按重要度给各层分配并裁剪秩，低预算下优于固定秩。所以参与比远小于 r 就可以缩，奇异值尾部仍然很大就该加。这一步能把冗余直接换成推理上的节省：权重合并进 W 后推理没有额外成本，但在多套 adapter 并存、不合并权重时，开销与 r 成正比。
 
-## 最后，怎么定 r
+## 结论
 
 到头来还是看硬件资源
 
@@ -138,3 +148,4 @@ r 的下界没有式子，只能按任务给量级：数据越多、离预训练
 - [Zhu et al., *Asymmetry in Low-Rank Adapters of Foundation Models*, 2024](https://arxiv.org/abs/2402.16842)
 - [Hao et al., *Low-Rank Adapters Are Secretly Gradient Compressors*, 2024](https://arxiv.org/abs/2402.03293)
 - [Babakniya et al., *SLoRA: Federated Parameter Efficient Fine-Tuning of Language Models*, 2023](https://arxiv.org/abs/2308.06522)
+- [Arunan, *Tight Sample Complexity for Low-Rank Adaptation: Matching Bounds and Rank Selection*, 2026](https://arxiv.org/abs/2607.27680)
