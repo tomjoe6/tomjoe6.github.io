@@ -59,13 +59,14 @@ $$
 
 逐层算 ΔW = W_ft − W₀，做 SVD，得到奇异值谱 σ₁ ≥ … ≥ σ_min(d,k) ≥ 0，画 E(r) 的整条曲线，不要只看一个 r 点。
 
-前几十个奇异值之后曲线迅速变平，说明全参解近似低秩，r 取拐点附近；到 min(d,k) 仍近似线性缓降、没有拐点，说明 ΔW 不低秩，LoRA 大概率不合适——根据 Biderman et al. 2024，代码、数学这类任务上 LoRA 追不上全参，提高 r 也补不平。
+读谱得到的答案通常很大。根据 Biderman et al. 2024 在代码、数学任务上的测量，4096×4096 的 W_q 要 1500 以上的秩才解释 ΔW 90% 的方差，比常用 LoRA 秩大一两个数量级；数据越多秩越高，MLP 比 attention 高，首尾层比中间层低。Shuttleworth et al. 2024 测到的全参更新有效秩也在 400 以上。所以谱上一般没有能取 r 的拐点：ΔW 本身不小秩，LoRA 也不是靠复现它起作用的——Biderman et al. 2024 报告，代码、数学这类任务上 LoRA 追不上全参，提高 r 也补不平。
 
-按可接受的相对误差反推 r：Eckart–Young 给出 ‖ΔW − ΔW_r‖_F / ‖ΔW‖_F = √(1 − E(r))（式 4、式 5），要 5% 以内就取满足它的最小 r。
+如果非要用“低秩逼近 ΔW”这个标准，就按可接受的相对误差反推 r：Eckart–Young 给出 ‖ΔW − ΔW_r‖_F / ‖ΔW‖_F = √(1 − E(r))（式 4、式 5），要 5% 以内就取满足它的最小 r。这么算出来的 r 通常大得没法用，这本身就是结论。
 
 E(r) 高只说明全参解可以被低秩逼近，不说明 LoRA 找得到它：根据 Shuttleworth et al. 2024，低秩下 LoRA 学出的更新与全参谱不同，会出现与预训练谱近似正交的新方向，有效秩不到全参的一半。E(r) 也只数能量、不数重要性——谱上大的方向对任务可以并不重要，真实的 loss 增量由曲率决定，二阶近似下是 ½ Σ_{i>r} h_i σ_i²。所以最后仍要扫几个 r 跑 held-out，逐层分别定，不要只看全模型平均。
 
 ## 内在维度与早期谱代理
+无全参 ckpt 时
 
 一种是内在维度法。把更新限制在一个随机 d 维子空间里训至收敛，画 loss–d 曲线找拐点，见式 6。
 
@@ -73,7 +74,7 @@ $$
 \theta=\theta_0+P\theta',\qquad P\in\mathbb{R}^{D\times d},\quad d\ll D,\qquad d^{*}=\min\bigl\{\,d:\ R(d)\ge 0.9\,R_{\mathrm{full}}\,\bigr\},
 $$
 
-其中 R 是验证集指标，R_full 是全参微调的结果。对应到 LoRA，有一个简单得多的做法：固定随机初始化的 A、只训 B。ΔW = BA 的行空间被限制在 A 的 r 维行空间内，可训练参数量 d·r。成本中等。
+其中 R 是验证集指标，R_full 是全参微调的结果。对应到 LoRA，有一个简单得多的做法：固定随机初始化的 A、只训 B。ΔW = BA 的行空间被限制在 A 的 r 维行空间内，可训练参数量 d·r。根据 Zhu et al. 2024，只训 B 比只训 A 有效，随机不训练的 A 和训过的 A 差不多；FLoRA（Hao et al. 2024）把这个更新近似成对梯度做一次随机投影。成本中等。
 
 另一种是早期谱代理，成本低。全参先跑 200 到 500 步，对累计更新做 SVD，见式 7。
 
@@ -81,9 +82,9 @@ $$
 S_T=\sum_{t=1}^{T}\Delta W_t,\qquad \Delta W_t=W_t-W_{t-1},
 $$
 
-再对 S_T 套用式 5 计算 E(r)。以 SGD 为例 ΔW_t = −η_t g_t，用 Adam 一类优化器时换成对应的更新量即可。改动的主方向在早期即已成形，此时 E(r) 曲线基本稳定，这条路成本最低。
+再对 S_T 套用式 5 计算 E(r)。以 SGD 为例 ΔW_t = −η_t g_t，用 Adam 一类优化器时换成对应的更新量即可。这条路的先例都是拿这个谱去做初始化，不是用它定 r——SLoRA（Babakniya et al. 2023）用一段全参后的 ΔW 初始化 LoRA，EVA（Paischer et al. 2024）用激活的增量 SVD。「主方向早期就成形、之后不再变」这个前提没有直接证据，反证倒有：GaLore（Zhao et al. 2024）默认每 200 步重取一次子空间。
 
-主方向早期成形观察比起全参训完再回头测，200 到 500 步的代价🉑以忽略。
+跑这几百步比起跑完，代价🉑以忽略；但拿到的谱只能当粗估。
 
 ## 模块选择、α 缩放与逐层 r
 
@@ -97,7 +98,7 @@ $$
 
 常取 α = 2r，使有效尺度 s 恒为 2。改 r 必须同步改 α，否则等于偷偷改了学习率——把 r 从 r₁ 换到 r₂ 而 α 不变，更新整体乘上 r₁/r₂。若 r 很大，α/r 会偏小，可考虑 α/√r 一类的稳定化缩放。
 
-逐层 r。E(r) 要按层分别算。通常越靠后的层衰减越慢、需要更大的 r，但逐层配置带来的收益往往不抵复杂度。
+逐层 r。E(r) 要按层分别算。根据 Biderman et al. 2024，首尾层的秩偏低、中间层偏高，MLP 比 attention 高；但逐层配置带来的收益往往不抵复杂度。
 
 ## 训后的参与比校验
 
@@ -113,7 +114,7 @@ $$
 
 E(r) ≥ 0.9975（即 5% 相对误差，由式 4、式 5 反推）说明改动方向被低秩捕获。式 4 逼近的是 ΔW 的 Frobenius 误差，训练优化的是 loss，两者只有在 loss 对 ΔW 各方向的敏感度相同时才一致。所以这是与全参差距小的必要条件代理，而非充分条件：截断 SVD 是最优近似，不代表训练找得到它，loss 相当也不代表解相同。最终仍要靠 held-out 验证。
 
-此外，所需的秩取决于数据量。数据越多，最优 ΔW 越可能带上高秩分量，同一任务样本从两万增到两百万，所需 r 会变大。内在维度的工作也显示，任务离预训练分布越远，需要的维度越高。
+此外，所需的秩取决于数据量。数据越多，最优 ΔW 越可能带上高秩分量，同一任务样本从两万增到两百万，所需 r 会变大；任务离预训练分布越远，需要的维度越高。
 
 
 ## 参考
@@ -127,3 +128,7 @@ E(r) ≥ 0.9975（即 5% 相对误差，由式 4、式 5 反推）说明改动�
 - [Paischer et al., *Parameter Efficient Fine-tuning via Explained Variance Adaptation*, 2024](https://arxiv.org/abs/2410.07170)
 - [Biderman et al., *LoRA Learns Less and Forgets Less*, 2024](https://arxiv.org/abs/2405.09673)
 - [Shuttleworth et al., *LoRA vs Full Fine-tuning: An Illusion of Equivalence*, 2024](https://arxiv.org/abs/2410.21228)
+- [Zhu et al., *Asymmetry in Low-Rank Adapters of Foundation Models*, 2024](https://arxiv.org/abs/2402.16842)
+- [Hao et al., *Low-Rank Adapters Are Secretly Gradient Compressors*, 2024](https://arxiv.org/abs/2402.03293)
+- [Babakniya et al., *SLoRA: Federated Parameter Efficient Fine-Tuning of Language Models*, 2023](https://arxiv.org/abs/2308.06522)
+- [Zhao et al., *GaLore: Memory-Efficient LLM Training by Gradient Low-Rank Projection*, 2024](https://arxiv.org/abs/2403.03507)

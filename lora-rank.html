@@ -62,25 +62,26 @@
 
       <h2>有全参 ckpt 时的直接测量</h2>
       <p>逐层算 \(\Delta W=W_{\mathrm{ft}}-W_0\)，做 SVD，得到奇异值谱 \(\sigma_1\ge\dots\ge\sigma_{\min(d,k)}\ge 0\)，画 \(E(r)\) 的整条曲线，不要只看一个 r 点。</p>
-      <p>前几十个奇异值之后曲线迅速变平，说明全参解近似低秩，r 取拐点附近；到 \(\min(d,k)\) 仍近似线性缓降、没有拐点，说明 \(\Delta W\) 不低秩，LoRA 大概率不合适——根据 <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a>，代码、数学这类任务上 LoRA 追不上全参，提高 r 也补不平。</p>
-      <p>按可接受的相对误差反推 r：<a href="https://doi.org/10.1007/BF02288367" target="_blank" rel="noreferrer">Eckart–Young</a> 给出 \(\|\Delta W-\Delta W_r\|_F/\|\Delta W\|_F=\sqrt{1-E(r)}\)（<a class="eq-ref" href="#zh-eq4">式 4</a>、<a class="eq-ref" href="#zh-eq5">式 5</a>），要 5% 以内就取满足它的最小 r。</p>
+      <p>读谱得到的答案通常很大。根据 <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 在代码、数学任务上的测量，4096×4096 的 \(W_q\) 要 1500 以上的秩才解释 \(\Delta W\) 90% 的方差，比常用 LoRA 秩大一两个数量级；数据越多秩越高，MLP 比 attention 高，首尾层比中间层低。<a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a> 测到的全参更新有效秩也在 400 以上。所以谱上一般没有能取 r 的拐点：\(\Delta W\) 本身不小秩，LoRA 也不是靠复现它起作用的——Biderman et al. 2024 报告，代码、数学这类任务上 LoRA 追不上全参，提高 r 也补不平。</p>
+      <p>如果非要用“低秩逼近 \(\Delta W\)”这个标准，就按可接受的相对误差反推 r：<a href="https://doi.org/10.1007/BF02288367" target="_blank" rel="noreferrer">Eckart–Young</a> 给出 \(\|\Delta W-\Delta W_r\|_F/\|\Delta W\|_F=\sqrt{1-E(r)}\)（<a class="eq-ref" href="#zh-eq4">式 4</a>、<a class="eq-ref" href="#zh-eq5">式 5</a>），要 5% 以内就取满足它的最小 r。这么算出来的 r 通常大得没法用，这本身就是结论。</p>
       <p>\(E(r)\) 高只说明全参解可以被低秩逼近，不说明 LoRA 找得到它：根据 <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a>，低秩下 LoRA 学出的更新与全参谱不同，会出现与预训练谱近似正交的新方向，有效秩不到全参的一半。\(E(r)\) 也只数能量、不数重要性——谱上大的方向对任务可以并不重要，真实的 loss 增量由曲率决定，二阶近似下是 \(\tfrac12\sum_{i>r}h_i\sigma_i^2\)。所以最后仍要扫几个 r 跑 held-out，逐层分别定，不要只看全模型平均。</p>
 
       <h2>内在维度与早期谱代理</h2>
+      <p>无全参 ckpt 时</p>
       <p>一种是内在维度法。把更新限制在一个随机 d 维子空间里训至收敛，画 loss–d 曲线找拐点，见<a class="eq-ref" href="#zh-eq6">式 6</a>。</p>
       <div class="formula-block" id="zh-eq6"><span class="formula-label">式 6</span>\[\theta=\theta_0+P\theta',\qquad P\in\mathbb{R}^{D\times d},\quad d\ll D,\qquad d^{*}=\min\bigl\{\,d:\ R(d)\ge 0.9\,R_{\mathrm{full}}\,\bigr\},\]</div>
-      <p>其中 \(R\) 是验证集指标，\(R_{\mathrm{full}}\) 是全参微调的结果。对应到 LoRA，有一个简单得多的做法：固定随机初始化的 \(A\)、只训 \(B\)。\(\Delta W=BA\) 的行空间被限制在 \(A\) 的 r 维行空间内，可训练参数量 \(d\cdot r\)。成本中等。</p>
+      <p>其中 \(R\) 是验证集指标，\(R_{\mathrm{full}}\) 是全参微调的结果。对应到 LoRA，有一个简单得多的做法：固定随机初始化的 \(A\)、只训 \(B\)。\(\Delta W=BA\) 的行空间被限制在 \(A\) 的 r 维行空间内，可训练参数量 \(d\cdot r\)。根据 <a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>，只训 B 比只训 A 有效，随机不训练的 A 和训过的 A 差不多；<a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA（Hao et al. 2024）</a>把这个更新近似成对梯度做一次随机投影。成本中等。</p>
       <p>另一种是早期谱代理，成本低。全参先跑 200 到 500 步，对累计更新做 SVD，见<a class="eq-ref" href="#zh-eq7">式 7</a>。</p>
       <div class="formula-block" id="zh-eq7"><span class="formula-label">式 7</span>\[S_T=\sum_{t=1}^{T}\Delta W_t,\qquad \Delta W_t=W_t-W_{t-1},\]</div>
-      <p>再对 \(S_T\) 套用<a class="eq-ref" href="#zh-eq5">式 5</a> 计算 \(E(r)\)。以 SGD 为例 \(\Delta W_t=-\eta_t g_t\)，用 Adam 一类优化器时换成对应的更新量即可。改动的主方向在早期即已成形，此时 \(E(r)\) 曲线基本稳定，这条路成本最低。</p>
-      <p class="note">主方向早期成形观察比起全参训完再回头测，200 到 500 步的代价🉑以忽略。</p>
+      <p>再对 \(S_T\) 套用<a class="eq-ref" href="#zh-eq5">式 5</a> 计算 \(E(r)\)。以 SGD 为例 \(\Delta W_t=-\eta_t g_t\)，用 Adam 一类优化器时换成对应的更新量即可。这条路的先例都是拿这个谱去做初始化，不是用它定 r——<a href="https://arxiv.org/abs/2308.06522" target="_blank" rel="noreferrer">SLoRA（Babakniya et al. 2023）</a>用一段全参后的 \(\Delta W\) 初始化 LoRA，<a href="https://arxiv.org/abs/2410.07170" target="_blank" rel="noreferrer">EVA（Paischer et al. 2024）</a>用激活的增量 SVD。「主方向早期就成形、之后不再变」这个前提没有直接证据，反证倒有：<a href="https://arxiv.org/abs/2403.03507" target="_blank" rel="noreferrer">GaLore（Zhao et al. 2024）</a>默认每 200 步重取一次子空间。</p>
+      <p class="note">跑这几百步比起跑完，代价🉑以忽略；但拿到的谱只能当粗估。</p>
 
       <h2>模块选择、α 缩放与逐层 r</h2>
       <p>同等参数量下，“全部线性层配小 r”通常优于“只用 q、v 配大 r”，优先覆盖 q、k、v、o 与 FFN。参数量相同不代表表达能力相同：前者可选的更新方向更多，只是每个方向更窄。</p>
       <p>α 的缩放。真正生效的是 \(\alpha/r\)，见<a class="eq-ref" href="#zh-eq8">式 8</a>。</p>
       <div class="formula-block" id="zh-eq8"><span class="formula-label">式 8</span>\[s=\frac{\alpha}{r},\qquad \Delta W=s\,BA.\]</div>
       <p>常取 \(\alpha=2r\)，使有效尺度 \(s\) 恒为 2。改 r 必须同步改 α，否则等于偷偷改了学习率——把 r 从 \(r_1\) 换到 \(r_2\) 而 α 不变，更新整体乘上 \(r_1/r_2\)。若 r 很大，\(\alpha/r\) 会偏小，可考虑 \(\alpha/\sqrt{r}\) 一类的稳定化缩放。</p>
-      <p>逐层 r。\(E(r)\) 要按层分别算。通常越靠后的层衰减越慢、需要更大的 r，但逐层配置带来的收益往往不抵复杂度。</p>
+      <p>逐层 r。\(E(r)\) 要按层分别算。根据 <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a>，首尾层的秩偏低、中间层偏高，MLP 比 attention 高；但逐层配置带来的收益往往不抵复杂度。</p>
 
       <h2>训后的参与比校验</h2>
       <p>对训好的 \(BA\) 做 SVD，算参与比，见<a class="eq-ref" href="#zh-eq9">式 9</a>。</p>
@@ -89,7 +90,7 @@
 
       <h2>边界</h2>
       <p>\(E(r)\ge 0.9975\)（即 5% 相对误差，由<a class="eq-ref" href="#zh-eq4">式 4</a>、<a class="eq-ref" href="#zh-eq5">式 5</a> 反推）说明改动方向被低秩捕获。<a class="eq-ref" href="#zh-eq4">式 4</a> 逼近的是 \(\Delta W\) 的 Frobenius 误差，训练优化的是 loss，两者只有在 loss 对 \(\Delta W\) 各方向的敏感度相同时才一致。所以这是与全参差距小的必要条件代理，而非充分条件：截断 SVD 是最优近似，不代表训练找得到它，loss 相当也不代表解相同。最终仍要靠 held-out 验证。</p>
-      <p>此外，所需的秩取决于数据量。数据越多，最优 \(\Delta W\) 越可能带上高秩分量，同一任务样本从两万增到两百万，所需 r 会变大。内在维度的工作也显示，任务离预训练分布越远，需要的维度越高。</p>
+      <p>此外，所需的秩取决于数据量。数据越多，最优 \(\Delta W\) 越可能带上高秩分量，同一任务样本从两万增到两百万，所需 r 会变大；任务离预训练分布越远，需要的维度越高。</p>
 
       <h2>参考</h2>
       <ul class="paper-list">
@@ -102,6 +103,10 @@
         <li><a href="https://arxiv.org/abs/2410.07170" target="_blank" rel="noreferrer">Paischer et al., <em>Parameter Efficient Fine-tuning via Explained Variance Adaptation</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al., <em>LoRA Learns Less and Forgets Less</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al., <em>LoRA vs Full Fine-tuning: An Illusion of Equivalence</em>, 2024</a></li>
+        <li><a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al., <em>Asymmetry in Low-Rank Adapters of Foundation Models</em>, 2024</a></li>
+        <li><a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">Hao et al., <em>Low-Rank Adapters Are Secretly Gradient Compressors</em>, 2024</a></li>
+        <li><a href="https://arxiv.org/abs/2308.06522" target="_blank" rel="noreferrer">Babakniya et al., <em>SLoRA: Federated Parameter Efficient Fine-Tuning of Language Models</em>, 2023</a></li>
+        <li><a href="https://arxiv.org/abs/2403.03507" target="_blank" rel="noreferrer">Zhao et al., <em>GaLore: Memory-Efficient LLM Training by Gradient Low-Rank Projection</em>, 2024</a></li>
       </ul>
     </article>
 
@@ -131,25 +136,26 @@
 
       <h2>Measuring directly with a full checkpoint</h2>
       <p>Compute \(\Delta W=W_{\mathrm{ft}}-W_0\) layer by layer, take the SVD to get \(\sigma_1\ge\dots\ge\sigma_{\min(d,k)}\ge 0\), and plot the whole \(E(r)\) curve rather than a single rank.</p>
-      <p>If the curve flattens after a few dozen singular values, the full-fine-tuning solution is approximately low-rank and r sits near the knee. If it keeps decaying roughly linearly up to \(\min(d,k)\) with no knee, \(\Delta W\) is not low rank and LoRA is probably the wrong tool: per <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a>, LoRA trails full fine-tuning on code and math, and raising r does not close the gap.</p>
-      <p>Fix the relative error you can accept and invert it: <a href="https://doi.org/10.1007/BF02288367" target="_blank" rel="noreferrer">Eckart–Young</a> gives \(\|\Delta W-\Delta W_r\|_F/\|\Delta W\|_F=\sqrt{1-E(r)}\) (<a class="eq-ref" href="#en-eq4">Equation 4</a>, <a class="eq-ref" href="#en-eq5">Equation 5</a>), so a 5% budget means the smallest r that satisfies it.</p>
+      <p>The answer the spectrum gives is usually large. Per <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a>, measured on code and math tasks, a \(4096\times4096\) \(W_q\) needs a rank above 1500 to explain 90% of the variance in \(\Delta W\), one to two orders of magnitude above typical LoRA ranks; rank grows with more data, MLP modules rank above attention, and first and last layers rank below middle ones. <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a> measure effective ranks above 400 for full fine-tuning updates. So the curve usually offers no knee to read an r off: \(\Delta W\) is not low rank, and LoRA does not work by reproducing it — Biderman et al. 2024 report that on code and math, LoRA trails full fine-tuning and raising r does not close the gap.</p>
+      <p>If you insist on the "low-rank approximation of \(\Delta W\)" standard, fix the relative error you can accept and invert it: <a href="https://doi.org/10.1007/BF02288367" target="_blank" rel="noreferrer">Eckart–Young</a> gives \(\|\Delta W-\Delta W_r\|_F/\|\Delta W\|_F=\sqrt{1-E(r)}\) (<a class="eq-ref" href="#en-eq4">Equation 4</a>, <a class="eq-ref" href="#en-eq5">Equation 5</a>), so a 5% budget means the smallest r that satisfies it. The r that comes out is usually far too large to use, which is itself the conclusion.</p>
       <p>A high \(E(r)\) only says the full-fine-tuning solution can be approximated at low rank, not that LoRA finds it: per <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a>, at low rank LoRA learns an update whose spectrum differs from full fine-tuning, with new directions nearly orthogonal to the pretrained spectrum and an effective rank under half of full fine-tuning's. \(E(r)\) also counts energy, not importance — a direction that is large in the spectrum can matter little for the task, and the real change in loss is set by curvature, \(\tfrac12\sum_{i>r}h_i\sigma_i^2\) to second order. So still sweep a few ranks against held-out data, per layer rather than as a model-wide average.</p>
 
       <h2>Intrinsic dimension and the early spectral proxy</h2>
+      <p>Without a full checkpoint</p>
       <p>The first is the intrinsic-dimension method. Restrict the update to a random d-dimensional subspace, train to convergence, and look for the knee of the loss–d curve:</p>
       <div class="formula-block" id="en-eq6"><span class="formula-label">Equation 6</span>\[\theta=\theta_0+P\theta',\qquad P\in\mathbb{R}^{D\times d},\quad d\ll D,\qquad d^{*}=\min\bigl\{\,d:\ R(d)\ge 0.9\,R_{\mathrm{full}}\,\bigr\},\]</div>
-      <p>where \(R\) is a validation metric and \(R_{\mathrm{full}}\) is the full fine-tuning result. Translated back to LoRA, it reduces to something much cheaper: freeze a randomly initialized \(A\) and train only \(B\). The row space of \(\Delta W=BA\) is confined to the \(r\)-dimensional row space of \(A\), with \(d\cdot r\) trainable parameters. Moderate cost.</p>
+      <p>where \(R\) is a validation metric and \(R_{\mathrm{full}}\) is the full fine-tuning result. Translated back to LoRA, it reduces to something much cheaper: freeze a randomly initialized \(A\) and train only \(B\). The row space of \(\Delta W=BA\) is confined to the \(r\)-dimensional row space of \(A\), with \(d\cdot r\) trainable parameters. Per <a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al. 2024</a>, training B alone is more effective than training A alone, and a random untrained A performs nearly as well as a fine-tuned one; <a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">FLoRA (Hao et al. 2024)</a> approximates this update as a random projection of the gradient. Moderate cost.</p>
       <p>The second is the early spectral proxy, and it is cheap. Run full fine-tuning for 200–500 steps and take the SVD of the accumulated update:</p>
       <div class="formula-block" id="en-eq7"><span class="formula-label">Equation 7</span>\[S_T=\sum_{t=1}^{T}\Delta W_t,\qquad \Delta W_t=W_t-W_{t-1},\]</div>
-      <p>then apply <a class="eq-ref" href="#en-eq5">Equation 5</a> to \(S_T\) to get \(E(r)\). Under SGD, \(\Delta W_t=-\eta_t g_t\); with Adam-style optimizers, substitute the corresponding update. The dominant directions of the change take shape early, so the \(E(r)\) curve is already stable at that point. This is the cheapest route.</p>
-      <p class="note">The observation that dominant directions take shape early: compared with training to completion and measuring afterwards, 200–500 steps are negligible.</p>
+      <p>then apply <a class="eq-ref" href="#en-eq5">Equation 5</a> to \(S_T\) to get \(E(r)\). Under SGD, \(\Delta W_t=-\eta_t g_t\); with Adam-style optimizers, substitute the corresponding update. The precedents for this route all use the spectrum for initialization rather than for choosing r — <a href="https://arxiv.org/abs/2308.06522" target="_blank" rel="noreferrer">SLoRA (Babakniya et al. 2023)</a> initializes LoRA from the SVD of a short full fine-tuning run, and <a href="https://arxiv.org/abs/2410.07170" target="_blank" rel="noreferrer">EVA (Paischer et al. 2024)</a> uses an incremental SVD of activations. The premise that the dominant directions form early and then stop moving has no direct support, and there is counter-evidence: <a href="https://arxiv.org/abs/2403.03507" target="_blank" rel="noreferrer">GaLore (Zhao et al. 2024)</a> re-extracts its subspace every 200 steps by default.</p>
+      <p class="note">A few hundred steps are negligible next to a full run, but the spectrum they give you is only a rough estimate.</p>
 
       <h2>Target modules, α scaling, and per-layer rank</h2>
       <p>At equal parameter budget, "all linear layers with a small r" usually beats "q and v only with a large r". Cover q, k, v, o and the FFN layers first. Equal parameter count is not equal expressive capacity: the broader configuration has more directions available, each a narrower one.</p>
       <p>The α scaling. What actually takes effect is \(\alpha/r\):</p>
       <div class="formula-block" id="en-eq8"><span class="formula-label">Equation 8</span>\[s=\frac{\alpha}{r},\qquad \Delta W=s\,BA.\]</div>
       <p>The common choice \(\alpha=2r\) holds the effective scale \(s\) at 2. If you change r you must change α with it, or you have quietly changed the learning rate: moving from \(r_1\) to \(r_2\) with α fixed multiplies the whole update by \(r_1/r_2\). For very large r, \(\alpha/r\) becomes small, and a stabilization such as \(\alpha/\sqrt{r}\) is worth considering.</p>
-      <p>Per-layer rank. Read \(E(r)\) for each layer separately. Later layers tend to decay more slowly and want a larger r, but per-layer configuration rarely repays its complexity.</p>
+      <p>Per-layer rank. Read \(E(r)\) for each layer separately. Per <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a>, first and last layers rank lower and middle layers higher, and MLP modules rank above attention; but per-layer configuration rarely repays its complexity.</p>
 
       <h2>Checking the trained adapter</h2>
       <p>Take the SVD of the trained \(BA\) and compute the participation ratio:</p>
@@ -158,7 +164,7 @@
 
       <h2>Limits</h2>
       <p>\(E(r)\ge 0.9975\) — a 5% relative error, inverted from <a class="eq-ref" href="#en-eq4">Equation 4</a> and <a class="eq-ref" href="#en-eq5">Equation 5</a> — says that the update is captured by a low-rank subspace. <a class="eq-ref" href="#en-eq4">Equation 4</a> approximates the Frobenius error of \(\Delta W\), while training minimizes a loss; the two agree only if the loss is equally sensitive to every direction of \(\Delta W\). So this is a necessary-condition proxy for being close to full fine-tuning, not a sufficient one: the truncated SVD is the optimal approximation, but that does not mean training finds it, and comparable loss does not mean the same solution. Held-out validation still decides.</p>
-      <p>The required rank also depends on data volume. More data makes high-rank components of the optimal \(\Delta W\) more likely: for the same task, going from twenty thousand samples to two million raises the r you need. Work on intrinsic dimension points the same way, with tasks further from the pretraining distribution requiring more dimensions.</p>
+      <p>The required rank also depends on data volume. More data makes high-rank components of the optimal \(\Delta W\) more likely: for the same task, going from twenty thousand samples to two million raises the r you need. Tasks further from the pretraining distribution need more dimensions as well.</p>
 
       <h2>References</h2>
       <ul class="paper-list">
@@ -171,6 +177,10 @@
         <li><a href="https://arxiv.org/abs/2410.07170" target="_blank" rel="noreferrer">Paischer et al., <em>Parameter Efficient Fine-tuning via Explained Variance Adaptation</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al., <em>LoRA Learns Less and Forgets Less</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al., <em>LoRA vs Full Fine-tuning: An Illusion of Equivalence</em>, 2024</a></li>
+        <li><a href="https://arxiv.org/abs/2402.16842" target="_blank" rel="noreferrer">Zhu et al., <em>Asymmetry in Low-Rank Adapters of Foundation Models</em>, 2024</a></li>
+        <li><a href="https://arxiv.org/abs/2402.03293" target="_blank" rel="noreferrer">Hao et al., <em>Low-Rank Adapters Are Secretly Gradient Compressors</em>, 2024</a></li>
+        <li><a href="https://arxiv.org/abs/2308.06522" target="_blank" rel="noreferrer">Babakniya et al., <em>SLoRA: Federated Parameter Efficient Fine-Tuning of Language Models</em>, 2023</a></li>
+        <li><a href="https://arxiv.org/abs/2403.03507" target="_blank" rel="noreferrer">Zhao et al., <em>GaLore: Memory-Efficient LLM Training by Gradient Low-Rank Projection</em>, 2024</a></li>
       </ul>
     </article>
   </main>
