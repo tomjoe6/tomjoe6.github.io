@@ -40,7 +40,7 @@
       <a class="back-link" href="blog.html">← 返回博客</a>
       <div class="article-meta">2026-09-14 · 机器学习 · 参数高效微调</div>
       <h1>LoRA 的 r 怎么定</h1>
-      <p>结论是没有准确公式可算，只能大致扫/估计</p>
+      <p>结论是没有准确公式🉑算，只能大致扫/估计</p>
       <h2>秩与奇异值谱</h2>
       <p>一个 \(d\times k\) 的矩阵有 \(\min(d,k)\) 个奇异值。秩等于非零奇异值的个数，回答有几个非零方向。</p>
       <p>以 \(d=k=5120\) 的层为例，\(\Delta W\) 有 5120 个奇异值。全参微调之后通常是满秩的：5120 个奇异值全部非零，只是大多数极小。<a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 在代码、数学任务上测到的 \(\Delta W\) 谱就是这种样子，衰减很慢。所以在这个尺度上问秩是多少得不到任何信息，有信息的是衰减速度。</p>
@@ -64,7 +64,7 @@
       <h2>有全参 ckpt 时的直接测量</h2>
       <p>逐层算 \(\Delta W=W_{\mathrm{ft}}-W_0\)，做 SVD，得到奇异值谱 \(\sigma_1\ge\dots\ge\sigma_{\min(d,k)}\ge 0\)，画 \(E(r)\) 整条曲线，不要只看一个 r 点。</p>
       <p>这个谱用于判断要不要 LoRA。根据 <a href="https://arxiv.org/abs/2405.09673" target="_blank" rel="noreferrer">Biderman et al. 2024</a> 在代码、数学任务上的测量，4096×4096 的 \(W_q\) 要 1500 以上的秩才解释 \(\Delta W\) 90% 的方差，比常用 LoRA 秩大一两个数量级；同一批实验里，他们给出的实用建议是按显存约束挑 r，16 配全部模块是个好起点。<a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a> 测到的全参更新有效秩也在 400 以上。所以谱衰减慢不是「r 该取大」的信号，而是这个任务上 LoRA 追不上全参。</p>
-      <p>\(E(r)\) 数的是能量，谱上大的方向对任务可以并不重要，真实的 loss 增量由曲率决定，二阶近似下是 \(\tfrac12\sum_{i>r}h_i\sigma_i^2\)，\(h_i\) 是 loss 在方向 i 上的曲率。所以拿 \(E(r)\) 反推 r 得不到可用的数。</p>
+      <p>\(E(r)\) 数的是能量，谱上大的方向对任务可以并不重要，真实的 loss 增量由曲率决定，二阶近似下是 \(\tfrac12\sum_{i>r}h_i\sigma_i^2\)，\(h_i\) 是 loss 在方向 i 上的曲率。所以拿 \(E(r)\) 反推 r 得不到🉑用的数。</p>
       <p>\(E(r)\) 高只说明全参解可以被低秩逼近：根据 <a href="https://arxiv.org/abs/2410.21228" target="_blank" rel="noreferrer">Shuttleworth et al. 2024</a>，低秩下 LoRA 学出的更新与全参谱不同，会出现与预训练谱近似正交的新方向，有效秩不到全参的一半。所以最后仍要在 held-out 上确认。</p>
 
       <h2>甜点在哪</h2>
@@ -81,7 +81,7 @@
       <p>早期谱代理。全参先跑 200 到 500 步，对累计更新做 SVD，见<a class="eq-ref" href="#zh-eq7">式 7</a>。</p>
       <div class="formula-block" id="zh-eq7"><span class="formula-label">式 7</span>\[S_T=\sum_{t=1}^{T}\Delta W_t,\qquad \Delta W_t=W_t-W_{t-1},\]</div>
       <p>再对 \(S_T\) 套用<a class="eq-ref" href="#zh-eq5">式 5</a> 计算 \(E(r)\)。以 SGD 为例 \(\Delta W_t=-\eta_t g_t\)，用 Adam 一类优化器时换成对应的更新量即可。这条路的先例都是拿谱做初始化，不是拿它定 r——<a href="https://arxiv.org/abs/2308.06522" target="_blank" rel="noreferrer">SLoRA（Babakniya et al. 2023）</a>用一段全参后的 \(\Delta W\) 初始化 LoRA；<a href="https://arxiv.org/abs/2410.07170" target="_blank" rel="noreferrer">EVA（Paischer et al. 2024）</a>用激活的增量 SVD 初始化 A，并按解释方差把给定的秩预算分到各层（它的谱来自初始化时的激活，不是训了几百步的 \(\Delta W\)）。</p>
-      <p class="note">跑这几百步比起跑完，代价可以忽略；但拿到的谱只能当粗估。</p>
+      <p class="note">跑这几百步比起跑完，代价🉑以忽略；但拿到的谱只能当粗估。</p>
 
       <h2>模块选择、α 缩放与逐层 r</h2>
       <p>模块选择。QLoRA（<a href="https://arxiv.org/abs/2305.14314" target="_blank" rel="noreferrer">Dettmers et al. 2023</a>）消融出来的结论是把 adapter 加到全部线性层（含 FFN），只配 q、v 会明显掉质量——覆盖面比秩更关键。所以同等参数量下，“全部线性层配小 r”优于“只用 q、v 配大 r”：参数量相同不代表表达能力相同，前者可选的更新方向更多，只是每个方向更窄。</p>
