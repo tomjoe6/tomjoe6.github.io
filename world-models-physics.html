@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="A technical note on physical consistency in state-of-the-art video generation models, measurement-based evaluation, and scalable research directions.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <title>?????????? ? ???</title>
+  <script>
+    window.MathJax = {
+      tex: { inlineMath: [["\\(", "\\)"], ["$", "$"]], displayMath: [["\\[", "\\]"]] },
+      svg: { fontCache: "global" }
+    };
+  </script>
+  <script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+  <style>
+    :root { color-scheme:light; --paper:#f4f4f2; --paper-soft:#fbfbfa; --ink:#1f1e1b; --muted:#5f5a52; --line:#d8cbb8; --clay:#b85c38; --clay-dark:#873f2b; --blue:#526b7c; --sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif; --serif:Georgia,"Times New Roman","Songti SC",serif; }
+    * { box-sizing:border-box; } html { scroll-behavior:smooth; } body { margin:0; min-height:100vh; background:var(--paper); color:var(--ink); font-family:var(--sans); } a { color:inherit; text-decoration-color:rgba(31,30,27,.35); text-decoration-thickness:1px; text-underline-offset:4px; } a:hover { color:var(--clay-dark); } button { font:inherit; }
+    .site-shell { width:min(940px,calc(100% - 40px)); margin:0 auto; } .topbar { position:sticky; top:0; z-index:20; background:rgba(244,244,242,.88); backdrop-filter:blur(16px); } .topbar-inner { width:min(940px,calc(100% - 40px)); min-height:56px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:18px; }
+    .brand { display:inline-flex; align-items:center; gap:11px; color:var(--ink); text-decoration:none; } .brand-mark { width:28px; height:28px; display:grid; place-items:center; background:var(--ink); color:var(--paper); font-family:var(--serif); font-size:16px; } .brand span:last-child { font-size:15px; font-weight:680; }
+    .nav-actions,.site-nav { display:flex; align-items:center; } .nav-actions { gap:18px; } .site-nav { gap:20px; color:var(--muted); font-size:13px; } .site-nav a { text-decoration:none; } .site-nav a[aria-current="page"] { color:var(--ink); font-weight:650; }
+    .language-switch { display:grid; grid-template-columns:repeat(2,1fr); width:104px; padding:3px; border:1px solid var(--line); background:#e8e8e4; } .language-switch button { min-height:28px; border:0; background:transparent; color:var(--muted); cursor:pointer; } .language-switch button.is-active { background:var(--ink); color:var(--paper); }
+    .article { width:min(760px,100%); padding:34px 0 56px; animation:riseIn .92s cubic-bezier(.16,1,.3,1) both; } .back-link { display:inline-flex; margin-bottom:24px; color:var(--blue); font-size:13px; font-weight:650; text-decoration:none; } .article-meta { color:var(--clay-dark); font-size:12px; font-weight:760; letter-spacing:.08em; text-transform:uppercase; }
+    h1,p { margin-top:0; } h1 { margin:10px 0 16px; font-family:var(--serif); font-size:clamp(28px,4vw,38px); font-weight:500; line-height:1.16; } p,li { color:var(--muted); font-size:15px; line-height:1.82; } .lead { color:var(--ink); font-size:16px; font-weight:600; line-height:1.72; }
+    .formula-block { overflow-x:auto; margin:18px 0; padding:12px 14px; border:1px solid var(--line); background:var(--paper-soft); } .note { margin:18px 0; padding:14px 16px; border-left:3px solid var(--clay); background:rgba(251,248,242,.72); color:var(--ink); font-size:14px; line-height:1.78; } .references-title { margin:32px 0 10px; color:var(--ink); font-family:var(--serif); font-size:20px; } .paper-list { display:grid; gap:8px; padding-left:0; list-style:none; } .paper-list a { color:var(--clay-dark); font-weight:650; } .footer { padding:26px 0 36px; color:var(--muted); font-size:13px; }
+    @keyframes riseIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } } [data-lang-content][hidden] { display:none; }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; } } @media (max-width:560px) { .site-shell,.topbar-inner { width:min(100% - 28px,940px); } .topbar-inner { flex-direction:column; padding:12px 0; align-items:flex-start; } .nav-actions { width:100%; justify-content:space-between; gap:10px; } .site-nav { gap:14px; } }
+      .article-figure { margin: 26px 0 30px; } .article-figure img { display:block; width:100%; height:auto; border:1px solid var(--line); background:#fff; } .article-figure figcaption { margin-top:10px; color:var(--muted); font-size:13px; line-height:1.7; }
+  </style>
+  <link rel="stylesheet" href="site-polish.css?v=20260809-6">
+  <script defer src="site-polish.js?v=20260809-6"></script>
+</head>
+<body data-page="blog">
+  <header class="topbar"><div class="topbar-inner">
+    <a class="brand" href="index.html" aria-label="Juntong Cui home"><span class="brand-mark">C</span><span data-i18n="brand"></span></a>
+    <div class="nav-actions"><nav class="site-nav" aria-label="Primary navigation"><a href="index.html" data-i18n="navHome"></a><a href="blog.html" aria-current="page" data-i18n="navBlog"></a><a href="photography.html" data-i18n="navPhotography"></a></nav><div class="language-switch" aria-label="Language switch"><button type="button" data-lang="zh">中文</button><button type="button" data-lang="en">EN</button></div></div>
+  </div></header>
+
+  <main class="site-shell">
+    <article class="article" data-lang-content="zh" hidden>
+      <a class="back-link" href="blog.html">? ????</a>
+      <div class="article-meta">2026-10-09 ? ???? ? ???? ? ????</div>
+      <h1>???????????SOTA ??????????????</h1>
+      <p class="lead">??????????? world model ???????????????????????????????????????????????????????????</p>
+
+      <p>Einsia AI ?????????? <em>World Models' Last Exam in Physics</em>?????????????????????????????????? 40 ????????????????????????????? 9 ??????8 ????????????? 4 ??????? 1,280 ????</p>
+
+      <figure class="article-figure">
+        <img src="assets/blog/world-models-physics/figure-1-benchmark.png" alt="?? Figure 1?benchmark ?????????????????">
+        <figcaption>? 1?benchmark ???????????????????????????? Figure 1?<a href="https://arxiv.org/abs/2610.08791" target="_blank" rel="noreferrer">????</a>?</figcaption>
+      </figure>
+
+      <p>??????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????</p>
+
+      <p>?????????????????????????????? (C(V)) ????????????????(P(V)) ???????????????</p>
+      <div class="formula-block">\[S(V)=0.15C(V)+0.85\widetilde P(V),\qquad \widetilde P(V)=\begin{cases}P(V),&C(V)\geq80,\\0,&C(V)<80.\end{cases}\]</div>
+      <p>???(C(V)geq80) ??????????????????????????????????????????????????????????</p>
+
+      <p>?????????????? 57.76/100???????????????????? 3.45??? 8 ???????????????????????????????????????????????????????? 96 ???????? 98 ????????????????????? 50 ?? 15 ??</p>
+
+      <figure class="article-figure">
+        <img src="assets/blog/world-models-physics/figure-2-difficulty.png" alt="?? Figure 3?????????????">
+        <figcaption>? 2??????????????Easy?Medium?Hard ???? 15?15?10 ?????????????????????????????????? Figure 3?<a href="https://arxiv.org/abs/2610.08791" target="_blank" rel="noreferrer">????</a>?</figcaption>
+      </figure>
+
+      <p>????????????????????????????????????????? 26.61????????????????????????????????????? 45? ?????????????????????????????????? (H) ????? (R) ??????</p>
+      <div class="formula-block">\[r_{\mathrm{spatial}}=\left|\frac{H}{R}-\frac14\right|.\]</div>
+      <p>???????????????????????????????????????????????????????????????????????????????????????????????</p>
+
+      <figure class="article-figure">
+        <img src="assets/blog/world-models-physics/figure-3-qualitative.png" alt="?? Figure 2??????????????????">
+        <figcaption>? 3??????????????????????????????????????????????????????????????? Figure 2?<a href="https://arxiv.org/abs/2610.08791" target="_blank" rel="noreferrer">????</a>?</figcaption>
+      </figure>
+
+      <p>??????????????????????????????????????????????????????????????????????????????????<strong>????????</strong>???????????????????????????????????????????</p>
+
+      <p>?????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????????? rollout ????</p>
+
+      <p>????? benchmark ??????????????????? scaling law????????????????????????????????????????????????? token?????????????????????????????????????????????????????????????????????????????</p>
+
+      <p>????????????????????????????????????????????????????????????????????????????????????????? scale??????????????????????????????????????? rollout ????????????????????????????????????????? benchmark ???????????????</p>
+
+
+      <p class="references-title">????</p>
+      <ul class="paper-list">
+        <li><a href="https://arxiv.org/abs/2610.08791" target="_blank" rel="noreferrer">Gao et al., <em>World Models' Last Exam in Physics</em>, 2026</a></li>
+        <li><a href="https://arxiv.org/abs/2406.03520" target="_blank" rel="noreferrer">Bansal et al., <em>VideoPhy: Evaluating Physical Commonsense for Video Generation</em>, 2024</a></li>
+        <li><a href="https://research.nvidia.com/labs/cosmos-lab/phyworldbench/" target="_blank" rel="noreferrer">NVIDIA Cosmos Lab, <em>PhyWorldBench</em></a></li>
+        <li><a href="https://arxiv.org/abs/2506.09985" target="_blank" rel="noreferrer">Assran et al., <em>V-JEPA 2</em>, 2025</a></li>
+        <li><a href="https://arxiv.org/abs/2409.14047" target="_blank" rel="noreferrer">Karaev et al., <em>CoTracker3</em>, 2024</a></li>
+        <li><a href="https://arxiv.org/abs/2408.00714" target="_blank" rel="noreferrer">Ravi et al., <em>SAM 2</em>, 2024</a></li>
+      </ul>
+    </article>
+
+    <article class="article" data-lang-content="en">
+      <a class="back-link" href="blog.html">? Back to Blog</a>
+      <div class="article-meta">2026-10-09 ? Machine Learning ? World Models ? Video Generation</div>
+      <h1>Visual Coherence Is Not Physical Understanding: SOTA Video Models Still Struggle with Physical Consistency</h1>
+      <p class="lead">If video generation models are to serve as world models for prediction, planning, or embodied interaction, evaluation must go beyond visual fidelity and temporal continuity. The generated sequence must also reproduce measurable physical relationships under controlled conditions.</p>
+
+      <p>The Einsia AI team recently released the preprint <em>World Models' Last Exam in Physics</em>. Instead of asking a vision-language model to directly judge whether a video ?looks physical,? the benchmark defines 40 controlled tasks across nine physical families, including mechanics, optics, fluids, phase transitions, electromagnetism, and surface tension. Eight video models generate four samples per task, producing 1,280 videos in total.</p>
+
+      <figure class="article-figure">
+        <img src="assets/blog/world-models-physics/figure-1-benchmark.png" alt="Figure 1: benchmark scope, generation protocol, measurement pipeline, and overall performance">
+        <figcaption>Figure 1. Benchmark scope, generation protocol, measurement pipeline, and overall results. Source: Figure 1 of the <a href="https://arxiv.org/abs/2610.08791" target="_blank" rel="noreferrer">paper</a>.</figcaption>
+      </figure>
+
+      <p>Each task specifies an initial image, a video prompt, experimental assumptions, and measurable physical criteria. The evaluator first checks whether objects remain identifiable, required events occur, and trajectories can be recovered. It then uses tracking, segmentation, geometric fitting, region-of-interest photometry, and temporal analysis to extract positions, angles, periods, trajectories, and liquid levels. The physical test does not require a reference video; it checks whether observables recovered from the generated sequence satisfy the predefined relationship.</p>
+
+      <p>The paper separates evidence availability from physical correctness. Let (C(V)) denote temporal consistency and task observability, and (P(V)) the physical measurement score:</p>
+      <div class="formula-block">\[S(V)=0.15C(V)+0.85\widetilde P(V),\qquad \widetilde P(V)=\begin{cases}P(V),&C(V)\geq80,\\0,&C(V)<80.\end{cases}\]</div>
+      <p>Passing (C(V)\geq80) therefore means that the video has enough evidence to enter the physical evaluation. It does not establish that the physical relationship is correct.</p>
+
+      <p>The results are weak. The best overall score is only 57.76/100. The task ?melting ice containing a stone? has a model-averaged score of 3.45, and all eight models receive zero physical scores there; the nonzero composite values mainly come from the consistency term. Light reflection and charged-sphere equilibrium show strong model-to-model separation: the best results are close to 96 and 98, while the other models reach no more than about 50 and 15.</p>
+
+      <figure class="article-figure">
+        <img src="assets/blog/world-models-physics/figure-2-difficulty.png" alt="Figure 3: model performance on easy, medium, and hard tasks">
+        <figcaption>Figure 2. Composite scores across easy, medium, and hard tasks. Source: Figure 3 of the <a href="https://arxiv.org/abs/2610.08791" target="_blank" rel="noreferrer">paper</a>.</figcaption>
+      </figure>
+
+      <p>Free fall makes the gap especially clear. Every available video passes the automatic consistency gate, yet the cross-model average score is only 26.61. The sequence can be continuous and the object can remain visible while the trajectory still violates the quantitative relation implied by gravity. For a 45-degree projectile returning to its launch height, the benchmark evaluates the residual</p>
+      <div class="formula-block">\[r_{\mathrm{spatial}}=\left|\frac{H}{R}-\frac14\right|.\]</div>
+      <p>The ratio cancels the initial speed and gravitational acceleration and avoids absolute spatial calibration, but it still depends on an appropriate side-view geometry and does not remove perspective distortion.</p>
+
+      <figure class="article-figure">
+        <img src="assets/blog/world-models-physics/figure-3-qualitative.png" alt="Figure 2: qualitative comparison on light reflection and charged-sphere equilibrium">
+        <figcaption>Figure 3. Qualitative comparison on light reflection and charged-sphere equilibrium. Source: Figure 2 of the <a href="https://arxiv.org/abs/2610.08791" target="_blank" rel="noreferrer">paper</a>.</figcaption>
+      </figure>
+
+      <p>The benchmark exposes several distinct failure modes: the required event does not occur, the target object cannot be observed reliably, the event occurs but its geometric or dynamical relation is wrong, or constraints drift during a multi-step process. The benchmark measures <strong>observable physical consistency</strong> under stated assumptions; it does not certify complete physical understanding or unmeasured properties.</p>
+
+      <p>Data and objectives are plausible explanations. Internet videos are mostly passive observations. They rarely vary mass, initial velocity, applied force, boundary conditions, or material properties in a controlled way, and they seldom provide paired counterfactual trajectories. More useful training data for physical world models may be intervention-based spatiotemporal sequences with controlled variables, state trajectories, event labels, and failure evidence. Objectives may also need to include trajectory constraints, event ordering, conservation relations, and long-horizon rollout stability in addition to pixel or feature similarity.</p>
+
+      <p>A single cross-sectional benchmark is not enough to establish a stable physical scaling law. To test whether increasing model, data, and compute scale is the best path, researchers would need controlled comparisons of model size, training tokens, compute, and physical scores, together with category-level gains. Otherwise, an increase in score can still reflect changes in architecture, data mixture, or inference settings.</p>
+
+      <p>For resource-constrained teams, the entry point need not be a larger base model. Measurement-driven rewards, intervention and counterfactual data, physics-constrained post-training, and representations that transfer across tasks may all be scalable directions. ?Scalable? should mean that a method improves with data or compute and remains effective across models, tasks, and longer closed-loop rollouts. The important question after the rapid growth of papers is which methods can transfer gains from one benchmark to broader physical world modeling.</p>
+
+      <p class="references-title">References</p>
+      <ul class="paper-list">
+        <li><a href="https://arxiv.org/abs/2610.08791" target="_blank" rel="noreferrer">Gao et al., <em>World Models' Last Exam in Physics</em>, 2026</a></li>
+        <li><a href="https://arxiv.org/abs/2406.03520" target="_blank" rel="noreferrer">Bansal et al., <em>VideoPhy: Evaluating Physical Commonsense for Video Generation</em>, 2024</a></li>
+        <li><a href="https://research.nvidia.com/labs/cosmos-lab/phyworldbench/" target="_blank" rel="noreferrer">NVIDIA Cosmos Lab, <em>PhyWorldBench</em></a></li>
+        <li><a href="https://arxiv.org/abs/2506.09985" target="_blank" rel="noreferrer">Assran et al., <em>V-JEPA 2</em>, 2025</a></li>
+        <li><a href="https://arxiv.org/abs/2409.14047" target="_blank" rel="noreferrer">Karaev et al., <em>CoTracker3</em>, 2024</a></li>
+        <li><a href="https://arxiv.org/abs/2408.00714" target="_blank" rel="noreferrer">Ravi et al., <em>SAM 2</em>, 2024</a></li>
+      </ul>
+    </article>
+  </main>
+
+  <footer class="site-shell footer"><span data-i18n="footerNote"></span></footer>
+  <script>
+    const translations = {
+      zh: { title:"?????????? ? ???", brand:"???", navHome:"??", navBlog:"??", navPhotography:"??", footerNote:"? 2026 ????????? GitHub Pages?" },
+      en: { title:"Visual Coherence Is Not Physical Understanding ? Juntong Cui", brand:"Juntong Cui", navHome:"Home", navBlog:"Blog", navPhotography:"Photography", footerNote:"? 2026 Juntong Cui. Hosted on GitHub Pages." }
+    };
+    const savedLang = localStorage.getItem("site-language");
+    const initialLang = savedLang || "en";
+    function applyLanguage(lang) {
+      const dict = translations[lang] || translations.zh;
+      document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+      document.title = dict.title;
+      document.querySelectorAll("[data-i18n]").forEach((node) => { node.textContent = dict[node.getAttribute("data-i18n")] || ""; });
+      document.querySelectorAll("[data-lang-content]").forEach((node) => { node.hidden = node.dataset.langContent !== lang; });
+      document.querySelectorAll("[data-lang]").forEach((button) => { button.classList.toggle("is-active", button.dataset.lang === lang); button.setAttribute("aria-pressed", String(button.dataset.lang === lang)); });
+      localStorage.setItem("site-language", lang);
+      if (window.MathJax?.typesetPromise) window.MathJax.typesetPromise();
+    }
+    document.querySelectorAll("[data-lang]").forEach((button) => button.addEventListener("click", () => applyLanguage(button.dataset.lang)));
+    applyLanguage(initialLang);
+  </script>
+</body>
+</html>
