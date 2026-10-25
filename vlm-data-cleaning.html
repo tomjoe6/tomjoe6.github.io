@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="一支全程 VLM 数据管线的 A800 实测账单，对照六份前沿视频生成技术报告：过滤段为什么零 VLM——成本、量具与定义权三层答案。">
+  <meta name="description" content="一支全程 VLM 数据管线的 A800 实测账单，对照六份前沿视频生成技术报告：过滤段为什么零 VLM——成本、量具与定义权。">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <title>为什么大厂不用 VLM 洗数据 · 崔君同</title>
   <style>
@@ -16,7 +16,7 @@
     .article { width:min(760px,100%); padding:34px 0 56px; animation:riseIn .92s cubic-bezier(.16,1,.3,1) both; } .back-link { display:inline-flex; margin-bottom:24px; color:var(--blue); font-size:13px; font-weight:650; text-decoration:none; } .article-meta { color:var(--clay-dark); font-size:12px; font-weight:760; letter-spacing:.08em; text-transform:uppercase; }
     h1,p { margin-top:0; } h1 { margin:10px 0 16px; font-family:var(--serif); font-size:clamp(28px,4vw,38px); font-weight:500; line-height:1.16; } p,li { color:var(--muted); font-size:15px; line-height:1.82; } .lead { color:var(--ink); font-size:16px; font-weight:600; line-height:1.72; }
     .note { margin:18px 0; padding:14px 16px; border-left:3px solid var(--clay); background:rgba(251,248,242,.72); color:var(--ink); font-size:14px; line-height:1.78; } .references-title { margin:32px 0 10px; color:var(--ink); font-family:var(--serif); font-size:20px; } .paper-list { display:grid; gap:8px; padding-left:0; list-style:none; } .paper-list a { color:var(--clay-dark); font-weight:650; } .footer { padding:26px 0 36px; color:var(--muted); font-size:13px; }
-    .table-wrap { overflow-x:auto; margin:18px 0 6px; } .data-table { width:100%; border-collapse:collapse; font-size:13.5px; } .data-table th,.data-table td { padding:8px 10px; border:1px solid var(--line); text-align:left; vertical-align:top; line-height:1.6; } .data-table th { background:rgba(251,248,242,.72); color:var(--ink); font-weight:650; white-space:nowrap; } .data-table td { color:var(--muted); font-variant-numeric:tabular-nums; } .table-note { margin:8px 0 18px; color:var(--muted); font-size:12.5px; line-height:1.7; }
+    .table-wrap { overflow-x:auto; margin:18px 0 6px; } .data-table { width:100%; border-collapse:collapse; font-size:13px; } .data-table th,.data-table td { padding:8px 10px; border:1px solid var(--line); text-align:left; vertical-align:top; line-height:1.6; } .data-table th { background:rgba(251,248,242,.72); color:var(--ink); font-weight:650; white-space:nowrap; } .data-table td { color:var(--muted); font-variant-numeric:tabular-nums; } .table-note { margin:8px 0 18px; color:var(--muted); font-size:12.5px; line-height:1.7; }
     @keyframes riseIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } } [data-lang-content][hidden] { display:none; }
     @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; } } @media (max-width:560px) { .site-shell,.topbar-inner { width:min(100% - 28px,940px); } .topbar-inner { flex-direction:column; padding:12px 0; align-items:flex-start; } .nav-actions { width:100%; justify-content:space-between; gap:10px; } .site-nav { gap:14px; } }
   </style>
@@ -34,27 +34,32 @@
       <a class="back-link" href="blog.html">← 返回博客</a>
       <div class="article-meta">2026-10-26 · 机器学习 · 视频生成 · 数据</div>
       <h1>为什么大厂不用 VLM 洗数据</h1>
-      <p class="lead">我们洗数据全程 VLM，账单也完全付得起——直到精读六份前沿视频模型的技术报告才发现：过滤段没有一家用 VLM。这件事不是"贵"一个字能解释完的。</p>
+      <p class="lead">我们洗数据全程 VLM，账单也完全付得起。直到把六份前沿视频模型的技术报告放在一起精读，才发现过滤段没有一家用 VLM——这件事，"贵"一个字解释不完。</p>
 
-      <p><strong>先交出自己的账单。</strong>之前洗一批视频数据，五道工序全部由 VLM 出判决，硬件是 A800：</p>
+      <p>前一阵子我们洗了一批视频数据。从去重、初筛、重筛、富矿挖掘、事件窗定位，到 caption 重写和泄漏校验，八道工序里除了第一道 ffprobe，全部由 VLM 出判决，效果也确实不错。最近闲下来，我把手头六份报告的数据部分放在了一起精读：MovieGen、Open-Sora 2.0、HunyuanVideo 1.5、Seedance 1.0，再加两个专门讲数据集的 Koala-36M 和 Tiger200K。结果有点意外：这些管线的过滤段，没有一家用 VLM。</p>
+
+      <p>先把我们自己的账摆出来，后面所有的外推都要以它为基础：</p>
 
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>工序</th><th>模型 / 输入</th><th>吞吐（实测）</th><th>14.8 万源池耗时</th></tr></thead>
+          <thead><tr><th>#</th><th>工序</th><th>模型 / 口径</th><th>进 → 出</th><th>留存率</th><th>耗时（4×A800 基准）</th></tr></thead>
           <tbody>
-            <tr><td>宽定义初筛</td><td>Qwen2.5-VL-7B，宽帧</td><td>~35–40 条/分/卡</td><td>2 卡 × 3 天左右（历史账）</td></tr>
-            <tr><td>收紧初筛（进档判定）</td><td>Qwen3-VL-30B，18 帧/条</td><td>~120 条/分（4 卡）</td><td>10.4 万 KEEP 约 14.5 h</td></tr>
-            <tr><td>强 prompt 重筛（4fps 逐段）</td><td>Qwen3-VL-30B，12–16 段蒙太奇</td><td>~55 条/分（4 卡）</td><td>19,816 候选 ≈ 6 h</td></tr>
-            <tr><td>8fps 富矿挖掘</td><td>Qwen3-VL-30B，5 视频 × 3 chunk/请求</td><td>~113 条/分（2 卡）</td><td>28,771 候选 ≈ 4.2 h</td></tr>
-            <tr><td>事件窗定位（v3 补扫）</td><td>Qwen3-VL-30B，8fps</td><td>~45 条/分（4 卡）</td><td>5,950 条 ≈ 2.2 h</td></tr>
+            <tr><td>0</td><td>去重 / 探针过滤</td><td>ffprobe</td><td>152,300 → 104,300</td><td>68%</td><td>~0（CPU）</td></tr>
+            <tr><td>1</td><td>宽定义初筛</td><td>Qwen2.5-VL-7B，宽帧</td><td>104,300 → ~19,800</td><td>19%</td><td>2 卡 × ~3 天 ≈ 145 GPU·h</td></tr>
+            <tr><td>2</td><td>收紧初筛（进档判定）</td><td>Qwen3-VL，18 帧</td><td>19,800 → 12,061（strict+balanced 首版）</td><td>61%</td><td>~14.5 h ≈ 58 GPU·h</td></tr>
+            <tr><td>3</td><td>4fps 强 prompt 重筛</td><td>Qwen3-VL，12–16 段</td><td>12,061 → 2,765</td><td>23%</td><td>~6 h ≈ 24 GPU·h</td></tr>
+            <tr><td>4</td><td>8fps 富矿挖掘</td><td>Qwen3-VL，15 帧/请求</td><td>28,771 候选 → 26,836 pass → 12,037 入档</td><td>93% pass</td><td>~4.2 h ≈ 8.4 GPU·h（2 卡）</td></tr>
+            <tr><td>5</td><td>事件窗定位（v3 补扫）</td><td>Qwen3-VL，8fps</td><td>缺窗 5,950 → 窗口 4,790</td><td>80.8%</td><td>~2.2 h ≈ 8.8 GPU·h</td></tr>
+            <tr><td>6</td><td>24 帧 caption 重写</td><td>Qwen3-VL，41 帧</td><td>14,826 → 14,826（100% 覆盖）</td><td>—</td><td>11.7 GPU·h</td></tr>
+            <tr><td>7</td><td>泄漏校验 + 修复</td><td>同款</td><td>519 嫌疑 → 473 判泄漏 → 447 重写</td><td>91%</td><td>1.2 GPU·h</td></tr>
           </tbody>
         </table>
       </div>
-      <p class="table-note">表 1｜全程 VLM 的五道工序，A800 实测。初筛的墙钟时间含重试与调度开销；按净吞吐折算约 33 小时，本文取保守值。</p>
+      <p class="table-note">表 1｜全程 VLM 管线的八道工序，A800 实测；耗时为墙钟口径，含重试与调度开销。</p>
 
-      <p>合计约 243 A800·小时，14.8 万条源视频，平均每条约 5.9 卡秒。一支小团队、几张卡、几天，跑完一个十几万量级的池子——这正是学界和中小团队默认 VLM 洗数据的原因：在预算之内它就是最优解，判断力最强、不用训练任何东西、prompt 即过滤器。</p>
+      <p>这张表里有几个数字值得停下来看看。最便宜的一道恰恰不是 VLM：第 0 道用 ffprobe 在 CPU 上就把 15.2 万条砍到 10.4 万，成本约等于零——你看，真到了要省钱的时候，我们自己也毫不犹豫把最便宜的工具放在最前面。八道工序合计约 257 GPU·小时，摊下来每条源视频约 6 卡秒。我觉得最有意思的其实是第三个数字：真正花在 caption 上的（第 6、7 道）只有 12.9 GPU·小时，不到总账的 5%，剩下 95% 的算力全部花在"判断要不要这条数据"上。15.2 万条进去，最后入档 1.2 万条，总留存 8%。</p>
 
-      <p><strong>然后我去精读六份报告。</strong>MovieGen、Open-Sora 2.0、HunyuanVideo 1.5、Seedance 1.0、Koala-36M、Tiger200K——六份前沿视频生成模型的数据章节并排看，过滤段用的东西整齐得像同一份内部文档：</p>
+      <p>再看六份报告那边。把它们的过滤管线按漏斗层归并，长这样：</p>
 
       <div class="table-wrap">
         <table class="data-table">
@@ -73,27 +78,29 @@
       </div>
       <p class="table-note">表 2｜六份技术报告的数据管线，按漏斗层级归纳。</p>
 
-      <p>VLM 只出现在三个位置：caption（六家全用，且没有一家裸用通用 VLM——Seedance 在 Tarsier2 上专训双语 captioner，MovieGen 微调 LLaMA3-Video，HunyuanVideo 用 OPA-DPO 后训练解决"描述越密、幻觉越多"的权衡）、后训练的小规模判断、RL 阶段的奖励模型。过滤段，零 VLM。为什么？答案有三层，一层比一层不显然。</p>
+      <p>VLM 只出现在三个位置：caption（六家全用，但没有一家裸用通用 VLM——Seedance 在 Tarsier2 上专训双语 captioner，MovieGen 微调 LLaMA3-Video，HunyuanVideo 用 OPA-DPO 后训练来平衡"描述越密、幻觉越多"）、后训练的小规模判断，以及 RL 阶段的奖励模型。过滤段，零 VLM。</p>
 
-      <p><strong>第一层：贵，而且不是线性地贵。</strong>六份报告全部不披露数据处理的算力开销——HunyuanVideo 只给了"1000 万小时原始视频 → 8 亿 clip"的过滤比例，Open-Sora 只给了 20 万美元的模型训练成本——所以这笔账只能拿自己的实测去外推。按我们 5.9 卡秒/条：8 亿 clip ≈ 131 万 A800·小时 ≈ 150 卡年。一千张 A800 不吃不喝筛 55 天，这还只是筛一遍；数据引擎的常态是每个模型版本都重跑一遍漏斗。对照小模型档：美学回归器毫秒级一帧，差三个数量级。在预训练规模上，全程 VLM 不是"贵一点"，是结构性不可行。</p>
+      <p>给人的感觉是，数据清洗就是一个判断问题：模型越强判断越准，所以拿 VLM 洗数据是更"先进"的做法，大厂只是数据太多、付不起这个钱。这个感觉对了一半。贵是对的，先来算贵多少。</p>
 
-      <p><strong>第二层：就算免费，也不会拿 VLM 当过滤器。</strong>如果停在这里，这篇文章只是把常识复述了一遍。更深层的原因是：过滤器是量具，而量具的第一美德是稳定，不是聪明。美学回归器是冻结的——同一个模型、同一个分数语义，跑十遍结果一致，失败模式已知，分数分布可以画出来审计。VLM judge 是生成器——prompt 一改、底座一升、甚至同一批数据重跑一遍，分数的含义都可能漂移。一条视频这个月 4.2 分、下个月 4.8 分，对 caption 无所谓，对过滤器是灾难：过滤器定义的是整个语料的分布，它必须是一件可复现的测量仪器。</p>
+      <p>六份报告没有一个披露数据处理本身的算力开销：HunyuanVideo 只给了"1000 万小时原始视频 → 8 亿 clip"的比例，Open-Sora 只给了 20 万美元的模型训练成本。所以这笔账只能拿自己的实测去外推。6 卡秒一条，乘以 8 亿 clip，约 135 万 A800·小时，也就是 150 卡年——一千张 A800 不吃不喝跑五十多天，才筛完一遍。而且这不是一次性的买卖，数据引擎的常态是每个模型版本迭代都重筛一遍。对照另一边，CLIP+MLP 美学回归器是毫秒级一帧，差三个数量级。所以在预训练的规模上，全程 VLM 不是"贵一点"，是根本跑不动。</p>
 
-      <p>更微妙的是，这两样东西本是同源。美学回归器就是在人类美学评分上蒸馏出来的 CLIP+MLP；VLM 同样是人类判断的蒸馏。大厂在过滤段选的从来不是"哪份知识更好"，而是"哪种容器更合适"——冻结的标量，还是会漂移的语言。</p>
+      <p>但如果答案只有"贵"，这篇文章就没必要写了，因为大家都猜得到。更有意思的问题是：假设 VLM 明天免费了，大厂会把过滤器换成 VLM 吗？我认为不会。</p>
 
-      <p>顺便，我们自己的表里也藏着这个方向的证据：蒙太奇把 12–16 段拼成一张图、一个请求塞 5 条视频 × 3 个 chunk——这些为降成本做的工程，本质上是把 VLM 往"编码器式用法"逼：一次前向，吐出尽可能多的标量判决。VLM 重管线在成本压力下，会自己长出小模型管线的行为模式。</p>
+      <p>原因在于过滤器这个角色的特殊性。过滤器和 captioner 不一样，它定义的是整个语料的分布，所以它首先得是一件量具。量具的第一美德是稳定，不是聪明。CLIP+MLP 美学回归器是冻结的：同一个模型、同一个分数语义，跑十遍结果一致，失败模式已知，分数分布可以画出来审计。VLM 是生成器：prompt 换个措辞、底座升个版本、甚至同一批数据重跑一遍，分数的含义都可能漂移。一条视频这个月 4.2 分、下个月 4.8 分，对 caption 无所谓，对过滤器是灾难。</p>
 
-      <p><strong>第三层："好数据"的定义权在谁手里。</strong>给"好数据"下个理想定义：U(x) = 用 x 训练之后模型的期望提升。这个量不可计算——它唯一的测法是真的拿去训练再评测，塔尖是真训真测。于是整条管线是一座代理塔：元数据 → 技术质量 → 美学 → embedding 几何 → VLM 判断 → 人工标注，越往上越准也越贵；而漏斗让便宜的先看、贵的只看幸存者。注意，这个排序由单条成本决定，不由"哪个信号最接近 U"决定。</p>
+      <p>这里还有一层更微妙的关系：美学回归器是在人类美学评分上蒸馏出来的 CLIP+MLP，VLM 同样是人类判断的蒸馏——两者本是同源。所以大厂在过滤段做的选择，从来不是"要哪份知识"，而是"要哪种容器"：冻结的标量，还是会漂移的语言。</p>
 
-      <p>这个视角能一口气解释几个散落的现象。Tiger200K 为什么可以不做任何训练实验就发布数据集？因为代理被当成了本体，大家都默认"过滤了就是好的"。学界论文为什么清一色 VLM 洗数据？算力贫困下的级联退化：只付得起一层代理，就选最全能的那层。HunyuanVideo 为什么花力气用 RL 专训 captioner 而不是裸用 Qwen？caption 是离塔尖最近、又能低成本对齐的环节。数据飞轮为什么被所有大厂当成终局？因为它把塔尖——真训真测——闭环成了日常操作。</p>
+      <p>写到这里我回头再看自己的管线，发现一个有点好笑的事实。我们为了把 VLM 用便宜，把 12–16 段拼成一张蒙太奇、一个请求塞 5 条视频 × 3 个 chunk——这些工程的本质，就是逼 VLM 一次前向吐出尽可能多的标量判决，把它往"编码器式用法"上推。换句话说，在成本压力下，VLM 重管线会自己长出小模型管线的行为模式。我们和大厂，其实在从两端做同一件事。</p>
 
-      <p>所以"好数据"今天没有属性式的定义，只有阶段式的：同一条 clip，在 256p 预训练是好数据，到 768p 精调就是坏数据。"好"不是视频的属性，是视频、训练阶段和目标之间的关系。</p>
+      <p>最后一层，我觉得也是最值得写下来的。如果问"什么是好数据"，理想答案其实很清楚：U(x) = 用 x 训练之后模型的期望提升。麻烦在于这个量没法计算，唯一的测法是真的拿去训练再评测。塔尖是真训真测，塔下面的一切——元数据、质量分、美学分、embedding 几何、VLM 的判断、甚至人工标注——都是它的代理，越往上越准也越贵。整条管线就是一座按成本排序的代理塔：便宜的看全部，贵的只看幸存者。注意这个排序由什么决定：由单条成本，而不是由"哪个信号最接近 U"。</p>
 
-      <p><strong>一个可证伪的预测。</strong>账单里还有个容易被忽略的细节：初筛用 7B，约 37 条/分/卡；二筛换成 30B，约 30 条/分/卡——模型大了四倍，单卡吞吐基本没掉。serving 效率的进步是实打实的。所以我的判断是：当 VLM 推理成本再降两个数量级，量具论会松动，过滤段将向 VLM judge 迁移——AVVA 这类工作和大厂 RL 里的 VLM 奖励模型已是先声；届时的 CLIP+MLP 美学回归器，会像今天的像素阈值过滤一样原始。两种管线正在向对方演化：我们在把 VLM 用成编码器，大厂在把过滤器换成 learned judge。</p>
+      <p>用这个视角回头看，一些原来散落的现象忽然都能解释了。Tiger200K 为什么敢不做任何训练实验就发数据集？因为大家都把代理当成了本体，默认"过滤了就是好的"。学界论文为什么清一色 VLM 洗数据？算力有限，级联退化成一层，那就只留最全能的那层。HunyuanVideo 为什么花力气用 RL 专训 captioner，而不是直接用 Qwen？因为 caption 是离塔尖最近、又能低成本对齐的环节。各家为什么都把数据飞轮当终局？因为飞轮把塔尖——真训真测——变成了日常操作。</p>
 
-      <p><strong>小结三句话：</strong>大厂过滤段零 VLM，第一层原因是贵两个数量级以上，150 卡年筛一遍的账没人付得起；第二层原因是过滤器要量具的稳定，VLM 是会漂移的裁判，而两者本是人类判断的同源蒸馏，选的是容器不是知识；第三层原因是整条管线本来就是按成本排序的代理塔——"好数据"的定义权，至少今天，握在经济学手里，不在认识论手里。</p>
+      <p>所以"好数据"今天并没有一个属性式的定义，只有阶段式的：同一条 clip，在 256p 预训练是好数据，到 768p 精调就是坏数据。"好"不是视频自己的属性，是视频、训练阶段和目标之间的关系。</p>
 
-      <p>剩下的问题：等到 VLM 的成本崩塌、量具论失效，"好数据"会等来一个认识论上的定义，还是只换一个更贵的共识？</p>
+      <p>最后说一个可以被未来的事实打脸的判断。当时实测的稳定吞吐，7B 大约 35–40 条/分/卡，换成大四倍的 30B 大约 30 条/分/卡——模型大了四倍，单卡吞吐基本没掉，serving 效率的进步是实打实的。所以如果 VLM 推理成本再降两个数量级，量具论会松动，过滤段会逐步换成 VLM judge，AVVA 这类工作和大厂 RL 里的 VLM 奖励模型已经是先声。到那时候回头看，CLIP+MLP 美学回归器大概就像我们今天看像素阈值过滤一样原始。两种管线正在相向而行：我们在学着把 VLM 用成编码器，大厂在把手工过滤器换成 learned judge。</p>
+
+      <p>小结一下。大厂过滤段不用 VLM，直接原因是贵两个数量级以上，150 卡年筛一遍的账没人付得起；往深一层，过滤器要的是量具的稳定，VLM 是会漂移的裁判，何况两者本是人类判断的同源蒸馏，选的是容器不是知识；再往深一层，整条管线本来就是按成本排序的代理塔，"好数据"的定义权，至少今天，握在经济学手里。至于 VLM 成本崩塌之后，"好数据"会等来一个认识论上的定义，还是只换一个更贵的共识——我暂时没有答案，交给时间。</p>
 
       <p class="references-title">参考资料</p>
       <ul class="paper-list">
@@ -111,27 +118,32 @@
       <a class="back-link" href="blog.html">← Back to Blog</a>
       <div class="article-meta">2026-10-26 · Machine Learning · Video Generation · Data</div>
       <h1>Why Frontier Labs Don't Clean Video Data with VLMs</h1>
-      <p class="lead">Our own cleaning pipeline was all-VLM, and the bill was perfectly affordable — until a close reading of six frontier technical reports revealed that not a single one uses a VLM in the filtering stage. "Too expensive" is only the first of three reasons.</p>
+      <p class="lead">Our cleaning pipeline was all-VLM, and the bill was perfectly affordable. Then I put six frontier technical reports side by side and found that not one of them uses a VLM in the filtering stage — and "too expensive" explains only part of that.</p>
 
-      <p><strong>First, our own bill.</strong>In a recent video data cleaning project, every one of our five stages was judged by a VLM, running on A800 GPUs:</p>
+      <p>A while ago we cleaned a batch of video data. Deduplication, first pass, tiered admission, strong-prompt re-screening, dense mining, event-window localization, caption rewriting, leakage checks — of the eight stages, all but the first ffprobe pass were judged by VLMs, and the results were genuinely good. When I finally sat down and read the data sections of six reports closely — MovieGen, Open-Sora 2.0, HunyuanVideo 1.5, Seedance 1.0, plus two dataset papers, Koala-36M and Tiger200K — something was off: none of these pipelines uses a VLM in the filtering stage.</p>
+
+      <p>Let me lay out our own bill first, since every extrapolation later builds on it:</p>
 
       <div class="table-wrap">
         <table class="data-table">
-          <thead><tr><th>Stage</th><th>Model / input</th><th>Throughput (measured)</th><th>Time on 148k-source pool</th></tr></thead>
+          <thead><tr><th>#</th><th>Stage</th><th>Model / setting</th><th>In → out</th><th>Retention</th><th>Time (4×A800 basis)</th></tr></thead>
           <tbody>
-            <tr><td>Broad first pass</td><td>Qwen2.5-VL-7B, wide-frame sampling</td><td>~35–40 items/min/card</td><td>2 cards × ~3 days (historical log)</td></tr>
-            <tr><td>Tiered admission pass</td><td>Qwen3-VL-30B, 18 frames/item</td><td>~120 items/min (4 cards)</td><td>104k KEEP ≈ 14.5 h</td></tr>
-            <tr><td>Strong-prompt re-screen (segment-wise, 4 fps)</td><td>Qwen3-VL-30B, 12–16-segment montage</td><td>~55 items/min (4 cards)</td><td>19,816 candidates ≈ 6 h</td></tr>
-            <tr><td>Dense mining at 8 fps</td><td>Qwen3-VL-30B, 5 videos × 3 chunks/request</td><td>~113 items/min (2 cards)</td><td>28,771 candidates ≈ 4.2 h</td></tr>
-            <tr><td>Event-window localization (v3 sweep)</td><td>Qwen3-VL-30B, 8 fps</td><td>~45 items/min (4 cards)</td><td>5,950 clips ≈ 2.2 h</td></tr>
+            <tr><td>0</td><td>Dedup / probe filter</td><td>ffprobe</td><td>152,300 → 104,300</td><td>68%</td><td>~0 (CPU)</td></tr>
+            <tr><td>1</td><td>Broad first pass</td><td>Qwen2.5-VL-7B, wide frames</td><td>104,300 → ~19,800</td><td>19%</td><td>2 cards × ~3 days ≈ 145 GPU·h</td></tr>
+            <tr><td>2</td><td>Tiered admission pass</td><td>Qwen3-VL, 18 frames</td><td>19,800 → 12,061 (strict+balanced v1)</td><td>61%</td><td>~14.5 h ≈ 58 GPU·h</td></tr>
+            <tr><td>3</td><td>Strong-prompt re-screen, 4 fps</td><td>Qwen3-VL, 12–16 segments</td><td>12,061 → 2,765</td><td>23%</td><td>~6 h ≈ 24 GPU·h</td></tr>
+            <tr><td>4</td><td>Dense mining, 8 fps</td><td>Qwen3-VL, 15 frames/request</td><td>28,771 candidates → 26,836 pass → 12,037 filed</td><td>93% pass</td><td>~4.2 h ≈ 8.4 GPU·h (2 cards)</td></tr>
+            <tr><td>5</td><td>Event-window localization (v3 sweep)</td><td>Qwen3-VL, 8 fps</td><td>5,950 missing → 4,790 windows</td><td>80.8%</td><td>~2.2 h ≈ 8.8 GPU·h</td></tr>
+            <tr><td>6</td><td>24-frame caption rewrite</td><td>Qwen3-VL, 41 frames</td><td>14,826 → 14,826 (100% coverage)</td><td>—</td><td>11.7 GPU·h</td></tr>
+            <tr><td>7</td><td>Leakage check + repair</td><td>same model</td><td>519 suspects → 473 leaks → 447 rewritten</td><td>91%</td><td>1.2 GPU·h</td></tr>
           </tbody>
         </table>
       </div>
-      <p class="table-note">Table 1. Five all-VLM stages, measured on A800. The first pass's wall clock includes retries and scheduling overhead; net throughput implies about 33 hours, and we keep the conservative figure.</p>
+      <p class="table-note">Table 1. Eight stages of an all-VLM pipeline, measured on A800; times are wall clock, including retries and scheduling overhead.</p>
 
-      <p>In total: roughly 243 A800·hours for 148k source videos, about 5.9 card-seconds per item. A small team, a handful of GPUs, a few days, one pool of ~150k — this is exactly why academic labs and small teams default to VLM cleaning: within budget, it is the optimal solution. Strongest judge available, nothing to train, prompt-as-filter.</p>
+      <p>A few numbers in this table deserve a pause. The cheapest stage is precisely the one that is not a VLM: stage 0 uses ffprobe on CPU to cut 152k down to 104k at essentially zero cost — you see, when money actually matters, we too reach for the cheapest tool first, without hesitation. The eight stages total about 257 GPU·hours, or roughly 6 card-seconds per source video. The number I find most interesting is the third: everything spent on captioning (stages 6–7) is just 12.9 GPU·hours, under 5% of the bill; the other 95% went into deciding whether to keep each item. 152k in, 12k filed, an overall retention of 8%.</p>
 
-      <p><strong>Then I read six technical reports.</strong>MovieGen, Open-Sora 2.0, HunyuanVideo 1.5, Seedance 1.0, Koala-36M, and Tiger200K — read side by side, their filtering stages look like they came from the same internal document:</p>
+      <p>Now the six reports. Merged by funnel layer, their filtering pipelines look like this:</p>
 
       <div class="table-wrap">
         <table class="data-table">
@@ -150,27 +162,29 @@
       </div>
       <p class="table-note">Table 2. Data pipelines of the six technical reports, organized by funnel layer.</p>
 
-      <p>VLMs appear in exactly three places: captioning (all six, and none uses a stock general VLM — Seedance trained a bilingual captioner on Tarsier2, MovieGen fine-tuned LLaMA3-Video, HunyuanVideo used OPA-DPO post-training to manage the richness–hallucination trade-off), small-scale post-training judgments, and reward models in RL. In the filtering stage: zero. Why? There are three answers, each less obvious than the last.</p>
+      <p>VLMs appear in exactly three places: captioning (all six use one, and none uses a stock general VLM — Seedance trained a bilingual captioner on Tarsier2, MovieGen fine-tuned LLaMA3-Video, HunyuanVideo used OPA-DPO post-training to balance "denser descriptions, more hallucinations"), small-scale post-training judgments, and reward models in RL. In the filtering stage: zero.</p>
 
-      <p><strong>Answer one: cost — and not linearly.</strong>None of the six reports discloses the compute cost of data processing — HunyuanVideo gives only the ratio "10M raw hours → 800M clips", Open-Sora only a $200k training budget — so the only way to do the accounting is to extrapolate from our own measurements. At 5.9 card-seconds per item: 800M clips ≈ 1.31M A800·hours ≈ 150 card-years. A thousand A800s grinding for 55 days straight, and that is one single pass; data engines re-run the funnel for every model iteration. Against the small-model tier — aesthetic regressors at milliseconds per frame — that is a three-orders-of-magnitude gap. At pre-training scale, an all-VLM pipeline is not "somewhat expensive"; it is structurally infeasible.</p>
+      <p>The impression most of us have is that data cleaning is a judgment problem: stronger models judge better, so VLM cleaning is the "more advanced" approach, and frontier labs merely have too much data to afford it. That impression is half right. Expensive it is — so let's do the math first.</p>
 
-      <p><strong>Answer two: even if VLMs were free, they would not be the filter.</strong>Stopping at cost would merely restate common sense. The deeper reason: a filter is a measuring instrument, and the first virtue of an instrument is stability, not intelligence. An aesthetic regressor is frozen — same model, same score semantics, identical results across ten runs, known failure modes, and a score distribution you can plot and audit. A VLM judge is a generator — change the prompt, upgrade the base model, or simply re-run the same batch, and the meaning of the score can drift. A video scoring 4.2 this month and 4.8 next month is harmless for captioning and catastrophic for filtering: a filter defines the distribution of the entire corpus, so it must be a reproducible instrument.</p>
+      <p>None of the six reports discloses the compute cost of data processing itself: HunyuanVideo gives only the ratio "10M raw hours → 800M clips", Open-Sora only a $200k training budget. So the only way to do the accounting is to extrapolate from our own measurements. Six card-seconds per item, times 800M clips, is about 1.35M A800·hours — 150 card-years. A thousand A800s grinding for over fifty days straight, and that buys you exactly one pass. Nor is it a one-time purchase: data engines routinely re-run the funnel for every model iteration. On the other side of the scale, a CLIP+MLP aesthetic regressor runs at milliseconds per frame — a three-orders-of-magnitude gap. At pre-training scale, an all-VLM pipeline is not "somewhat expensive"; it simply does not run.</p>
 
-      <p>The subtler point: the two are distillations of the same source. The aesthetic regressor is a CLIP+MLP distilled from human aesthetic ratings; the VLM is likewise a distillation of human judgment. What frontier labs choose in the filtering stage was never "which knowledge is better" but "which container is better" — a frozen scalar, or drifting language.</p>
+      <p>But if the answer stopped at "expensive", this post would not be worth writing, because everyone guesses that much. The more interesting question is this: if VLMs became free tomorrow, would frontier labs swap their filters for VLMs? I believe not.</p>
 
-      <p>Incidentally, our own table contains evidence of the same drift: montages that tile 12–16 segments into one image, requests packing 5 videos × 3 chunks — these cost-driven engineering choices are pushing the VLM toward "encoder-style" usage: one forward pass, as many scalar verdicts as possible. Under cost pressure, a VLM-heavy pipeline spontaneously grows the behavioral patterns of a small-model pipeline.</p>
+      <p>The reason lies in what a filter is. Unlike a captioner, a filter defines the distribution of the entire corpus, so first and foremost it is a measuring instrument. The first virtue of an instrument is stability, not intelligence. A CLIP+MLP aesthetic regressor is frozen: same model, same score semantics, identical results across ten runs, known failure modes, and a score distribution you can plot and audit. A VLM is a generator: reword the prompt, upgrade the base model, or simply re-run the same batch, and the meaning of the score can drift. A video scoring 4.2 this month and 4.8 next month is harmless for captioning and catastrophic for filtering.</p>
 
-      <p><strong>Answer three: who holds the definition of "good data".</strong>Define good data ideally as U(x) = the expected improvement in the model after training on x. This quantity is not computable — the only way to measure it is to actually train and evaluate; the top of the tower is train-and-measure. So the whole pipeline is a tower of proxies: metadata → technical quality → aesthetics → embedding geometry → VLM judgment → human annotation, each level more accurate and more expensive; the funnel lets the cheap look at everything and the expensive look only at survivors. Note that this ordering is decided by per-item cost, not by "which signal is closest to U".</p>
+      <p>There is a subtler relationship here too: the aesthetic regressor is a CLIP+MLP distilled from human aesthetic ratings, and the VLM is likewise a distillation of human judgment — the two share a source. So the choice frontier labs make in the filtering stage was never "which knowledge to use" but "which container to use": a frozen scalar, or drifting language.</p>
 
-      <p>This lens explains several scattered facts at once. Why could Tiger200K publish a dataset without a single training experiment? Because the proxy was mistaken for the thing itself — everyone assumes "filtered means better". Why do academic papers overwhelmingly use VLM cleaning? Cascade degeneration under compute poverty: if you can afford only one layer of proxy, you pick the most versatile one. Why did HunyuanVideo RL-train a captioner instead of using stock Qwen? Captioning is the layer closest to the top of the tower that can still be aligned cheaply. Why does every frontier lab treat the data flywheel as the endgame? Because it closes the loop on the top of the tower — train-and-measure — and turns it into a routine operation.</p>
+      <p>Writing this, I looked back at our own pipeline and found something almost funny. To make VLMs cheap, we tile 12–16 segments into one montage image and pack 5 videos × 3 chunks into a single request — and the essence of these tricks is to force the VLM to emit as many scalar verdicts as possible per forward pass, pushing it toward "encoder-style" usage. In other words, under cost pressure, a VLM-heavy pipeline spontaneously grows the behavioral patterns of a small-model pipeline. We and the frontier labs are doing the same thing from opposite ends.</p>
 
-      <p>So "good data" today has no attribute-style definition, only a stage-relative one: the same clip is good data at 256p pre-training and bad data at 768p fine-tuning. "Good" is not a property of the video; it is a relation between the video, the training stage, and the objective.</p>
+      <p>The last layer is, I think, the one most worth writing down. Ask "what is good data" and the ideal answer is actually clear: U(x) = the expected improvement of the model after training on x. The trouble is that this quantity cannot be computed — the only way to measure it is to actually train and evaluate. The top of the tower is train-and-measure; everything below — metadata, quality scores, aesthetic scores, embedding geometry, VLM judgments, even human annotation — is a proxy for it, each level more accurate and more expensive. The whole pipeline is a tower of proxies ordered by cost: the cheap look at everything, the expensive look only at survivors. And note what decides this ordering: per-item cost, not "which signal is closest to U".</p>
 
-      <p><strong>A falsifiable prediction.</strong>One easily missed detail in our bill: the first pass used a 7B model at ~37 items/min/card; the second used a 30B at ~30 items/min/card — a 4× larger model with essentially unchanged per-card throughput. Serving efficiency is improving fast. So my claim: once VLM inference cost falls another two orders of magnitude, the instrument argument weakens and the filtering stage will migrate toward VLM judges — AVVA-style work and VLM reward models in RL are the early signs; today's CLIP+MLP aesthetic regressors will then look as primitive as pixel-threshold filtering does now. The two pipelines are evolving toward each other: we are learning to use VLMs as encoders, and frontier labs are replacing hand filters with learned judges.</p>
+      <p>Seen through this lens, several scattered facts suddenly line up. Why could Tiger200K publish a dataset without a single training experiment? Because everyone mistakes the proxy for the thing itself — "filtered means better" is the default. Why do academic papers overwhelmingly use VLM cleaning? Under compute constraints the cascade degenerates to a single layer, and if you can keep only one, you keep the most versatile one. Why did HunyuanVideo RL-train a captioner instead of using stock Qwen? Because captioning is the layer closest to the top of the tower that can still be aligned cheaply. Why does everyone treat the data flywheel as the endgame? Because it turns the top of the tower — train-and-measure — into a routine operation.</p>
 
-      <p><strong>Three-sentence summary:</strong>Zero VLMs in frontier filtering, first, because it is two-plus orders of magnitude too expensive — nobody pays 150 card-years per pass. Second, because a filter must be a stable instrument, while a VLM is a drifting judge — and both are distillations of the same human judgment, so the choice is about the container, not the knowledge. Third, because the pipeline is a tower of proxies ordered by cost — the definition of "good data", at least today, is held by economics, not epistemology.</p>
+      <p>So "good data" today has no attribute-style definition, only a stage-relative one: the same clip is good data at 256p pre-training and bad data at 768p fine-tuning. "Good" is not a property of the video; it is a relation among the video, the training stage, and the objective.</p>
 
-      <p>The question that remains: when VLM cost collapses and the instrument argument expires, will "good data" finally get an epistemic definition — or just a more expensive consensus?</p>
+      <p>Finally, a claim that future facts are welcome to slap in my face. Our measured steady throughput: about 35–40 items/min/card for the 7B, and about 30 for a 30B four times larger — per-card throughput barely moved, so serving efficiency is improving on a real schedule. If VLM inference cost falls another two orders of magnitude, the instrument argument weakens, and the filtering stage will migrate to VLM judges; AVVA-style work and VLM reward models in RL are the early signs. Looking back from there, today's CLIP+MLP aesthetic regressors will seem as primitive as pixel-threshold filtering does now. The two pipelines are converging from opposite directions: we are learning to use VLMs as encoders, and frontier labs are replacing hand filters with learned judges.</p>
+
+      <p>To sum up. Frontier labs keep VLMs out of the filtering stage, directly, because it is two-plus orders of magnitude too expensive — nobody pays 150 card-years per pass. One layer down, a filter must be a stable instrument, while a VLM is a drifting judge — and since both are distillations of the same human judgment, the choice is about the container, not the knowledge. One layer further down, the pipeline is a tower of proxies ordered by cost, and the definition of "good data" — at least today — is held by economics. Whether "good data" will ever get an epistemic definition once VLM cost collapses, or merely a more expensive consensus, I honestly don't know. I'll leave that to time.</p>
 
       <p class="references-title">References</p>
       <ul class="paper-list">
