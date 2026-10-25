@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="一支全程 VLM 数据管线的 A800 实测账单，对照六份前沿视频生成技术报告：过滤段为什么零 VLM——成本、量具与定义权三层答案。">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <title>为什么大厂不用 VLM 洗数据 · 崔君同</title>
+  <style>
+    :root { color-scheme:light; --paper:#f4f4f2; --paper-soft:#fbfbfa; --ink:#1f1e1b; --muted:#5f5a52; --line:#d8cbb8; --clay:#b85c38; --clay-dark:#873f2b; --blue:#526b7c; --sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif; --serif:Georgia,"Times New Roman","Songti SC",serif; }
+    * { box-sizing:border-box; } html { scroll-behavior:smooth; } body { margin:0; min-height:100vh; background:var(--paper); color:var(--ink); font-family:var(--sans); } a { color:inherit; text-decoration-color:rgba(31,30,27,.35); text-decoration-thickness:1px; text-underline-offset:4px; } a:hover { color:var(--clay-dark); } button { font:inherit; }
+    .site-shell { width:min(940px,calc(100% - 40px)); margin:0 auto; } .topbar { position:sticky; top:0; z-index:20; background:rgba(244,244,242,.88); backdrop-filter:blur(16px); } .topbar-inner { width:min(940px,calc(100% - 40px)); min-height:56px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:18px; }
+    .brand { display:inline-flex; align-items:center; gap:11px; color:var(--ink); text-decoration:none; } .brand-mark { width:28px; height:28px; display:grid; place-items:center; background:var(--ink); color:var(--paper); font-family:var(--serif); font-size:16px; } .brand span:last-child { font-size:15px; font-weight:680; }
+    .nav-actions,.site-nav { display:flex; align-items:center; } .nav-actions { gap:18px; } .site-nav { gap:20px; color:var(--muted); font-size:13px; } .site-nav a { text-decoration:none; } .site-nav a[aria-current="page"] { color:var(--ink); font-weight:650; }
+    .language-switch { display:grid; grid-template-columns:repeat(2,1fr); width:104px; padding:3px; border:1px solid var(--line); background:#e8e8e4; } .language-switch button { min-height:28px; border:0; background:transparent; color:var(--muted); cursor:pointer; } .language-switch button.is-active { background:var(--ink); color:var(--paper); }
+    .article { width:min(760px,100%); padding:34px 0 56px; animation:riseIn .92s cubic-bezier(.16,1,.3,1) both; } .back-link { display:inline-flex; margin-bottom:24px; color:var(--blue); font-size:13px; font-weight:650; text-decoration:none; } .article-meta { color:var(--clay-dark); font-size:12px; font-weight:760; letter-spacing:.08em; text-transform:uppercase; }
+    h1,p { margin-top:0; } h1 { margin:10px 0 16px; font-family:var(--serif); font-size:clamp(28px,4vw,38px); font-weight:500; line-height:1.16; } p,li { color:var(--muted); font-size:15px; line-height:1.82; } .lead { color:var(--ink); font-size:16px; font-weight:600; line-height:1.72; }
+    .note { margin:18px 0; padding:14px 16px; border-left:3px solid var(--clay); background:rgba(251,248,242,.72); color:var(--ink); font-size:14px; line-height:1.78; } .references-title { margin:32px 0 10px; color:var(--ink); font-family:var(--serif); font-size:20px; } .paper-list { display:grid; gap:8px; padding-left:0; list-style:none; } .paper-list a { color:var(--clay-dark); font-weight:650; } .footer { padding:26px 0 36px; color:var(--muted); font-size:13px; }
+    .table-wrap { overflow-x:auto; margin:18px 0 6px; } .data-table { width:100%; border-collapse:collapse; font-size:13.5px; } .data-table th,.data-table td { padding:8px 10px; border:1px solid var(--line); text-align:left; vertical-align:top; line-height:1.6; } .data-table th { background:rgba(251,248,242,.72); color:var(--ink); font-weight:650; white-space:nowrap; } .data-table td { color:var(--muted); font-variant-numeric:tabular-nums; } .table-note { margin:8px 0 18px; color:var(--muted); font-size:12.5px; line-height:1.7; }
+    @keyframes riseIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } } [data-lang-content][hidden] { display:none; }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; } } @media (max-width:560px) { .site-shell,.topbar-inner { width:min(100% - 28px,940px); } .topbar-inner { flex-direction:column; padding:12px 0; align-items:flex-start; } .nav-actions { width:100%; justify-content:space-between; gap:10px; } .site-nav { gap:14px; } }
+  </style>
+  <link rel="stylesheet" href="site-polish.css?v=20260915-1">
+  <script defer src="site-polish.js?v=20260915-1"></script>
+</head>
+<body data-page="blog">
+  <header class="topbar"><div class="topbar-inner">
+    <a class="brand" href="index.html" aria-label="Juntong Cui home"><span class="brand-mark">C</span><span data-i18n="brand"></span></a>
+    <div class="nav-actions"><nav class="site-nav" aria-label="Primary navigation"><a href="index.html" data-i18n="navHome"></a><a href="blog.html" aria-current="page" data-i18n="navBlog"></a><a href="photography.html" data-i18n="navPhotography"></a></nav><div class="language-switch" aria-label="Language switch"><button type="button" data-lang="zh">中文</button><button type="button" data-lang="en">EN</button></div></div>
+  </div></header>
+
+  <main class="site-shell">
+    <article class="article" data-lang-content="zh" hidden>
+      <a class="back-link" href="blog.html">← 返回博客</a>
+      <div class="article-meta">2026-10-26 · 机器学习 · 视频生成 · 数据</div>
+      <h1>为什么大厂不用 VLM 洗数据</h1>
+      <p class="lead">我们洗数据全程 VLM，账单也完全付得起——直到精读六份前沿视频模型的技术报告才发现：过滤段没有一家用 VLM。这件事不是"贵"一个字能解释完的。</p>
+
+      <p><strong>先交出自己的账单。</strong>之前洗一批视频数据，五道工序全部由 VLM 出判决，硬件是 A800：</p>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>工序</th><th>模型 / 输入</th><th>吞吐（实测）</th><th>14.8 万源池耗时</th></tr></thead>
+          <tbody>
+            <tr><td>宽定义初筛</td><td>Qwen2.5-VL-7B，宽帧</td><td>~35–40 条/分/卡</td><td>2 卡 × 3 天左右（历史账）</td></tr>
+            <tr><td>收紧初筛（进档判定）</td><td>Qwen3-VL-30B，18 帧/条</td><td>~120 条/分（4 卡）</td><td>10.4 万 KEEP 约 14.5 h</td></tr>
+            <tr><td>强 prompt 重筛（4fps 逐段）</td><td>Qwen3-VL-30B，12–16 段蒙太奇</td><td>~55 条/分（4 卡）</td><td>19,816 候选 ≈ 6 h</td></tr>
+            <tr><td>8fps 富矿挖掘</td><td>Qwen3-VL-30B，5 视频 × 3 chunk/请求</td><td>~113 条/分（2 卡）</td><td>28,771 候选 ≈ 4.2 h</td></tr>
+            <tr><td>事件窗定位（v3 补扫）</td><td>Qwen3-VL-30B，8fps</td><td>~45 条/分（4 卡）</td><td>5,950 条 ≈ 2.2 h</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">表 1｜全程 VLM 的五道工序，A800 实测。初筛的墙钟时间含重试与调度开销；按净吞吐折算约 33 小时，本文取保守值。</p>
+
+      <p>合计约 243 A800·小时，14.8 万条源视频，平均每条约 5.9 卡秒。一支小团队、几张卡、几天，跑完一个十几万量级的池子——这正是学界和中小团队默认 VLM 洗数据的原因：在预算之内它就是最优解，判断力最强、不用训练任何东西、prompt 即过滤器。</p>
+
+      <p><strong>然后我去精读六份报告。</strong>MovieGen、Open-Sora 2.0、HunyuanVideo 1.5、Seedance 1.0、Koala-36M、Tiger200K——六份前沿视频生成模型的数据章节并排看，过滤段用的东西整齐得像同一份内部文档：</p>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>漏斗层</th><th>用什么</th><th>出处</th></tr></thead>
+          <tbody>
+            <tr><td>镜头切分</td><td>PySceneDetect / TransNetV2 / FFmpeg 场景分数</td><td>六家全部</td></tr>
+            <tr><td>技术质量</td><td>Laplacian 方差、VMAF、专训质量 operator</td><td>Open-Sora 2.0 / HunyuanVideo 1.5</td></tr>
+            <tr><td>水印与字幕</td><td>PaddleOCR + 专用检测器，安全区裁剪</td><td>MovieGen / Seedance / Tiger200K</td></tr>
+            <tr><td>美学</td><td>CLIP+MLP 小回归器</td><td>MovieGen / Open-Sora 2.0 / HunyuanVideo 1.5</td></tr>
+            <tr><td>运动</td><td>静态检测器、VMAF motion、光流</td><td>Seedance / MovieGen / Open-Sora 2.0</td></tr>
+            <tr><td>去重与配比</td><td>embedding 聚类 + 反比采样</td><td>Seedance / MovieGen</td></tr>
+            <tr><td>Caption</td><td>专训 / 微调 VLM——VLM 在此进场</td><td>六家全部</td></tr>
+            <tr><td>后训练</td><td>人工标注 + VLM 奖励模型</td><td>HunyuanVideo 1.5 / Seedance</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">表 2｜六份技术报告的数据管线，按漏斗层级归纳。</p>
+
+      <p>VLM 只出现在三个位置：caption（六家全用，且没有一家裸用通用 VLM——Seedance 在 Tarsier2 上专训双语 captioner，MovieGen 微调 LLaMA3-Video，HunyuanVideo 用 OPA-DPO 后训练解决"描述越密、幻觉越多"的权衡）、后训练的小规模判断、RL 阶段的奖励模型。过滤段，零 VLM。为什么？答案有三层，一层比一层不显然。</p>
+
+      <p><strong>第一层：贵，而且不是线性地贵。</strong>六份报告全部不披露数据处理的算力开销——HunyuanVideo 只给了"1000 万小时原始视频 → 8 亿 clip"的过滤比例，Open-Sora 只给了 20 万美元的模型训练成本——所以这笔账只能拿自己的实测去外推。按我们 5.9 卡秒/条：8 亿 clip ≈ 131 万 A800·小时 ≈ 150 卡年。一千张 A800 不吃不喝筛 55 天，这还只是筛一遍；数据引擎的常态是每个模型版本都重跑一遍漏斗。对照小模型档：美学回归器毫秒级一帧，差三个数量级。在预训练规模上，全程 VLM 不是"贵一点"，是结构性不可行。</p>
+
+      <p><strong>第二层：就算免费，也不会拿 VLM 当过滤器。</strong>如果停在这里，这篇文章只是把常识复述了一遍。更深层的原因是：过滤器是量具，而量具的第一美德是稳定，不是聪明。美学回归器是冻结的——同一个模型、同一个分数语义，跑十遍结果一致，失败模式已知，分数分布可以画出来审计。VLM judge 是生成器——prompt 一改、底座一升、甚至同一批数据重跑一遍，分数的含义都可能漂移。一条视频这个月 4.2 分、下个月 4.8 分，对 caption 无所谓，对过滤器是灾难：过滤器定义的是整个语料的分布，它必须是一件可复现的测量仪器。</p>
+
+      <p>更微妙的是，这两样东西本是同源。美学回归器就是在人类美学评分上蒸馏出来的 CLIP+MLP；VLM 同样是人类判断的蒸馏。大厂在过滤段选的从来不是"哪份知识更好"，而是"哪种容器更合适"——冻结的标量，还是会漂移的语言。</p>
+
+      <p>顺便，我们自己的表里也藏着这个方向的证据：蒙太奇把 12–16 段拼成一张图、一个请求塞 5 条视频 × 3 个 chunk——这些为降成本做的工程，本质上是把 VLM 往"编码器式用法"逼：一次前向，吐出尽可能多的标量判决。VLM 重管线在成本压力下，会自己长出小模型管线的行为模式。</p>
+
+      <p><strong>第三层："好数据"的定义权在谁手里。</strong>给"好数据"下个理想定义：U(x) = 用 x 训练之后模型的期望提升。这个量不可计算——它唯一的测法是真的拿去训练再评测，塔尖是真训真测。于是整条管线是一座代理塔：元数据 → 技术质量 → 美学 → embedding 几何 → VLM 判断 → 人工标注，越往上越准也越贵；而漏斗让便宜的先看、贵的只看幸存者。注意，这个排序由单条成本决定，不由"哪个信号最接近 U"决定。</p>
+
+      <p>这个视角能一口气解释几个散落的现象。Tiger200K 为什么可以不做任何训练实验就发布数据集？因为代理被当成了本体，大家都默认"过滤了就是好的"。学界论文为什么清一色 VLM 洗数据？算力贫困下的级联退化：只付得起一层代理，就选最全能的那层。HunyuanVideo 为什么花力气用 RL 专训 captioner 而不是裸用 Qwen？caption 是离塔尖最近、又能低成本对齐的环节。数据飞轮为什么被所有大厂当成终局？因为它把塔尖——真训真测——闭环成了日常操作。</p>
+
+      <p>所以"好数据"今天没有属性式的定义，只有阶段式的：同一条 clip，在 256p 预训练是好数据，到 768p 精调就是坏数据。"好"不是视频的属性，是视频、训练阶段和目标之间的关系。</p>
+
+      <p><strong>一个可证伪的预测。</strong>账单里还有个容易被忽略的细节：初筛用 7B，约 37 条/分/卡；二筛换成 30B，约 30 条/分/卡——模型大了四倍，单卡吞吐基本没掉。serving 效率的进步是实打实的。所以我的判断是：当 VLM 推理成本再降两个数量级，量具论会松动，过滤段将向 VLM judge 迁移——AVVA 这类工作和大厂 RL 里的 VLM 奖励模型已是先声；届时的 CLIP+MLP 美学回归器，会像今天的像素阈值过滤一样原始。两种管线正在向对方演化：我们在把 VLM 用成编码器，大厂在把过滤器换成 learned judge。</p>
+
+      <p><strong>小结三句话：</strong>大厂过滤段零 VLM，第一层原因是贵两个数量级以上，150 卡年筛一遍的账没人付得起；第二层原因是过滤器要量具的稳定，VLM 是会漂移的裁判，而两者本是人类判断的同源蒸馏，选的是容器不是知识；第三层原因是整条管线本来就是按成本排序的代理塔——"好数据"的定义权，至少今天，握在经济学手里，不在认识论手里。</p>
+
+      <p>剩下的问题：等到 VLM 的成本崩塌、量具论失效，"好数据"会等来一个认识论上的定义，还是只换一个更贵的共识？</p>
+
+      <p class="references-title">参考资料</p>
+      <ul class="paper-list">
+        <li><a href="https://arxiv.org/abs/2506.09113" target="_blank" rel="noreferrer">ByteDance Seed, <em>Seedance 1.0 Technical Report</em>, 2025</a></li>
+        <li><a href="https://arxiv.org/abs/2410.13720" target="_blank" rel="noreferrer">Meta AI, <em>Movie Gen: A Cast of Media Foundation Models</em>, 2024</a></li>
+        <li><a href="https://arxiv.org/abs/2503.09642" target="_blank" rel="noreferrer">HPC-AI Tech, <em>Open-Sora 2.0</em>, 2025</a></li>
+        <li><a href="https://arxiv.org/abs/2511.18870" target="_blank" rel="noreferrer">Tencent Hunyuan, <em>HunyuanVideo 1.5 Technical Report</em>, 2025</a></li>
+        <li><a href="https://arxiv.org/abs/2410.08260" target="_blank" rel="noreferrer">Wang et al., <em>Koala-36M</em>, CVPR 2025</a></li>
+        <li><a href="https://arxiv.org/abs/2504.15182" target="_blank" rel="noreferrer"><em>Tiger200K: Manually Curated High Visual Quality Video Dataset</em>, 2025</a></li>
+        <li><a href="https://arxiv.org/abs/2503.09205" target="_blank" rel="noreferrer"><em>Quality Over Quantity? LLM-Based Curation for a Data Flywheel</em>, 2025</a></li>
+      </ul>
+    </article>
+
+    <article class="article" data-lang-content="en">
+      <a class="back-link" href="blog.html">← Back to Blog</a>
+      <div class="article-meta">2026-10-26 · Machine Learning · Video Generation · Data</div>
+      <h1>Why Frontier Labs Don't Clean Video Data with VLMs</h1>
+      <p class="lead">Our own cleaning pipeline was all-VLM, and the bill was perfectly affordable — until a close reading of six frontier technical reports revealed that not a single one uses a VLM in the filtering stage. "Too expensive" is only the first of three reasons.</p>
+
+      <p><strong>First, our own bill.</strong>In a recent video data cleaning project, every one of our five stages was judged by a VLM, running on A800 GPUs:</p>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Stage</th><th>Model / input</th><th>Throughput (measured)</th><th>Time on 148k-source pool</th></tr></thead>
+          <tbody>
+            <tr><td>Broad first pass</td><td>Qwen2.5-VL-7B, wide-frame sampling</td><td>~35–40 items/min/card</td><td>2 cards × ~3 days (historical log)</td></tr>
+            <tr><td>Tiered admission pass</td><td>Qwen3-VL-30B, 18 frames/item</td><td>~120 items/min (4 cards)</td><td>104k KEEP ≈ 14.5 h</td></tr>
+            <tr><td>Strong-prompt re-screen (segment-wise, 4 fps)</td><td>Qwen3-VL-30B, 12–16-segment montage</td><td>~55 items/min (4 cards)</td><td>19,816 candidates ≈ 6 h</td></tr>
+            <tr><td>Dense mining at 8 fps</td><td>Qwen3-VL-30B, 5 videos × 3 chunks/request</td><td>~113 items/min (2 cards)</td><td>28,771 candidates ≈ 4.2 h</td></tr>
+            <tr><td>Event-window localization (v3 sweep)</td><td>Qwen3-VL-30B, 8 fps</td><td>~45 items/min (4 cards)</td><td>5,950 clips ≈ 2.2 h</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">Table 1. Five all-VLM stages, measured on A800. The first pass's wall clock includes retries and scheduling overhead; net throughput implies about 33 hours, and we keep the conservative figure.</p>
+
+      <p>In total: roughly 243 A800·hours for 148k source videos, about 5.9 card-seconds per item. A small team, a handful of GPUs, a few days, one pool of ~150k — this is exactly why academic labs and small teams default to VLM cleaning: within budget, it is the optimal solution. Strongest judge available, nothing to train, prompt-as-filter.</p>
+
+      <p><strong>Then I read six technical reports.</strong>MovieGen, Open-Sora 2.0, HunyuanVideo 1.5, Seedance 1.0, Koala-36M, and Tiger200K — read side by side, their filtering stages look like they came from the same internal document:</p>
+
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Funnel layer</th><th>What runs there</th><th>Source</th></tr></thead>
+          <tbody>
+            <tr><td>Shot segmentation</td><td>PySceneDetect / TransNetV2 / FFmpeg scene scores</td><td>all six</td></tr>
+            <tr><td>Technical quality</td><td>Laplacian variance, VMAF, trained quality operators</td><td>Open-Sora 2.0 / HunyuanVideo 1.5</td></tr>
+            <tr><td>Watermarks &amp; subtitles</td><td>PaddleOCR + dedicated detectors, safe-zone cropping</td><td>MovieGen / Seedance / Tiger200K</td></tr>
+            <tr><td>Aesthetics</td><td>small CLIP+MLP regressors</td><td>MovieGen / Open-Sora 2.0 / HunyuanVideo 1.5</td></tr>
+            <tr><td>Motion</td><td>static-video detectors, VMAF motion, optical flow</td><td>Seedance / MovieGen / Open-Sora 2.0</td></tr>
+            <tr><td>Dedup &amp; rebalancing</td><td>embedding clustering + inverse-proportional sampling</td><td>Seedance / MovieGen</td></tr>
+            <tr><td>Captioning</td><td>specialized / fine-tuned VLMs — this is where VLMs enter</td><td>all six</td></tr>
+            <tr><td>Post-training</td><td>human annotation + VLM reward models</td><td>HunyuanVideo 1.5 / Seedance</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="table-note">Table 2. Data pipelines of the six technical reports, organized by funnel layer.</p>
+
+      <p>VLMs appear in exactly three places: captioning (all six, and none uses a stock general VLM — Seedance trained a bilingual captioner on Tarsier2, MovieGen fine-tuned LLaMA3-Video, HunyuanVideo used OPA-DPO post-training to manage the richness–hallucination trade-off), small-scale post-training judgments, and reward models in RL. In the filtering stage: zero. Why? There are three answers, each less obvious than the last.</p>
+
+      <p><strong>Answer one: cost — and not linearly.</strong>None of the six reports discloses the compute cost of data processing — HunyuanVideo gives only the ratio "10M raw hours → 800M clips", Open-Sora only a $200k training budget — so the only way to do the accounting is to extrapolate from our own measurements. At 5.9 card-seconds per item: 800M clips ≈ 1.31M A800·hours ≈ 150 card-years. A thousand A800s grinding for 55 days straight, and that is one single pass; data engines re-run the funnel for every model iteration. Against the small-model tier — aesthetic regressors at milliseconds per frame — that is a three-orders-of-magnitude gap. At pre-training scale, an all-VLM pipeline is not "somewhat expensive"; it is structurally infeasible.</p>
+
+      <p><strong>Answer two: even if VLMs were free, they would not be the filter.</strong>Stopping at cost would merely restate common sense. The deeper reason: a filter is a measuring instrument, and the first virtue of an instrument is stability, not intelligence. An aesthetic regressor is frozen — same model, same score semantics, identical results across ten runs, known failure modes, and a score distribution you can plot and audit. A VLM judge is a generator — change the prompt, upgrade the base model, or simply re-run the same batch, and the meaning of the score can drift. A video scoring 4.2 this month and 4.8 next month is harmless for captioning and catastrophic for filtering: a filter defines the distribution of the entire corpus, so it must be a reproducible instrument.</p>
+
+      <p>The subtler point: the two are distillations of the same source. The aesthetic regressor is a CLIP+MLP distilled from human aesthetic ratings; the VLM is likewise a distillation of human judgment. What frontier labs choose in the filtering stage was never "which knowledge is better" but "which container is better" — a frozen scalar, or drifting language.</p>
+
+      <p>Incidentally, our own table contains evidence of the same drift: montages that tile 12–16 segments into one image, requests packing 5 videos × 3 chunks — these cost-driven engineering choices are pushing the VLM toward "encoder-style" usage: one forward pass, as many scalar verdicts as possible. Under cost pressure, a VLM-heavy pipeline spontaneously grows the behavioral patterns of a small-model pipeline.</p>
+
+      <p><strong>Answer three: who holds the definition of "good data".</strong>Define good data ideally as U(x) = the expected improvement in the model after training on x. This quantity is not computable — the only way to measure it is to actually train and evaluate; the top of the tower is train-and-measure. So the whole pipeline is a tower of proxies: metadata → technical quality → aesthetics → embedding geometry → VLM judgment → human annotation, each level more accurate and more expensive; the funnel lets the cheap look at everything and the expensive look only at survivors. Note that this ordering is decided by per-item cost, not by "which signal is closest to U".</p>
+
+      <p>This lens explains several scattered facts at once. Why could Tiger200K publish a dataset without a single training experiment? Because the proxy was mistaken for the thing itself — everyone assumes "filtered means better". Why do academic papers overwhelmingly use VLM cleaning? Cascade degeneration under compute poverty: if you can afford only one layer of proxy, you pick the most versatile one. Why did HunyuanVideo RL-train a captioner instead of using stock Qwen? Captioning is the layer closest to the top of the tower that can still be aligned cheaply. Why does every frontier lab treat the data flywheel as the endgame? Because it closes the loop on the top of the tower — train-and-measure — and turns it into a routine operation.</p>
+
+      <p>So "good data" today has no attribute-style definition, only a stage-relative one: the same clip is good data at 256p pre-training and bad data at 768p fine-tuning. "Good" is not a property of the video; it is a relation between the video, the training stage, and the objective.</p>
+
+      <p><strong>A falsifiable prediction.</strong>One easily missed detail in our bill: the first pass used a 7B model at ~37 items/min/card; the second used a 30B at ~30 items/min/card — a 4× larger model with essentially unchanged per-card throughput. Serving efficiency is improving fast. So my claim: once VLM inference cost falls another two orders of magnitude, the instrument argument weakens and the filtering stage will migrate toward VLM judges — AVVA-style work and VLM reward models in RL are the early signs; today's CLIP+MLP aesthetic regressors will then look as primitive as pixel-threshold filtering does now. The two pipelines are evolving toward each other: we are learning to use VLMs as encoders, and frontier labs are replacing hand filters with learned judges.</p>
+
+      <p><strong>Three-sentence summary:</strong>Zero VLMs in frontier filtering, first, because it is two-plus orders of magnitude too expensive — nobody pays 150 card-years per pass. Second, because a filter must be a stable instrument, while a VLM is a drifting judge — and both are distillations of the same human judgment, so the choice is about the container, not the knowledge. Third, because the pipeline is a tower of proxies ordered by cost — the definition of "good data", at least today, is held by economics, not epistemology.</p>
+
+      <p>The question that remains: when VLM cost collapses and the instrument argument expires, will "good data" finally get an epistemic definition — or just a more expensive consensus?</p>
+
+      <p class="references-title">References</p>
+      <ul class="paper-list">
+        <li><a href="https://arxiv.org/abs/2506.09113" target="_blank" rel="noreferrer">ByteDance Seed, <em>Seedance 1.0 Technical Report</em>, 2025</a></li>
+        <li><a href="https://arxiv.org/abs/2410.13720" target="_blank" rel="noreferrer">Meta AI, <em>Movie Gen: A Cast of Media Foundation Models</em>, 2024</a></li>
+        <li><a href="https://arxiv.org/abs/2503.09642" target="_blank" rel="noreferrer">HPC-AI Tech, <em>Open-Sora 2.0</em>, 2025</a></li>
+        <li><a href="https://arxiv.org/abs/2511.18870" target="_blank" rel="noreferrer">Tencent Hunyuan, <em>HunyuanVideo 1.5 Technical Report</em>, 2025</a></li>
+        <li><a href="https://arxiv.org/abs/2410.08260" target="_blank" rel="noreferrer">Wang et al., <em>Koala-36M</em>, CVPR 2025</a></li>
+        <li><a href="https://arxiv.org/abs/2504.15182" target="_blank" rel="noreferrer"><em>Tiger200K: Manually Curated High Visual Quality Video Dataset</em>, 2025</a></li>
+        <li><a href="https://arxiv.org/abs/2503.09205" target="_blank" rel="noreferrer"><em>Quality Over Quantity? LLM-Based Curation for a Data Flywheel</em>, 2025</a></li>
+      </ul>
+    </article>
+  </main>
+
+  <footer class="site-shell footer"><span data-i18n="footerNote"></span></footer>
+  <script>
+    const translations = {
+      zh: { title:"为什么大厂不用 VLM 洗数据 · 崔君同", brand:"崔君同", navHome:"主页", navBlog:"博客", navPhotography:"摄影", footerNote:"© 2026 崔君同。本站托管于 GitHub Pages。" },
+      en: { title:"Why Frontier Labs Don't Clean Video Data with VLMs · Juntong Cui", brand:"Juntong Cui", navHome:"Home", navBlog:"Blog", navPhotography:"Photography", footerNote:"© 2026 Juntong Cui. Hosted on GitHub Pages." }
+    };
+    const savedLang = localStorage.getItem("site-language");
+    const initialLang = savedLang || "en";
+    function applyLanguage(lang) {
+      const dict = translations[lang] || translations.zh;
+      document.documentElement.lang = lang === "zh" ? "zh-CN" : "en";
+      document.title = dict.title;
+      document.querySelectorAll("[data-i18n]").forEach((node) => { node.textContent = dict[node.getAttribute("data-i18n")] || ""; });
+      document.querySelectorAll("[data-lang-content]").forEach((node) => { node.hidden = node.dataset.langContent !== lang; });
+      document.querySelectorAll("[data-lang]").forEach((button) => { button.classList.toggle("is-active", button.dataset.lang === lang); button.setAttribute("aria-pressed", String(button.dataset.lang === lang)); });
+      localStorage.setItem("site-language", lang);
+    }
+    document.querySelectorAll("[data-lang]").forEach((button) => button.addEventListener("click", () => applyLanguage(button.dataset.lang)));
+    applyLanguage(initialLang);
+  </script>
+</body>
+</html>
