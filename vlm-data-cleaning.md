@@ -40,13 +40,9 @@
 | Caption | 专训 / 微调 VLM | all |
 | 后训练 | 人工标注 + VLM 奖励模型 | HunyuanVideo 1.5 / Seedance |
 
-可以看到，VLM 只出现在 caption、后训练的小规模判断，以及 RL 阶段的奖励模型。这三个位置其实是同一身份：captioner 力求贴近人类写描述的方式，奖励模型放大人类的偏好判断。而在过滤段，也即镜头切分、质量过滤、运动过滤、去重这一段，清一色是 PySceneDetect、PaddleOCR、Laplacian 方差、VMAF、光流、CLIP+MLP 这些工具和小模型。
+可以看到，VLM 只出现在 caption、后训练的小规模判断，以及 RL 阶段的奖励模型。captioner 力求贴近人类写描述的方式，奖励模型放大人类的偏好判断。而在过滤段，也即镜头切分、质量过滤、运动过滤、去重这一段，清一色是 PySceneDetect、PaddleOCR、Laplacian 方差、VMAF、光流、CLIP+MLP 这些工具和小模型。
 
-关于开源状态，Seedance 2.0 无权重，MiniMax H3 给权重不给报告，HunyuanVideo 报告权重都给了——但把数据处理管线这个真正的核心科技开源出来的，工业界一家大厂都没有。开源世界能找到的完整管线全部来自开源阵营：Open-Sora 把报告里的管线原样放进 repo，NeMo Curator 和 Data-Juicer 提供现成的过滤去重框架，再配上开源的 captioner、美学回归器和 Koala-36M、Tiger200K 这样的数据集，社区是拿开源工具复现工业 pipe。
-
-## 六层漏斗
-
-把六份报告叠在一起，工业界洗数据的流水线大致是六层。第一层是切分：PySceneDetect、TransNetV2、FFmpeg 的场景分数把原始视频切成 2 到 16 秒的单镜头 clip，转场和特效由专门的小分类器清掉。Tiger200K 给过一个细节：阈值式的 PySceneDetect 会漏叠化转场，所以他们换了学习式的 TransNetV2。这一层没有理解，只有逐帧定位。
+关于开源状态，Seedance 2.0 无权重，MiniMax H3 给权重不给报告，HunyuanVideo 报告权重都给了——但把数据处理管线这一真正的核心科技开源出来的，一家大厂都没有。开源世界能找到的完整管线全部来自开源阵营：Open-Sora 把报告里的管线原样放进 repo，NeMo Curator 和 Data-Juicer 提供现成的过滤去重框架，再配上开源的 captioner、美学回归器和 Koala-36M、Tiger200K 这样的数据集，社区是拿开源工具复现工业 pipe。
 
 第二层是一批便宜的量具。水印和字幕交给 PaddleOCR 和专用检测器，裁出安全区，裁完保留面积不足就整条丢弃；清晰度用 Laplacian 方差和 VMAF；美学是 CLIP+MLP 小回归器；运动用光流和 VMAF motion，太静和太抖都删。全是冻结的小模型，毫秒级一条。2026 年的 Seedance 2.0 报告里，这一层还是同样的配置。
 
@@ -56,13 +52,13 @@
 
 第五层是数据金字塔。同一批语料按质量分出梯度：Open-Sora 2.0 是 7000 万的低分辨率池喂出 500 万的高分辨率精选，HunyuanVideo 从 1000 万小时原始视频筛出 8 亿 clip，逐级收紧，贵的高分辨率训练只吃塔尖那一层。
 
-第六层是后训练和 RLHF，筛法在这里彻底变了：不再是过滤大池子，而是人工构造一个小数据集。prompt 池人工验证（HunyuanVideo 的 I2V RL 用了 100 多个类目），候选由不同 checkpoint 对同一 prompt 滚出，人来成对标注（Meta 用 GSB，Seedance 按维度选 best/worst，HunyuanVideo 标了约 1 万对 DPO），最后把这 1 万对人类偏好蒸馏成 VLM 奖励模型，供在线 RL 批量打分。8 亿 clip 对 1 万对标注，差五个数量级，越靠近塔尖，数据越小、越贵、也越真。顺带一提，HunyuanVideo 自己承认现有奖励模型分不清细粒度运动的好坏，所以才先做离线 DPO 再上在线 RL：VLM 裁判也是蒸馏来的，人分不清的它同样分不清。
+后训练和 RLHF 则是另一种筛法：不再是过滤大池子，而是人工构造小数据集。prompt 池人工验证，候选由不同 checkpoint 对同一 prompt 滚出，人来做成对标注（HunyuanVideo 标了约 1 万对 DPO），最后把这 1 万对人类偏好蒸馏成 VLM 奖励模型，供在线 RL 批量打分。8 亿 clip 对 1 万对标注，差五个数量级——越靠近塔尖，数据越小、越贵、也越真。
 
 既然我们用 VLM 洗得好好的，为什么大厂不在过滤段也用它？
 
 ## 自己拼一个漏斗
 
-好在管线里的每一层都有开源对应物，方法是真的可以自己拼的。切分用 PySceneDetect 一行，转场敏感的场景换学习式的 TransNetV2；清晰度是 Laplacian 方差，运动是相邻帧光流的平均幅值，都是十几行 OpenCV 的事：
+好在表 2 里的每一层都有开源对应物，方法是真的可以自己拼的。切分用 PySceneDetect 一行，转场敏感的场景换学习式的 TransNetV2；清晰度是 Laplacian 方差，运动是相邻帧光流的平均幅值，都是十几行 OpenCV 的事：
 
 ```python
 from scenedetect import detect, ContentDetector
@@ -85,38 +81,7 @@ def motion_sharpness(path):
     return np.median(laps), np.mean(mags)   # 清晰度、运动幅度
 ```
 
-美学打分用 LAION 在人类评分上蒸馏的 CLIP+MLP，权重和结构都是现成的：
-
-```python
-import torch, torch.nn as nn
-from transformers import CLIPModel, CLIPProcessor
-
-clip = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
-head = nn.Sequential(nn.Linear(768, 256), nn.Dropout(0.4),
-                     nn.ReLU(), nn.Linear(256, 1))
-head.load_state_dict(torch.load("sa_0_4_vit_l_14_linear.pth"))
-
-def aesthetic(pil_img):
-    x = CLIPProcessor.from_pretrained(clip.name_or_path)(
-        images=pil_img, return_tensors="pt")
-    with torch.no_grad():
-        feat = clip.get_image_features(**x)
-    return head(feat).item()                # 1 到 10 分
-```
-
-去重和配比在 embedding 空间里做，FAISS 几行：
-
-```python
-import faiss
-
-emb = encode_with_siglip(clips)             # N x D，归一化
-index = faiss.IndexFlatIP(emb.shape[1])
-index.add(emb)
-D, _ = index.search(emb, 2)                 # 最近邻含自身
-keep = D[:, 1] < 0.95                       # 近重复只留一条
-```
-
-caption 这一层的开源选择最多，Qwen2.5-VL、Tarsier2 都能用，prompt 按六要素（主体、动作、环境、光照、运镜、风格）写就行。拼到这里你会发现：工业漏斗的每一层都有开源件，区别只在阈值要自己调，而专训的 operator 没有现成的——这恰恰是最花时间的部分。
+按六要素写 prompt——工业漏斗的每一层都有开源件，区别只在阈值要自己调、专训的 operator 没有现成的，这恰恰是最花时间的部分。
 
 既然我们用 VLM 洗得好好的，为什么大厂不用？
 

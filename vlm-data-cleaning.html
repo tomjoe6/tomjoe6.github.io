@@ -83,13 +83,9 @@
       </div>
       <p class="table-note">表 2｜六份技术报告的数据管线，按漏斗层级归纳。Seedance 2.0（2026）的数据引擎与 1.0 同构，未单列。</p>
 
-      <p>可以看到，VLM 只出现在 caption、后训练的小规模判断，以及 RL 阶段的奖励模型。这三个位置其实是同一身份：captioner 力求贴近人类写描述的方式，奖励模型放大人类的偏好判断。而在过滤段，也即镜头切分、质量过滤、运动过滤、去重这一段，清一色是 PySceneDetect、PaddleOCR、Laplacian 方差、VMAF、光流、CLIP+MLP 这些工具和小模型。</p>
+      <p>可以看到，VLM 只出现在 caption、后训练的小规模判断，以及 RL 阶段的奖励模型。captioner 力求贴近人类写描述的方式，奖励模型放大人类的偏好判断。而在过滤段，也即镜头切分、质量过滤、运动过滤、去重这一段，清一色是 PySceneDetect、PaddleOCR、Laplacian 方差、VMAF、光流、CLIP+MLP 这些工具和小模型。</p>
 
-      <p>关于开源状态，Seedance 2.0 无权重，MiniMax H3 给权重不给报告，HunyuanVideo 报告权重都给了——但把数据处理管线这个真正的核心科技开源出来的，工业界一家大厂都没有。开源世界能找到的完整管线全部来自开源阵营：Open-Sora 把报告里的管线原样放进 repo，NeMo Curator 和 Data-Juicer 提供现成的过滤去重框架，再配上开源的 captioner、美学回归器和 Koala-36M、Tiger200K 这样的数据集，社区是拿开源工具复现工业 pipe。</p>
-
-      <h2>六层漏斗</h2>
-
-      <p>把六份报告叠在一起，工业界洗数据的流水线大致是六层。第一层是切分：PySceneDetect、TransNetV2、FFmpeg 的场景分数把原始视频切成 2 到 16 秒的单镜头 clip，转场和特效由专门的小分类器清掉。Tiger200K 给过一个细节：阈值式的 PySceneDetect 会漏叠化转场，所以他们换了学习式的 TransNetV2。这一层没有理解，只有逐帧定位。</p>
+      <p>关于开源状态，Seedance 2.0 无权重，MiniMax H3 给权重不给报告，HunyuanVideo 报告权重都给了——但把数据处理管线这一真正的核心科技开源出来的，一家大厂都没有。开源世界能找到的完整管线全部来自开源阵营：Open-Sora 把报告里的管线原样放进 repo，NeMo Curator 和 Data-Juicer 提供现成的过滤去重框架，再配上开源的 captioner、美学回归器和 Koala-36M、Tiger200K 这样的数据集，社区是拿开源工具复现工业 pipe。</p>
 
       <p>第二层是一批便宜的量具。水印和字幕交给 PaddleOCR 和专用检测器，裁出安全区，裁完保留面积不足就整条丢弃；清晰度用 Laplacian 方差和 VMAF；美学是 CLIP+MLP 小回归器；运动用光流和 VMAF motion，太静和太抖都删。全是冻结的小模型，毫秒级一条。2026 年的 Seedance 2.0 报告里，这一层还是同样的配置。</p>
 
@@ -99,11 +95,11 @@
 
       <p>第五层是数据金字塔。同一批语料按质量分出梯度：Open-Sora 2.0 是 7000 万的低分辨率池喂出 500 万的高分辨率精选，HunyuanVideo 从 1000 万小时原始视频筛出 8 亿 clip，逐级收紧，贵的高分辨率训练只吃塔尖那一层。</p>
 
-      <p>第六层是后训练和 RLHF，筛法在这里彻底变了：不再是过滤大池子，而是人工构造一个小数据集。prompt 池人工验证（HunyuanVideo 的 I2V RL 用了 100 多个类目），候选由不同 checkpoint 对同一 prompt 滚出，人来成对标注（Meta 用 GSB，Seedance 按维度选 best/worst，HunyuanVideo 标了约 1 万对 DPO），最后把这 1 万对人类偏好蒸馏成 VLM 奖励模型，供在线 RL 批量打分。8 亿 clip 对 1 万对标注，差五个数量级，越靠近塔尖，数据越小、越贵、也越真。顺带一提，HunyuanVideo 自己承认现有奖励模型分不清细粒度运动的好坏，所以才先做离线 DPO 再上在线 RL：VLM 裁判也是蒸馏来的，人分不清的它同样分不清。</p>
+      <p>后训练和 RLHF 则是另一种筛法：不再是过滤大池子，而是人工构造小数据集。prompt 池人工验证，候选由不同 checkpoint 对同一 prompt 滚出，人来做成对标注（HunyuanVideo 标了约 1 万对 DPO），最后把这 1 万对人类偏好蒸馏成 VLM 奖励模型，供在线 RL 批量打分。8 亿 clip 对 1 万对标注，差五个数量级——越靠近塔尖，数据越小、越贵、也越真。</p>
 
       <h2>自己拼一个漏斗</h2>
 
-      <p>好在管线里的每一层都有开源对应物，方法是真的可以自己拼的。切分用 PySceneDetect 一行，转场敏感的场景换学习式的 TransNetV2；清晰度是 Laplacian 方差，运动是相邻帧光流的平均幅值，都是十几行 OpenCV 的事：</p>
+      <p>好在表 2 里的每一层都有开源对应物，方法是真的可以自己拼的。切分用 PySceneDetect 一行，转场敏感的场景换学习式的 TransNetV2；清晰度是 Laplacian 方差，运动是相邻帧光流的平均幅值，都是十几行 OpenCV 的事：</p>
 
       <pre><code>from scenedetect import detect, ContentDetector
 import cv2, numpy as np
@@ -124,34 +120,7 @@ def motion_sharpness(path):
         prev = g
     return np.median(laps), np.mean(mags)   # 清晰度、运动幅度</code></pre>
 
-      <p>美学打分用 LAION 在人类评分上蒸馏的 CLIP+MLP，权重和结构都是现成的：</p>
-
-      <pre><code>import torch, torch.nn as nn
-from transformers import CLIPModel, CLIPProcessor
-
-clip = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
-head = nn.Sequential(nn.Linear(768, 256), nn.Dropout(0.4),
-                     nn.ReLU(), nn.Linear(256, 1))
-head.load_state_dict(torch.load("sa_0_4_vit_l_14_linear.pth"))
-
-def aesthetic(pil_img):
-    x = CLIPProcessor.from_pretrained(clip.name_or_path)(
-        images=pil_img, return_tensors="pt")
-    with torch.no_grad():
-        feat = clip.get_image_features(**x)
-    return head(feat).item()                # 1 到 10 分</code></pre>
-
-      <p>去重和配比在 embedding 空间里做，FAISS 几行：</p>
-
-      <pre><code>import faiss
-
-emb = encode_with_siglip(clips)             # N x D，归一化
-index = faiss.IndexFlatIP(emb.shape[1])
-index.add(emb)
-D, _ = index.search(emb, 2)                 # 最近邻含自身
-keep = D[:, 1] &lt; 0.95                       # 近重复只留一条</code></pre>
-
-      <p>caption 这一层的开源选择最多，Qwen2.5-VL、Tarsier2 都能用，prompt 按六要素（主体、动作、环境、光照、运镜、风格）写就行。拼到这里你会发现：工业漏斗的每一层都有开源件，区别只在阈值要自己调，而专训的 operator 没有现成的——这恰恰是最花时间的部分。</p>
+      Qwen2.5-VL 或 Tarsier2 按六要素写 prompt——工业漏斗的每一层都有开源件，区别只在阈值要自己调、专训的 operator 没有现成的，这恰恰是最花时间的部分。</p>
 
       <p>既然我们用 VLM 洗得好好的，为什么大厂不在过滤段也用它？</p>
 
@@ -257,13 +226,9 @@ keep = D[:, 1] &lt; 0.95                       # 近重复只留一条</code></p
       </div>
       <p class="table-note">Table 2. Data pipelines of the six technical reports, organized by funnel layer. The Seedance 2.0 (2026) data engine is isomorphic to 1.0 and not listed separately.</p>
 
-      <p>As you can see, VLMs appear only in captioning, small-scale post-training judgments, and reward models in RL. These three are one identity: the captioner strives to imitate how humans describe videos, and the reward model amplifies human preference. In the filtering stage — shot segmentation, quality filtering, motion filtering, dedup — it is PySceneDetect, PaddleOCR, Laplacian variance, VMAF, optical flow, and CLIP+MLP all the way down.</p>
+      <p>As you can see, VLMs appear only in captioning, small-scale post-training judgments, and reward models in RL. The captioner strives to imitate how humans describe videos, and the reward model amplifies human preference. In the filtering stage — shot segmentation, quality filtering, motion filtering, dedup — it is PySceneDetect, PaddleOCR, Laplacian variance, VMAF, optical flow, and CLIP+MLP all the way down.</p>
 
-      <p>On open-source status: Seedance 2.0 gives no weights; MiniMax H3 gives weights but no report; HunyuanVideo gives both — yet not a single major lab open-sources the data processing pipeline, the real core technology. The complete pipelines you can find in the open world all come from the open-source camp itself: Open-Sora put the exact pipeline from its report into the repo, NeMo Curator and Data-Juicer ship ready-made filtering and dedup frameworks, and together with open captioners, aesthetic regressors, and datasets like Koala-36M and Tiger200K, the community is reassembling the industrial pipeline with open tools.</p>
-
-      <h2>The six-layer funnel</h2>
-
-      <p>Stacking the six reports together, the industry's cleaning pipeline has roughly six layers. The first is segmentation: PySceneDetect, TransNetV2, and FFmpeg scene scores cut raw footage into single-shot clips of 2 to 16 seconds, and dedicated small classifiers remove transitions and effects. Tiger200K offers a detail: threshold-based PySceneDetect misses cross-dissolves, so they switched to the learned TransNetV2. There is no understanding in this layer, only per-frame localization.</p>
+      <p>On open-source status: Seedance 2.0 gives no weights; MiniMax H3 gives weights but no report; HunyuanVideo gives both — yet the data processing pipeline, the real core technology, has been open-sourced by not a single major lab. The complete pipelines you can find in the open world all come from the open-source camp itself: Open-Sora put the exact pipeline from its report into the repo, NeMo Curator and Data-Juicer ship ready-made filtering and dedup frameworks, and together with open captioners, aesthetic regressors, and datasets like Koala-36M and Tiger200K, the community is reassembling the industrial pipeline with open tools.</p>
 
       <p>The second layer is a batch of cheap instruments. Watermarks and subtitles go to PaddleOCR and dedicated detectors that crop a safe zone, discarding the clip if too little frame remains; sharpness is Laplacian variance and VMAF; aesthetics is a small CLIP+MLP regressor; motion is optical flow and VMAF motion, with both the too-still and the too-shaky removed. All frozen small models, milliseconds per item. In the 2026 Seedance 2.0 report, this layer runs the same configuration.</p>
 
@@ -273,11 +238,11 @@ keep = D[:, 1] &lt; 0.95                       # 近重复只留一条</code></p
 
       <p>The fifth layer is the data pyramid. The same corpus is graded by quality: Open-Sora 2.0 feeds a 70M low-resolution pool down into a 5M high-resolution selection, and HunyuanVideo filters 10M raw hours into 800M clips, tightening level by level; expensive high-resolution training only eats from the top.</p>
 
-      <p>The sixth layer is post-training and RLHF, where the method changes completely: no longer filtering a big corpus, but hand-constructing a tiny dataset. The prompt pool is human-verified (HunyuanVideo used 100-plus categories for I2V RL), candidates are rolled out from different checkpoints on the same prompt, humans label pairwise preferences (Meta used GSB, Seedance picked best/worst per dimension, HunyuanVideo annotated about 10k DPO pairs), and finally those 10k human preferences are distilled into a VLM reward model that scores rollouts in bulk during online RL. 800M clips versus 10k annotations — five orders of magnitude apart. The closer to the top of the tower, the smaller, pricier, and truer the data. Incidentally, HunyuanVideo itself admits that existing reward models cannot tell apart fine-grained motion quality, which is why they run offline DPO before online RL: a VLM judge is also distilled — whatever humans cannot distinguish, it cannot either.</p>
+      <p>Post-training and RLHF are a different kind of screening: instead of filtering a big corpus, a tiny dataset is hand-constructed. The prompt pool is human-verified, candidates are rolled out from different checkpoints on the same prompt, and humans label pairwise preferences (HunyuanVideo annotated about 10k DPO pairs); those 10k human preferences are then distilled into a VLM reward model that scores rollouts in bulk during online RL. 800M clips versus 10k annotations — five orders of magnitude: the closer to the top of the tower, the smaller, pricier, and truer the data.</p>
 
       <h2>Assemble one yourself</h2>
 
-      <p>Fortunately, every layer of the funnel has an open-source counterpart, so the method really can be assembled at home. Segmentation is one line with PySceneDetect (switch to the learned TransNetV2 where cross-dissolves matter); sharpness is Laplacian variance, motion is the mean magnitude of inter-frame optical flow — a dozen lines of OpenCV:</p>
+      <p>Fortunately, every layer in Table 2 has an open-source counterpart, so the method really can be assembled at home. Segmentation is one line with PySceneDetect (switch to the learned TransNetV2 where cross-dissolves matter); sharpness is Laplacian variance, motion is the mean magnitude of inter-frame optical flow — a dozen lines of OpenCV:</p>
 
       <pre><code>from scenedetect import detect, ContentDetector
 import cv2, numpy as np
@@ -298,34 +263,7 @@ def motion_sharpness(path):
         prev = g
     return np.median(laps), np.mean(mags)   # sharpness, motion</code></pre>
 
-      <p>For aesthetics, use the CLIP+MLP that LAION distilled from human ratings — both the weights and the architecture are ready-made:</p>
-
-      <pre><code>import torch, torch.nn as nn
-from transformers import CLIPModel, CLIPProcessor
-
-clip = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
-head = nn.Sequential(nn.Linear(768, 256), nn.Dropout(0.4),
-                     nn.ReLU(), nn.Linear(256, 1))
-head.load_state_dict(torch.load("sa_0_4_vit_l_14_linear.pth"))
-
-def aesthetic(pil_img):
-    x = CLIPProcessor.from_pretrained(clip.name_or_path)(
-        images=pil_img, return_tensors="pt")
-    with torch.no_grad():
-        feat = clip.get_image_features(**x)
-    return head(feat).item()                # score 1-10</code></pre>
-
-      <p>Dedup and rebalancing live in embedding space; FAISS does it in a few lines:</p>
-
-      <pre><code>import faiss
-
-emb = encode_with_siglip(clips)             # N x D, normalized
-index = faiss.IndexFlatIP(emb.shape[1])
-index.add(emb)
-D, _ = index.search(emb, 2)                 # nearest neighbor includes self
-keep = D[:, 1] &lt; 0.95                       # one survivor per near-duplicate</code></pre>
-
-      <p>The captioning layer has the most open options — Qwen2.5-VL and Tarsier2 both work, and a prompt covering the six elements (subject, action, environment, lighting, camera, style) is enough. By this point you will notice: every layer of the industrial funnel has an open part; the difference is that thresholds need your own tuning, and the trained operators have no off-the-shelf equivalents — which is precisely the time-consuming part.</p>
+       — Qwen2.5-VL or Tarsier2 with a six-element prompt — every layer of the industrial funnel has an open part; the difference is that thresholds need your own tuning, and the trained operators have no off-the-shelf equivalents, which is precisely the time-consuming part.</p>
 
       <p>Since VLMs worked fine for us, why don't frontier labs use them in the filtering stage too?</p>
 
