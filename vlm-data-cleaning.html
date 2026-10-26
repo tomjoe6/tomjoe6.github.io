@@ -34,61 +34,58 @@
       <a class="back-link" href="blog.html">← 返回博客</a>
       <div class="article-meta">2026-10-26 · 技术报告漫读 · 机器学习 · 视频生成 · 数据</div>
       <h1>技术报告漫读：工业界怎么洗数据</h1>
-      <p class="lead">在学界论文中，洗数据除了规格筛选外，常常全程 VLM：对于 5B~14B 的小模型与十秒内的 480P 视频，只需要十几张卡较短时间内就能跑出一个差强人意的数据集。</p>
+      <p class="lead">在学界论文中，洗数据除了规格筛选外常常全程 VLM：对于 5B~14B 的小模型与十秒内的 480P 视频，只需要十几张卡较短时间内就能跑出一个差强人意的数据集。</p>
 
-      <p>最近尝试洗一批视频数据，去重、初筛、重筛、富矿挖掘、事件窗定位，到 caption 重写与泄漏校验，多道工序除了第一道 ffprobe，其余全部由 VLM 严格出判决。于是自然想到：数据清洗本质上是个处理数据算力、数据丰富程度/质量等因素的 Tradeoff。那么，工业界是如何洗出一份好的数据集的？</p>
+      <p>最近尝试一遍洗数据 pipe，去重、初筛、重筛、富矿挖掘、事件窗定位，到 caption 重写与泄漏校验，多道工序除了第一道 ffprobe，其余全部由 VLM 严格出判决，做 SFT ablation 的效果仍然很不好，于是自然想到：数据清洗本质上是个处理数据算力、数据丰富程度/质量等因素的 Tradeoff。工业界是如何洗出一份好的数据集的？</p>
 
-      <p>后来闲下来，笔者把手上能找到的前沿视频生成技术报告都翻了出来：MovieGen、Seedance 1.0、HunyuanVideo 1.5、Open-Sora 2.0，加上两篇专门讲数据集的 Koala-36M 和 Tiger200K，新一点的还对照了 Seedance 2.0 和开源权重的 MiniMax H3，把数据部分放在一起精读了一遍。先说清楚，这些管线里当然有 VLM——caption 和奖励模型都是它；出乎意料的是另一件事：过滤段，从头到尾没有一家用 VLM。上一篇《SOTA视频模型的物理表现还有提升空间》看的是评测端，这篇往上游走一步，看数据端。</p>
+      <p>直接翻阅技术报告：MovieGen、Seedance 1.0、HunyuanVideo 1.5、Open-Sora 2.0，加上专门讲数据集的 Koala-36M 和 Tiger200K，新一点的还对照了 Seedance 2.0 精读一遍 Data 部分。首先这些管线里的确有 VLM——caption 和奖励模型。而过滤段从头到尾几乎没有用 VLM 的。</p>
 
       <h2>一份账单</h2>
 
-      <p>在展开之前，先把我们当时的账单摆出来，因为后面所有的外推都要以它为基础：</p>
+      <p>在展开之前，先看看我们小实验的消耗，后面所有的外推都要以其为参考：</p>
 
       <div class="table-wrap">
         <table class="data-table">
           <thead><tr><th>#</th><th>工序</th><th>模型 / 口径</th><th>进 → 出</th><th>留存率</th><th>耗时（4×A800 基准）</th></tr></thead>
           <tbody>
             <tr><td>0</td><td>去重 / 探针过滤</td><td>ffprobe</td><td>152,300 → 104,300</td><td>68%</td><td>~0（CPU）</td></tr>
-            <tr><td>1</td><td>宽定义初筛</td><td>Qwen2.5-VL-7B，宽帧</td><td>104,300 → ~19,800</td><td>19%</td><td>2 卡 × ~3 天 ≈ 145 GPU·h</td></tr>
-            <tr><td>2</td><td>收紧初筛（进档判定）</td><td>Qwen3-VL，18 帧</td><td>19,800 → 12,061（strict+balanced 首版）</td><td>61%</td><td>~14.5 h ≈ 58 GPU·h</td></tr>
-            <tr><td>3</td><td>4fps 强 prompt 重筛</td><td>Qwen3-VL，12–16 段</td><td>12,061 → 2,765</td><td>23%</td><td>~6 h ≈ 24 GPU·h</td></tr>
-            <tr><td>4</td><td>8fps 富矿挖掘</td><td>Qwen3-VL，15 帧/请求</td><td>28,771 候选 → 26,836 pass → 12,037 入档</td><td>93% pass</td><td>~4.2 h ≈ 8.4 GPU·h（2 卡）</td></tr>
-            <tr><td>5</td><td>事件窗定位（v3 补扫）</td><td>Qwen3-VL，8fps</td><td>缺窗 5,950 → 窗口 4,790</td><td>80.8%</td><td>~2.2 h ≈ 8.8 GPU·h</td></tr>
-            <tr><td>6</td><td>24 帧 caption 重写</td><td>Qwen3-VL，41 帧</td><td>14,826 → 14,826（100% 覆盖）</td><td>—</td><td>11.7 GPU·h</td></tr>
-            <tr><td>7</td><td>泄漏校验 + 修复</td><td>同款</td><td>519 嫌疑 → 473 判泄漏 → 447 重写</td><td>91%</td><td>1.2 GPU·h</td></tr>
+            <tr><td>1</td><td>宽定义初筛</td><td>Qwen2.5-VL-7B，宽帧</td><td>104,300 → ~20,000</td><td>19%</td><td>2 卡 × ~3 天 ≈ 145 GPU·h</td></tr>
+            <tr><td>2</td><td>收紧初筛</td><td>Qwen3-VL，18 帧</td><td>~20,000 → ~12,000</td><td>61%</td><td>~14.5 h ≈ 58 GPU·h</td></tr>
+            <tr><td>3</td><td>4fps 强 prompt 重筛</td><td>Qwen3-VL，12–16 段</td><td>~12,000 → ~3,000</td><td>23%</td><td>~6 h ≈ 24 GPU·h</td></tr>
+            <tr><td>4</td><td>富矿再挖掘</td><td>Qwen3-VL，15 帧</td><td>30,000 候选 → 26,000 pass → 12,000 入档</td><td>93% pass</td><td>9 GPU·h</td></tr>
+            <tr><td>5</td><td>事件窗定位</td><td>Qwen3-VL，8fps</td><td>5,950 个缺窗</td><td>80.8%</td><td>~2.2 h ≈ 8.8 GPU·h</td></tr>
+            <tr><td>6</td><td>caption 重写</td><td>Qwen3-VL</td><td>14,826</td><td>—</td><td>12 GPU·h</td></tr>
+            <tr><td>7</td><td>泄漏校验 + 修复</td><td>Qwen3-VL</td><td>519 嫌疑 → 473 判泄漏 → 447 重写</td><td>91%</td><td>2 GPU·h</td></tr>
           </tbody>
         </table>
       </div>
-      <p class="table-note">表 1｜全程 VLM 管线的八道工序，A800 实测；耗时为墙钟口径，含重试与调度开销。</p>
 
-      <p>几个数字值得单独说说。最便宜的一道工序恰恰不是 VLM：第 0 道用 ffprobe 在 CPU 上就把 15.2 万条砍到 10.4 万，成本约等于零。真到了要省钱的时候，我们自己也毫不犹豫把最便宜的工具放在最前面，这个事实后面还会用到。</p>
+      <p>其中最便宜的一道工序毫无疑问是 ffprobe：在 CPU 上把 15.2 万条砍到 10.4 万，成本约等于零。业界 pipe 最开始也是进行规格粗糙筛选。</p>
 
-      <p>八道工序合计约 257 GPU·小时，平均每条源视频约 6 卡秒。这个数字乍看不大，但请注意其中真正花在 caption 上的只有第 6、7 道的 12.9 GPU·小时，不到总账的 5%；剩下 95% 的算力，全都花在判断"要不要这条数据"上。15.2 万条进去，最后入档 1.2 万条，总留存 8%。换句话说，VLM 管线的成本大头在过滤而不在 caption，这一点后面也会用到。</p>
+      <h2>技术报告</h2>
 
-      <h2>六份报告</h2>
-
-      <p>再来看六份报告这边。把它们的数据管线按漏斗层归并，大致如下：</p>
+      <p>把报告的数据管线按漏斗层归并，大致如下：</p>
 
       <div class="table-wrap">
         <table class="data-table">
           <thead><tr><th>漏斗层</th><th>用什么</th><th>出处</th></tr></thead>
           <tbody>
-            <tr><td>镜头切分</td><td>PySceneDetect / TransNetV2 / FFmpeg 场景分数</td><td>六家全部</td></tr>
+            <tr><td>镜头切分</td><td>PySceneDetect / TransNetV2 / FFmpeg 场景分数</td><td>all</td></tr>
             <tr><td>技术质量</td><td>Laplacian 方差、VMAF、专训质量 operator</td><td>Open-Sora 2.0 / HunyuanVideo 1.5</td></tr>
             <tr><td>水印与字幕</td><td>PaddleOCR + 专用检测器，安全区裁剪</td><td>MovieGen / Seedance / Tiger200K</td></tr>
             <tr><td>美学</td><td>CLIP+MLP 小回归器</td><td>MovieGen / Open-Sora 2.0 / HunyuanVideo 1.5</td></tr>
             <tr><td>运动</td><td>静态检测器、VMAF motion、光流</td><td>Seedance / MovieGen / Open-Sora 2.0</td></tr>
             <tr><td>去重与配比</td><td>embedding 聚类 + 反比采样</td><td>Seedance / MovieGen</td></tr>
-            <tr><td>Caption</td><td>专训 / 微调 VLM，VLM 在此进场</td><td>六家全部</td></tr>
+            <tr><td>Caption</td><td>专训 / 微调 VLM</td><td>all</td></tr>
             <tr><td>后训练</td><td>人工标注 + VLM 奖励模型</td><td>HunyuanVideo 1.5 / Seedance</td></tr>
           </tbody>
         </table>
       </div>
       <p class="table-note">表 2｜六份技术报告的数据管线，按漏斗层级归纳。Seedance 2.0（2026）的数据引擎与 1.0 同构，未单列。</p>
 
-      <p>可以看到，VLM 只出现在三个位置：caption、后训练的小规模判断，以及 RL 阶段的奖励模型。值得注意的是，这三个位置其实是同一种身份：captioner 放大人类写描述的方式，奖励模型放大人类的偏好判断，都不是独立裁判。而在过滤段，也就是镜头切分、质量过滤、美学打分、运动过滤、去重这一段，清一色是 PySceneDetect、PaddleOCR、Laplacian 方差、VMAF、光流、CLIP+MLP 这些工具和小模型。我们对照了 2026 年的 Seedance 2.0 报告，数据引擎与 1.0 同构，过滤段依旧没有 VLM——两代模型，同一个模式。</p>
+      <p>可以看到，VLM 只出现在 caption、后训练的小规模判断，以及 RL 阶段的奖励模型。这三个位置其实是同一身份：captioner 力求贴近人类写描述的方式，奖励模型放大人类的偏好判断。而在过滤段，也即镜头切分、质量过滤、运动过滤、去重这一段，清一色是 PySceneDetect、PaddleOCR、Laplacian 方差、VMAF、光流、CLIP+MLP 这些工具和小模型。</p>
 
-      <p>顺带把新一代的开源状态理了一下，发现真正错位的是三样东西：报告、权重、数据管线。Seedance 2.0 给报告不给权重，Seedance 2.5 只有发布博客，MiniMax H3 给权重不给报告，HunyuanVideo 报告权重都给了——但把数据处理管线开源出来的，工业界一家都没有。开源世界能找到的完整管线全部来自开源阵营：Open-Sora 把报告里的管线原样放进 repo，NeMo Curator 和 Data-Juicer 提供现成的过滤去重框架，再配上开源的 captioner、美学回归器和 Koala-36M、Tiger200K 这样的数据集，社区是拿开源阵营的工具在复现工业漏斗。报告是叙事，权重是证据，管线是方法——工业界只让出前两样的组合，方法永远要自己拼。</p>
+      <p>关于开源状态，Seedance 2.0 无权重，MiniMax H3 给权重不给报告，HunyuanVideo 报告权重都给了——但把数据处理管线这个真正的核心科技开源出来的，工业界一家大厂都没有。开源世界能找到的完整管线全部来自开源阵营：Open-Sora 把报告里的管线原样放进 repo，NeMo Curator 和 Data-Juicer 提供现成的过滤去重框架，再配上开源的 captioner、美学回归器和 Koala-36M、Tiger200K 这样的数据集，社区是拿开源工具复现工业 pipe。</p>
 
       <h2>六层漏斗</h2>
 
@@ -162,7 +159,7 @@ keep = D[:, 1] &lt; 0.95                       # 近重复只留一条</code></p
 
       <p>最直接的解释当然是贵。这个说法大差不差，但它属于"万能模版"式的回答，什么问题都可以拿"贵"来搪塞，所以我们不妨把账认真算一遍。有意思的是，六份报告没有一个披露数据处理本身的算力开销：HunyuanVideo 只给了"1000 万小时原始视频 → 8 亿 clip"的比例，Open-Sora 只给了 20 万美元的模型训练成本。所以这笔账只能拿自己的实测去外推。</p>
 
-      <p>每条 6 卡秒，乘以 8 亿 clip，约等于 135 万 A800·小时，折合 150 卡年。什么概念呢？一千张 A800 不吃不喝跑五十多天，才筛完一遍；而数据引擎的常态是每个模型版本迭代都重筛。另一边，CLIP+MLP 美学回归器是毫秒级一帧，前后差了三个数量级。所以在预训练的规模上，全程 VLM 不是贵一点，是根本跑不动。</p>
+      <p>把表 1 的耗时加起来约 257 GPU·小时，摊到每条源视频约 6 卡秒；乘以 8 亿 clip，约等于 135 万 A800·小时，折合 150 卡年。什么概念呢？一千张 A800 不吃不喝跑五十多天，才筛完一遍；而数据引擎的常态是每个模型版本迭代都重筛。另一边，CLIP+MLP 美学回归器是毫秒级一帧，前后差了三个数量级。所以在预训练的规模上，全程 VLM 不是贵一点，是根本跑不动。</p>
 
       <p>可能有读者觉得：那不就是纯粹的贵而已，等 VLM 推理降价了自然就换过去了。咋看之下有道理，但笔者认为不成立，问题出在过滤器这个角色的特殊性上。</p>
 
@@ -213,59 +210,56 @@ keep = D[:, 1] &lt; 0.95                       # 近重复只留一条</code></p
       <h1>Tech Report Digest: How the Industry Cleans Data</h1>
       <p class="lead">In academic papers, data cleaning beyond basic metadata screening is often done end-to-end with VLMs: for 5B~14B models and sub-10-second 480p videos, a dozen GPUs for a short while is enough to produce a passable dataset.</p>
 
-      <p>Recently we set out to clean a batch of video data — deduplication, first pass, re-screening, dense mining, event-window localization, caption rewriting, leakage checks; of the many stages, all but the first ffprobe pass were judged strictly by VLMs. This naturally suggested that data cleaning is at bottom a trade-off among processing compute, data richness/quality, and similar factors. So how does the industry wash out a good dataset?</p>
+      <p>Recently we ran a full data-cleaning pipeline — deduplication, first pass, re-screening, dense mining, event-window localization, caption rewriting, leakage checks; of the many stages, all but the first ffprobe pass were judged strictly by VLMs, and even so the SFT ablation results were still poor. That naturally suggests data cleaning is at bottom a trade-off among processing compute, data richness/quality, and similar factors. So how does the industry wash out a good dataset?</p>
 
-      <p>Later, with some time to spare, I dug out every frontier video generation technical report I could find — MovieGen, Seedance 1.0, HunyuanVideo 1.5, Open-Sora 2.0, plus two dataset papers, Koala-36M and Tiger200K — and for the newer generation I also checked Seedance 2.0 and the open-weights MiniMax H3, reading their data sections side by side. To be clear up front: these pipelines certainly do use VLMs — captioning and reward models are VLMs. What surprised me is something narrower: in the filtering stage, not a single one uses a VLM. My previous post looked at the evaluation end; this one takes a step upstream, to the data end.</p>
+      <p>So we went straight to the technical reports: MovieGen, Seedance 1.0, HunyuanVideo 1.5, Open-Sora 2.0, plus Koala-36M and Tiger200K, the two dataset papers — and for the newer generation we also read through the Data section of Seedance 2.0. First, these pipelines certainly do use VLMs — captioning and reward models. What they almost never do is use a VLM anywhere in the filtering stage.</p>
 
       <h2>A bill</h2>
 
-      <p>Before going further, let me lay out our bill, since every extrapolation later builds on it:</p>
+      <p>Before going further, here is what our small experiment cost; every extrapolation later takes it as the reference:</p>
 
       <div class="table-wrap">
         <table class="data-table">
           <thead><tr><th>#</th><th>Stage</th><th>Model / setting</th><th>In → out</th><th>Retention</th><th>Time (4×A800 basis)</th></tr></thead>
           <tbody>
             <tr><td>0</td><td>Dedup / probe filter</td><td>ffprobe</td><td>152,300 → 104,300</td><td>68%</td><td>~0 (CPU)</td></tr>
-            <tr><td>1</td><td>Broad first pass</td><td>Qwen2.5-VL-7B, wide frames</td><td>104,300 → ~19,800</td><td>19%</td><td>2 cards × ~3 days ≈ 145 GPU·h</td></tr>
-            <tr><td>2</td><td>Tiered admission pass</td><td>Qwen3-VL, 18 frames</td><td>19,800 → 12,061 (strict+balanced v1)</td><td>61%</td><td>~14.5 h ≈ 58 GPU·h</td></tr>
-            <tr><td>3</td><td>Strong-prompt re-screen, 4 fps</td><td>Qwen3-VL, 12–16 segments</td><td>12,061 → 2,765</td><td>23%</td><td>~6 h ≈ 24 GPU·h</td></tr>
-            <tr><td>4</td><td>Dense mining, 8 fps</td><td>Qwen3-VL, 15 frames/request</td><td>28,771 candidates → 26,836 pass → 12,037 filed</td><td>93% pass</td><td>~4.2 h ≈ 8.4 GPU·h (2 cards)</td></tr>
-            <tr><td>5</td><td>Event-window localization (v3 sweep)</td><td>Qwen3-VL, 8 fps</td><td>5,950 missing → 4,790 windows</td><td>80.8%</td><td>~2.2 h ≈ 8.8 GPU·h</td></tr>
-            <tr><td>6</td><td>24-frame caption rewrite</td><td>Qwen3-VL, 41 frames</td><td>14,826 → 14,826 (100% coverage)</td><td>—</td><td>11.7 GPU·h</td></tr>
-            <tr><td>7</td><td>Leakage check + repair</td><td>same model</td><td>519 suspects → 473 leaks → 447 rewritten</td><td>91%</td><td>1.2 GPU·h</td></tr>
+            <tr><td>1</td><td>Broad first pass</td><td>Qwen2.5-VL-7B, wide frames</td><td>104,300 → ~20,000</td><td>19%</td><td>2 cards × ~3 days ≈ 145 GPU·h</td></tr>
+            <tr><td>2</td><td>Tightened first pass</td><td>Qwen3-VL, 18 frames</td><td>~20,000 → ~12,000</td><td>61%</td><td>~14.5 h ≈ 58 GPU·h</td></tr>
+            <tr><td>3</td><td>Strong-prompt re-screen, 4 fps</td><td>Qwen3-VL, 12–16 segments</td><td>~12,000 → ~3,000</td><td>23%</td><td>~6 h ≈ 24 GPU·h</td></tr>
+            <tr><td>4</td><td>Second dense-mining pass</td><td>Qwen3-VL, 15 frames</td><td>30,000 candidates → 26,000 pass → 12,000 filed</td><td>93% pass</td><td>9 GPU·h</td></tr>
+            <tr><td>5</td><td>Event-window localization</td><td>Qwen3-VL, 8 fps</td><td>5,950 missing windows</td><td>80.8%</td><td>~2.2 h ≈ 8.8 GPU·h</td></tr>
+            <tr><td>6</td><td>Caption rewrite</td><td>Qwen3-VL</td><td>14,826</td><td>—</td><td>12 GPU·h</td></tr>
+            <tr><td>7</td><td>Leakage check + repair</td><td>Qwen3-VL</td><td>519 suspects → 473 leaks → 447 rewritten</td><td>91%</td><td>2 GPU·h</td></tr>
           </tbody>
         </table>
       </div>
-      <p class="table-note">Table 1. Eight stages of an all-VLM pipeline, measured on A800; times are wall clock, including retries and scheduling overhead.</p>
 
-      <p>A few numbers deserve a separate look. The cheapest stage is precisely the one that is not a VLM: stage 0 uses ffprobe on CPU to cut 152k down to 104k at essentially zero cost. When money actually matters, we too reach for the cheapest tool first, without hesitation — a fact that will come in handy later.</p>
+      <p>The cheapest stage is beyond doubt ffprobe: on CPU, it cut 152k down to 104k at essentially zero cost. Industry pipelines likewise start with exactly this kind of rough metadata screening.</p>
 
-      <p>The eight stages total about 257 GPU·hours, roughly 6 card-seconds per source video. That sounds small, but note that what actually went into captioning — stages 6 and 7 — is only 12.9 GPU·hours, under 5% of the bill; the other 95% went into deciding whether to keep each item. 152k in, 12k filed, an overall retention of 8%. In other words, the cost center of a VLM pipeline is filtering, not captioning — and this fact will also come in handy later.</p>
+      <h2>The reports</h2>
 
-      <h2>The six reports</h2>
-
-      <p>Now the six reports. Merged by funnel layer, their pipelines look like this:</p>
+      <p>Merging the reports' data pipelines by funnel layer:</p>
 
       <div class="table-wrap">
         <table class="data-table">
           <thead><tr><th>Funnel layer</th><th>What runs there</th><th>Source</th></tr></thead>
           <tbody>
-            <tr><td>Shot segmentation</td><td>PySceneDetect / TransNetV2 / FFmpeg scene scores</td><td>all six</td></tr>
+            <tr><td>Shot segmentation</td><td>PySceneDetect / TransNetV2 / FFmpeg scene scores</td><td>all</td></tr>
             <tr><td>Technical quality</td><td>Laplacian variance, VMAF, trained quality operators</td><td>Open-Sora 2.0 / HunyuanVideo 1.5</td></tr>
             <tr><td>Watermarks &amp; subtitles</td><td>PaddleOCR + dedicated detectors, safe-zone cropping</td><td>MovieGen / Seedance / Tiger200K</td></tr>
             <tr><td>Aesthetics</td><td>small CLIP+MLP regressors</td><td>MovieGen / Open-Sora 2.0 / HunyuanVideo 1.5</td></tr>
             <tr><td>Motion</td><td>static-video detectors, VMAF motion, optical flow</td><td>Seedance / MovieGen / Open-Sora 2.0</td></tr>
             <tr><td>Dedup &amp; rebalancing</td><td>embedding clustering + inverse-proportional sampling</td><td>Seedance / MovieGen</td></tr>
-            <tr><td>Captioning</td><td>specialized / fine-tuned VLMs, where VLMs enter</td><td>all six</td></tr>
+            <tr><td>Captioning</td><td>specialized / fine-tuned VLMs</td><td>all</td></tr>
             <tr><td>Post-training</td><td>human annotation + VLM reward models</td><td>HunyuanVideo 1.5 / Seedance</td></tr>
           </tbody>
         </table>
       </div>
       <p class="table-note">Table 2. Data pipelines of the six technical reports, organized by funnel layer. The Seedance 2.0 (2026) data engine is isomorphic to 1.0 and not listed separately.</p>
 
-      <p>VLMs show up in exactly three places: captioning, small-scale post-training judgments, and reward models in RL. These three are really one identity: the captioner amplifies how humans describe videos, the reward model amplifies human preference — neither is an independent judge. In the filtering stage — shot segmentation, quality filtering, aesthetic scoring, motion filtering, dedup — it is PySceneDetect, PaddleOCR, Laplacian variance, VMAF, optical flow, and CLIP+MLP all the way down. We also checked the 2026 Seedance 2.0 report: its data engine is isomorphic to 1.0, and its filtering stage is still VLM-free — two generations, the same pattern.</p>
+      <p>As you can see, VLMs appear only in captioning, small-scale post-training judgments, and reward models in RL. These three are one identity: the captioner strives to imitate how humans describe videos, and the reward model amplifies human preference. In the filtering stage — shot segmentation, quality filtering, motion filtering, dedup — it is PySceneDetect, PaddleOCR, Laplacian variance, VMAF, optical flow, and CLIP+MLP all the way down.</p>
 
-      <p>Meanwhile, the new generation's open-source status splits three ways — report, weights, and data pipeline. Seedance 2.0 gives a report but no weights; Seedance 2.5 has only a launch blog; MiniMax H3 gives weights but no report; HunyuanVideo gives both report and weights — but not a single industrial lab open-sources its data processing pipeline. The complete pipelines you can find in the open world all come from the open-source camp itself: Open-Sora put the exact pipeline from its report into the repo, NeMo Curator and Data-Juicer ship ready-made filtering and dedup frameworks, and together with open captioners, aesthetic regressors, and datasets like Koala-36M and Tiger200K, the community is reassembling the industrial funnel out of open tools. Reports are narrative, weights are evidence, pipelines are method — industry only gives up combinations of the first two; the method you always have to assemble yourself.</p>
+      <p>On open-source status: Seedance 2.0 gives no weights; MiniMax H3 gives weights but no report; HunyuanVideo gives both — yet not a single major lab open-sources the data processing pipeline, the real core technology. The complete pipelines you can find in the open world all come from the open-source camp itself: Open-Sora put the exact pipeline from its report into the repo, NeMo Curator and Data-Juicer ship ready-made filtering and dedup frameworks, and together with open captioners, aesthetic regressors, and datasets like Koala-36M and Tiger200K, the community is reassembling the industrial pipeline with open tools.</p>
 
       <h2>The six-layer funnel</h2>
 
@@ -339,7 +333,7 @@ keep = D[:, 1] &lt; 0.95                       # one survivor per near-duplicate
 
       <p>The immediate explanation is cost. That answer is roughly right, but it is a template answer — almost anything can be waved off as "too expensive" — so let's run the numbers properly. Interestingly, none of the six reports discloses the compute cost of data processing itself: HunyuanVideo gives only the ratio "10M raw hours → 800M clips", Open-Sora only a $200k training budget. So the only way to do the accounting is to extrapolate from our own measurements.</p>
 
-      <p>Six card-seconds per item, times 800M clips, is about 1.35M A800·hours, or 150 card-years. Concretely: a thousand A800s grinding for over fifty days straight buys exactly one pass, and data engines routinely re-run the funnel for every model iteration. On the other side, a CLIP+MLP aesthetic regressor runs at milliseconds per frame — a three-orders-of-magnitude gap. At pre-training scale, an all-VLM pipeline is not somewhat expensive; it simply does not run.</p>
+      <p>Summing Table 1 gives about 257 GPU·hours, roughly 6 card-seconds per source video; times 800M clips, that is about 1.35M A800·hours, or 150 card-years. Concretely: a thousand A800s grinding for over fifty days straight buys exactly one pass, and data engines routinely re-run the funnel for every model iteration. On the other side, a CLIP+MLP aesthetic regressor runs at milliseconds per frame — a three-orders-of-magnitude gap. At pre-training scale, an all-VLM pipeline is not somewhat expensive; it simply does not run.</p>
 
       <p>Some readers may think: fine, it is purely a cost issue, and once VLM inference gets cheaper everyone will switch. That sounds right at first glance, but I don't think it holds, and the reason lies in what a filter is.</p>
 
