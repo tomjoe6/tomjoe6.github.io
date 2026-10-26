@@ -48,10 +48,10 @@
         <table class="data-table">
           <thead><tr><th>#</th><th>工序</th><th>模型 / 口径</th><th>进 → 出</th><th>留存率</th><th>耗时（4×A800 基准）</th></tr></thead>
           <tbody>
-            <tr><td>0</td><td>去重 / 探针过滤</td><td>ffprobe</td><td>152,300 → 104,300</td><td>68%</td><td>~0（CPU）</td></tr>
-            <tr><td>1</td><td>宽定义初筛</td><td>Qwen2.5-VL-7B，宽帧</td><td>104,300 → ~20,000</td><td>19%</td><td>2 卡 × ~3 天 ≈ 145 GPU·h</td></tr>
-            <tr><td>2</td><td>收紧初筛</td><td>Qwen3-VL，18 帧</td><td>~20,000 → ~12,000</td><td>61%</td><td>~14.5 h ≈ 58 GPU·h</td></tr>
-            <tr><td>3</td><td>4fps 强 prompt 重筛</td><td>Qwen3-VL，12–16 段</td><td>~12,000 → ~3,000</td><td>23%</td><td>~6 h ≈ 24 GPU·h</td></tr>
+            <tr><td>0</td><td>去重 / 探针过滤</td><td>ffprobe</td><td>152,300 → 100000</td><td>68%</td><td>~0（CPU）</td></tr>
+            <tr><td>1</td><td>宽定义初筛</td><td>Qwen2.5-VL-7B，宽帧</td><td>100000 → 20000</td><td>19%</td><td>2 卡 × ~3 天 ≈ 145 GPU·h</td></tr>
+            <tr><td>2</td><td>收紧初筛</td><td>Qwen3-VL，18 帧</td><td>20000 → ~12000</td><td>61%</td><td>~14.5 h ≈ 58 GPU·h</td></tr>
+            <tr><td>3</td><td>4fps 强 prompt 重筛</td><td>Qwen3-VL，12–16 段</td><td>12000 → 3000</td><td>23%</td><td>~6 h ≈ 24 GPU·h</td></tr>
             <tr><td>4</td><td>富矿再挖掘</td><td>Qwen3-VL，15 帧</td><td>30,000 候选 → 26,000 pass → 12,000 入档</td><td>93% pass</td><td>9 GPU·h</td></tr>
             <tr><td>5</td><td>事件窗定位</td><td>Qwen3-VL，8fps</td><td>5,950 个缺窗</td><td>80.8%</td><td>~2.2 h ≈ 8.8 GPU·h</td></tr>
             <tr><td>6</td><td>caption 重写</td><td>Qwen3-VL</td><td>14,826</td><td>—</td><td>12 GPU·h</td></tr>
@@ -222,10 +222,10 @@ keep = D[:, 1] &lt; 0.95                       # 近重复只留一条</code></p
         <table class="data-table">
           <thead><tr><th>#</th><th>Stage</th><th>Model / setting</th><th>In → out</th><th>Retention</th><th>Time (4×A800 basis)</th></tr></thead>
           <tbody>
-            <tr><td>0</td><td>Dedup / probe filter</td><td>ffprobe</td><td>152,300 → 104,300</td><td>68%</td><td>~0 (CPU)</td></tr>
-            <tr><td>1</td><td>Broad first pass</td><td>Qwen2.5-VL-7B, wide frames</td><td>104,300 → ~20,000</td><td>19%</td><td>2 cards × ~3 days ≈ 145 GPU·h</td></tr>
-            <tr><td>2</td><td>Tightened first pass</td><td>Qwen3-VL, 18 frames</td><td>~20,000 → ~12,000</td><td>61%</td><td>~14.5 h ≈ 58 GPU·h</td></tr>
-            <tr><td>3</td><td>Strong-prompt re-screen, 4 fps</td><td>Qwen3-VL, 12–16 segments</td><td>~12,000 → ~3,000</td><td>23%</td><td>~6 h ≈ 24 GPU·h</td></tr>
+            <tr><td>0</td><td>Dedup / probe filter</td><td>ffprobe</td><td>152,300 → 100000</td><td>68%</td><td>~0 (CPU)</td></tr>
+            <tr><td>1</td><td>Broad first pass</td><td>Qwen2.5-VL-7B, wide frames</td><td>100000 → 20000</td><td>19%</td><td>2 cards × ~3 days ≈ 145 GPU·h</td></tr>
+            <tr><td>2</td><td>Tightened first pass</td><td>Qwen3-VL, 18 frames</td><td>20000 → ~12000</td><td>61%</td><td>~14.5 h ≈ 58 GPU·h</td></tr>
+            <tr><td>3</td><td>Strong-prompt re-screen, 4 fps</td><td>Qwen3-VL, 12–16 segments</td><td>12000 → 3000</td><td>23%</td><td>~6 h ≈ 24 GPU·h</td></tr>
             <tr><td>4</td><td>Second dense-mining pass</td><td>Qwen3-VL, 15 frames</td><td>30,000 candidates → 26,000 pass → 12,000 filed</td><td>93% pass</td><td>9 GPU·h</td></tr>
             <tr><td>5</td><td>Event-window localization</td><td>Qwen3-VL, 8 fps</td><td>5,950 missing windows</td><td>80.8%</td><td>~2.2 h ≈ 8.8 GPU·h</td></tr>
             <tr><td>6</td><td>Caption rewrite</td><td>Qwen3-VL</td><td>14,826</td><td>—</td><td>12 GPU·h</td></tr>
