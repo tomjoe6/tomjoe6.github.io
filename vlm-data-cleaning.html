@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="一次全程 VLM 的洗数据经历，加上六份前沿技术报告的精读：为什么大厂的过滤段零 VLM。">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
-  <title>为什么大厂不用 VLM 洗数据 · 崔君同</title>
+  <title>技术报告漫读：工业界怎么洗数据 · 崔君同</title>
   <style>
     :root { color-scheme:light; --paper:#f4f4f2; --paper-soft:#fbfbfa; --ink:#1f1e1b; --muted:#5f5a52; --line:#d8cbb8; --clay:#b85c38; --clay-dark:#873f2b; --blue:#526b7c; --sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif; --serif:Georgia,"Times New Roman","Songti SC",serif; }
     * { box-sizing:border-box; } html { scroll-behavior:smooth; } body { margin:0; min-height:100vh; background:var(--paper); color:var(--ink); font-family:var(--sans); } a { color:inherit; text-decoration-color:rgba(31,30,27,.35); text-decoration-thickness:1px; text-underline-offset:4px; } a:hover { color:var(--clay-dark); } button { font:inherit; }
@@ -32,8 +32,8 @@
   <main class="site-shell">
     <article class="article" data-lang-content="zh" hidden>
       <a class="back-link" href="blog.html">← 返回博客</a>
-      <div class="article-meta">2026-10-26 · 机器学习 · 视频生成 · 数据</div>
-      <h1>为什么大厂不用 VLM 洗数据</h1>
+      <div class="article-meta">2026-10-26 · 技术报告漫读 · 机器学习 · 视频生成 · 数据</div>
+      <h1>技术报告漫读：工业界怎么洗数据</h1>
       <p class="lead">我们洗数据是全程 VLM 的，成本也完全付得起；直到把六份前沿技术报告放在一起精读，才发现它们的过滤段没有一家用 VLM。这是为什么呢？</p>
 
       <p>前段时间我们洗了一批视频数据，从去重、初筛、重筛、富矿挖掘、事件窗定位，到 caption 重写与泄漏校验，八道工序中除了第一道 ffprobe，其余全部由 VLM 出判决。流程跑下来效果不错，账单也在可接受范围内，于是笔者很自然地形成一个想法：数据清洗本质上是个判断问题，模型越强判断越准，拿 VLM 洗数据理应就是更先进的做法。</p>
@@ -140,8 +140,8 @@
 
     <article class="article" data-lang-content="en">
       <a class="back-link" href="blog.html">← Back to Blog</a>
-      <div class="article-meta">2026-10-26 · Machine Learning · Video Generation · Data</div>
-      <h1>Why Frontier Labs Don't Clean Video Data with VLMs</h1>
+      <div class="article-meta">2026-10-26 · Tech Report Digest · Machine Learning · Video Generation · Data</div>
+      <h1>Tech Report Digest: How the Industry Cleans Data</h1>
       <p class="lead">We cleaned our data entirely with VLMs, and the bill was perfectly affordable. Then I put six frontier technical reports side by side and found that not one of them uses a VLM in the filtering stage. Why?</p>
 
       <p>A while ago we cleaned a batch of video data. Deduplication, first pass, tiered admission, strong-prompt re-screening, dense mining, event-window localization, caption rewriting, leakage checks — of the eight stages, all but the first ffprobe pass were judged by VLMs. The results were good and the bill was acceptable, so I naturally settled into a belief: data cleaning is at bottom a judgment problem, stronger models judge better, so cleaning with VLMs is simply the more advanced approach.</p>
@@ -250,8 +250,8 @@
   <footer class="site-shell footer"><span data-i18n="footerNote"></span></footer>
   <script>
     const translations = {
-      zh: { title:"为什么大厂不用 VLM 洗数据 · 崔君同", brand:"崔君同", navHome:"主页", navBlog:"博客", navPhotography:"摄影", footerNote:"© 2026 崔君同。本站托管于 GitHub Pages。" },
-      en: { title:"Why Frontier Labs Don't Clean Video Data with VLMs · Juntong Cui", brand:"Juntong Cui", navHome:"Home", navBlog:"Blog", navPhotography:"Photography", footerNote:"© 2026 Juntong Cui. Hosted on GitHub Pages." }
+      zh: { title:"技术报告漫读：工业界怎么洗数据 · 崔君同", brand:"崔君同", navHome:"主页", navBlog:"博客", navPhotography:"摄影", footerNote:"© 2026 崔君同。本站托管于 GitHub Pages。" },
+      en: { title:"Tech Report Digest: How the Industry Cleans Data · Juntong Cui", brand:"Juntong Cui", navHome:"Home", navBlog:"Blog", navPhotography:"Photography", footerNote:"© 2026 Juntong Cui. Hosted on GitHub Pages." }
     };
     const savedLang = localStorage.getItem("site-language");
     const initialLang = savedLang || "en";
