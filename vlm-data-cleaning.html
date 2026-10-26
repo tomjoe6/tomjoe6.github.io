@@ -7,7 +7,7 @@
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <title>技术报告漫读：工业界怎么洗数据 · 崔君同</title>
   <style>
-    :root { color-scheme:light; --paper:#f4f4f2; --paper-soft:#fbfbfa; --ink:#1f1e1b; --muted:#5f5a52; --line:#d8cbb8; --clay:#b85c38; --clay-dark:#873f2b; --blue:#526b7c; --sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif; --serif:Georgia,"Times New Roman","Songti SC",serif; }
+    :root { color-scheme:light; --paper:#f4f4f2; --paper-soft:#fbfbfa; --ink:#1f1e1b; --muted:#5f5a52; --line:#d8cbb8; --clay:#b85c38; --clay-dark:#873f2b; --blue:#526b7c; --sans:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif; --serif:Georgia,"Times New Roman","Songti SC",serif; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Courier New",monospace; }
     * { box-sizing:border-box; } html { scroll-behavior:smooth; } body { margin:0; min-height:100vh; background:var(--paper); color:var(--ink); font-family:var(--sans); } a { color:inherit; text-decoration-color:rgba(31,30,27,.35); text-decoration-thickness:1px; text-underline-offset:4px; } a:hover { color:var(--clay-dark); } button { font:inherit; }
     .site-shell { width:min(940px,calc(100% - 40px)); margin:0 auto; } .topbar { position:sticky; top:0; z-index:20; background:rgba(244,244,242,.88); backdrop-filter:blur(16px); } .topbar-inner { width:min(940px,calc(100% - 40px)); min-height:56px; margin:0 auto; display:flex; align-items:center; justify-content:space-between; gap:18px; }
     .brand { display:inline-flex; align-items:center; gap:11px; color:var(--ink); text-decoration:none; } .brand-mark { width:28px; height:28px; display:grid; place-items:center; background:var(--ink); color:var(--paper); font-family:var(--serif); font-size:16px; } .brand span:last-child { font-size:15px; font-weight:680; }
@@ -16,7 +16,7 @@
     .article { width:min(760px,100%); padding:34px 0 56px; animation:riseIn .92s cubic-bezier(.16,1,.3,1) both; } .back-link { display:inline-flex; margin-bottom:24px; color:var(--blue); font-size:13px; font-weight:650; text-decoration:none; } .article-meta { color:var(--clay-dark); font-size:12px; font-weight:760; letter-spacing:.08em; text-transform:uppercase; }
     h1,h2,p { margin-top:0; } h1 { margin:10px 0 16px; font-family:var(--serif); font-size:clamp(28px,4vw,38px); font-weight:500; line-height:1.16; } h2 { margin:34px 0 6px; font-family:var(--serif); font-size:20px; font-weight:500; line-height:1.3; } p,li { color:var(--muted); font-size:15px; line-height:1.82; } .lead { color:var(--ink); font-size:16px; font-weight:600; line-height:1.72; }
     .note { margin:18px 0; padding:14px 16px; border-left:3px solid var(--clay); background:rgba(251,248,242,.72); color:var(--ink); font-size:14px; line-height:1.78; } .references-title { margin:32px 0 10px; color:var(--ink); font-family:var(--serif); font-size:20px; } .paper-list { display:grid; gap:8px; padding-left:0; list-style:none; } .paper-list a { color:var(--clay-dark); font-weight:650; } .footer { padding:26px 0 36px; color:var(--muted); font-size:13px; }
-    .table-wrap { overflow-x:auto; margin:18px 0 6px; } .data-table { width:100%; border-collapse:collapse; font-size:13px; } .data-table th,.data-table td { padding:8px 10px; border:1px solid var(--line); text-align:left; vertical-align:top; line-height:1.6; } .data-table th { background:rgba(251,248,242,.72); color:var(--ink); font-weight:650; white-space:nowrap; } .data-table td { color:var(--muted); font-variant-numeric:tabular-nums; } .table-note { margin:8px 0 18px; color:var(--muted); font-size:12.5px; line-height:1.7; }
+    .table-wrap { overflow-x:auto; margin:18px 0 6px; } .data-table { width:100%; border-collapse:collapse; font-size:13px; } .data-table th,.data-table td { padding:8px 10px; border:1px solid var(--line); text-align:left; vertical-align:top; line-height:1.6; } .data-table th { background:rgba(251,248,242,.72); color:var(--ink); font-weight:650; white-space:nowrap; } .data-table td { color:var(--muted); font-variant-numeric:tabular-nums; } .table-note { margin:8px 0 18px; color:var(--muted); font-size:12.5px; line-height:1.7; } code,pre { font-family:var(--mono); font-size:13px; } pre { overflow:auto; padding:14px; border:1px solid var(--line); background:var(--paper-soft); line-height:1.6; margin:18px 0; }
     @keyframes riseIn { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } } [data-lang-content][hidden] { display:none; }
     @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms!important; transition-duration:.01ms!important; } } @media (max-width:560px) { .site-shell,.topbar-inner { width:min(100% - 28px,940px); } .topbar-inner { flex-direction:column; padding:12px 0; align-items:flex-start; } .nav-actions { width:100%; justify-content:space-between; gap:10px; } .site-nav { gap:14px; } }
   </style>
@@ -103,6 +103,58 @@
       <p>第五层是数据金字塔。同一批语料按质量分出梯度：Open-Sora 2.0 是 7000 万的低分辨率池喂出 500 万的高分辨率精选，HunyuanVideo 从 1000 万小时原始视频筛出 8 亿 clip，逐级收紧，贵的高分辨率训练只吃塔尖那一层。</p>
 
       <p>第六层是后训练和 RLHF，筛法在这里彻底变了：不再是过滤大池子，而是人工构造一个小数据集。prompt 池人工验证（HunyuanVideo 的 I2V RL 用了 100 多个类目），候选由不同 checkpoint 对同一 prompt 滚出，人来成对标注（Meta 用 GSB，Seedance 按维度选 best/worst，HunyuanVideo 标了约 1 万对 DPO），最后把这 1 万对人类偏好蒸馏成 VLM 奖励模型，供在线 RL 批量打分。8 亿 clip 对 1 万对标注，差五个数量级，越靠近塔尖，数据越小、越贵、也越真。顺带一提，HunyuanVideo 自己承认现有奖励模型分不清细粒度运动的好坏，所以才先做离线 DPO 再上在线 RL：VLM 裁判也是蒸馏来的，人分不清的它同样分不清。</p>
+
+      <h2>自己拼一个漏斗</h2>
+
+      <p>好在管线里的每一层都有开源对应物，方法是真的可以自己拼的。切分用 PySceneDetect 一行，转场敏感的场景换学习式的 TransNetV2；清晰度是 Laplacian 方差，运动是相邻帧光流的平均幅值，都是十几行 OpenCV 的事：</p>
+
+      <pre><code>from scenedetect import detect, ContentDetector
+import cv2, numpy as np
+
+scenes = detect("raw.mp4", ContentDetector(threshold=27))
+
+def motion_sharpness(path):
+    cap, prev, mags, laps = cv2.VideoCapture(path), None, [], []
+    while True:
+        ok, frame = cap.read()
+        if not ok: break
+        g = cv2.cvtColor(cv2.resize(frame, (640, 360)), cv2.COLOR_BGR2GRAY)
+        laps.append(cv2.Laplacian(g, cv2.CV_64F).var())
+        if prev is not None:
+            flow = cv2.calcOpticalFlowFarneback(prev, g, None,
+                    0.5, 3, 15, 3, 5, 1.2, 0)
+            mags.append(np.linalg.norm(flow, axis=-1).mean())
+        prev = g
+    return np.median(laps), np.mean(mags)   # 清晰度、运动幅度</code></pre>
+
+      <p>美学打分用 LAION 在人类评分上蒸馏的 CLIP+MLP，权重和结构都是现成的：</p>
+
+      <pre><code>import torch, torch.nn as nn
+from transformers import CLIPModel, CLIPProcessor
+
+clip = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
+head = nn.Sequential(nn.Linear(768, 256), nn.Dropout(0.4),
+                     nn.ReLU(), nn.Linear(256, 1))
+head.load_state_dict(torch.load("sa_0_4_vit_l_14_linear.pth"))
+
+def aesthetic(pil_img):
+    x = CLIPProcessor.from_pretrained(clip.name_or_path)(
+        images=pil_img, return_tensors="pt")
+    with torch.no_grad():
+        feat = clip.get_image_features(**x)
+    return head(feat).item()                # 1 到 10 分</code></pre>
+
+      <p>去重和配比在 embedding 空间里做，FAISS 几行：</p>
+
+      <pre><code>import faiss
+
+emb = encode_with_siglip(clips)             # N x D，归一化
+index = faiss.IndexFlatIP(emb.shape[1])
+index.add(emb)
+D, _ = index.search(emb, 2)                 # 最近邻含自身
+keep = D[:, 1] &lt; 0.95                       # 近重复只留一条</code></pre>
+
+      <p>caption 这一层的开源选择最多，Qwen2.5-VL、Tarsier2 都能用，prompt 按六要素（主体、动作、环境、光照、运镜、风格）写就行。拼到这里你会发现：工业漏斗的每一层都有开源件，区别只在阈值要自己调，而专训的 operator 没有现成的——这恰恰是最花时间的部分。</p>
 
       <p>既然我们用 VLM 洗得好好的，为什么大厂不在过滤段也用它？</p>
 
@@ -228,6 +280,58 @@
       <p>The fifth layer is the data pyramid. The same corpus is graded by quality: Open-Sora 2.0 feeds a 70M low-resolution pool down into a 5M high-resolution selection, and HunyuanVideo filters 10M raw hours into 800M clips, tightening level by level; expensive high-resolution training only eats from the top.</p>
 
       <p>The sixth layer is post-training and RLHF, where the method changes completely: no longer filtering a big corpus, but hand-constructing a tiny dataset. The prompt pool is human-verified (HunyuanVideo used 100-plus categories for I2V RL), candidates are rolled out from different checkpoints on the same prompt, humans label pairwise preferences (Meta used GSB, Seedance picked best/worst per dimension, HunyuanVideo annotated about 10k DPO pairs), and finally those 10k human preferences are distilled into a VLM reward model that scores rollouts in bulk during online RL. 800M clips versus 10k annotations — five orders of magnitude apart. The closer to the top of the tower, the smaller, pricier, and truer the data. Incidentally, HunyuanVideo itself admits that existing reward models cannot tell apart fine-grained motion quality, which is why they run offline DPO before online RL: a VLM judge is also distilled — whatever humans cannot distinguish, it cannot either.</p>
+
+      <h2>Assemble one yourself</h2>
+
+      <p>Fortunately, every layer of the funnel has an open-source counterpart, so the method really can be assembled at home. Segmentation is one line with PySceneDetect (switch to the learned TransNetV2 where cross-dissolves matter); sharpness is Laplacian variance, motion is the mean magnitude of inter-frame optical flow — a dozen lines of OpenCV:</p>
+
+      <pre><code>from scenedetect import detect, ContentDetector
+import cv2, numpy as np
+
+scenes = detect("raw.mp4", ContentDetector(threshold=27))
+
+def motion_sharpness(path):
+    cap, prev, mags, laps = cv2.VideoCapture(path), None, [], []
+    while True:
+        ok, frame = cap.read()
+        if not ok: break
+        g = cv2.cvtColor(cv2.resize(frame, (640, 360)), cv2.COLOR_BGR2GRAY)
+        laps.append(cv2.Laplacian(g, cv2.CV_64F).var())
+        if prev is not None:
+            flow = cv2.calcOpticalFlowFarneback(prev, g, None,
+                    0.5, 3, 15, 3, 5, 1.2, 0)
+            mags.append(np.linalg.norm(flow, axis=-1).mean())
+        prev = g
+    return np.median(laps), np.mean(mags)   # sharpness, motion</code></pre>
+
+      <p>For aesthetics, use the CLIP+MLP that LAION distilled from human ratings — both the weights and the architecture are ready-made:</p>
+
+      <pre><code>import torch, torch.nn as nn
+from transformers import CLIPModel, CLIPProcessor
+
+clip = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
+head = nn.Sequential(nn.Linear(768, 256), nn.Dropout(0.4),
+                     nn.ReLU(), nn.Linear(256, 1))
+head.load_state_dict(torch.load("sa_0_4_vit_l_14_linear.pth"))
+
+def aesthetic(pil_img):
+    x = CLIPProcessor.from_pretrained(clip.name_or_path)(
+        images=pil_img, return_tensors="pt")
+    with torch.no_grad():
+        feat = clip.get_image_features(**x)
+    return head(feat).item()                # score 1-10</code></pre>
+
+      <p>Dedup and rebalancing live in embedding space; FAISS does it in a few lines:</p>
+
+      <pre><code>import faiss
+
+emb = encode_with_siglip(clips)             # N x D, normalized
+index = faiss.IndexFlatIP(emb.shape[1])
+index.add(emb)
+D, _ = index.search(emb, 2)                 # nearest neighbor includes self
+keep = D[:, 1] &lt; 0.95                       # one survivor per near-duplicate</code></pre>
+
+      <p>The captioning layer has the most open options — Qwen2.5-VL and Tarsier2 both work, and a prompt covering the six elements (subject, action, environment, lighting, camera, style) is enough. By this point you will notice: every layer of the industrial funnel has an open part; the difference is that thresholds need your own tuning, and the trained operators have no off-the-shelf equivalents — which is precisely the time-consuming part.</p>
 
       <p>Since VLMs worked fine for us, why don't frontier labs use them in the filtering stage too?</p>
 

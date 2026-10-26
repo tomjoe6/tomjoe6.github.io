@@ -64,6 +64,64 @@
 
 既然我们用 VLM 洗得好好的，为什么大厂不在过滤段也用它？
 
+## 自己拼一个漏斗
+
+好在管线里的每一层都有开源对应物，方法是真的可以自己拼的。切分用 PySceneDetect 一行，转场敏感的场景换学习式的 TransNetV2；清晰度是 Laplacian 方差，运动是相邻帧光流的平均幅值，都是十几行 OpenCV 的事：
+
+```python
+from scenedetect import detect, ContentDetector
+import cv2, numpy as np
+
+scenes = detect("raw.mp4", ContentDetector(threshold=27))
+
+def motion_sharpness(path):
+    cap, prev, mags, laps = cv2.VideoCapture(path), None, [], []
+    while True:
+        ok, frame = cap.read()
+        if not ok: break
+        g = cv2.cvtColor(cv2.resize(frame, (640, 360)), cv2.COLOR_BGR2GRAY)
+        laps.append(cv2.Laplacian(g, cv2.CV_64F).var())
+        if prev is not None:
+            flow = cv2.calcOpticalFlowFarneback(prev, g, None,
+                    0.5, 3, 15, 3, 5, 1.2, 0)
+            mags.append(np.linalg.norm(flow, axis=-1).mean())
+        prev = g
+    return np.median(laps), np.mean(mags)   # 清晰度、运动幅度
+```
+
+美学打分用 LAION 在人类评分上蒸馏的 CLIP+MLP，权重和结构都是现成的：
+
+```python
+import torch, torch.nn as nn
+from transformers import CLIPModel, CLIPProcessor
+
+clip = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
+head = nn.Sequential(nn.Linear(768, 256), nn.Dropout(0.4),
+                     nn.ReLU(), nn.Linear(256, 1))
+head.load_state_dict(torch.load("sa_0_4_vit_l_14_linear.pth"))
+
+def aesthetic(pil_img):
+    x = CLIPProcessor.from_pretrained(clip.name_or_path)(
+        images=pil_img, return_tensors="pt")
+    with torch.no_grad():
+        feat = clip.get_image_features(**x)
+    return head(feat).item()                # 1 到 10 分
+```
+
+去重和配比在 embedding 空间里做，FAISS 几行：
+
+```python
+import faiss
+
+emb = encode_with_siglip(clips)             # N x D，归一化
+index = faiss.IndexFlatIP(emb.shape[1])
+index.add(emb)
+D, _ = index.search(emb, 2)                 # 最近邻含自身
+keep = D[:, 1] < 0.95                       # 近重复只留一条
+```
+
+caption 这一层的开源选择最多，Qwen2.5-VL、Tarsier2 都能用，prompt 按六要素（主体、动作、环境、光照、运镜、风格）写就行。拼到这里你会发现：工业漏斗的每一层都有开源件，区别只在阈值要自己调，而专训的 operator 没有现成的——这恰恰是最花时间的部分。
+
 既然我们用 VLM 洗得好好的，为什么大厂不用？
 
 ## 贵多少
