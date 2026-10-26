@@ -44,7 +44,23 @@
 | Caption | 专训 / 微调 VLM，VLM 在此进场 | 六家全部 |
 | 后训练 | 人工标注 + VLM 奖励模型 | HunyuanVideo 1.5 / Seedance |
 
-可以看到，VLM 只出现在三个位置：caption（六家全用，但没有一家裸用通用 VLM，Seedance 在 Tarsier2 上专训了双语 captioner，MovieGen 微调 LLaMA3-Video，HunyuanVideo 则用 OPA-DPO 后训练来平衡描述密度与幻觉）、后训练的小规模判断，以及 RL 阶段的奖励模型。而在过滤段，也就是镜头切分、质量过滤、美学打分、运动过滤、去重这一段，清一色是 PySceneDetect、PaddleOCR、Laplacian 方差、VMAF、光流、CLIP+MLP 这些工具和小模型。
+可以看到，VLM 只出现在三个位置：caption、后训练的小规模判断，以及 RL 阶段的奖励模型。值得注意的是，这三个位置其实是同一种身份：captioner 放大人类写描述的方式，奖励模型放大人类的偏好判断，都不是独立裁判。而在过滤段，也就是镜头切分、质量过滤、美学打分、运动过滤、去重这一段，清一色是 PySceneDetect、PaddleOCR、Laplacian 方差、VMAF、光流、CLIP+MLP 这些工具和小模型。我们对照了 2026 年的 Seedance 2.0 报告，数据引擎与 1.0 同构，过滤段依旧没有 VLM——两代模型，同一个模式。
+
+## 六层漏斗
+
+把六份报告叠在一起，工业界洗数据的流水线大致是六层。第一层是切分：PySceneDetect、TransNetV2、FFmpeg 的场景分数把原始视频切成 2 到 16 秒的单镜头 clip，转场和特效由专门的小分类器清掉。Tiger200K 给过一个细节：阈值式的 PySceneDetect 会漏叠化转场，所以他们换了学习式的 TransNetV2。这一层没有理解，只有逐帧定位。
+
+第二层是一批便宜的量具。水印和字幕交给 PaddleOCR 和专用检测器，裁出安全区，裁完保留面积不足就整条丢弃；清晰度用 Laplacian 方差和 VMAF；美学是 CLIP+MLP 小回归器；运动用光流和 VMAF motion，太静和太抖都删。全是冻结的小模型，毫秒级一条。2026 年的 Seedance 2.0 报告里，这一层还是同样的配置。
+
+第三层是去重与配比，操作对象从单条视频换成了分布。clip 用视频表征模型编码，聚类之后每个近重复簇只留质量分最高的那条；再按主体、场景、动作、风格数分布，头部下采样、尾部定向补采（Seedance），MovieGen 则用聚类反比采样加一套 600 个动词的词表做概念平衡。
+
+第四层 caption，VLM 在这里进场，但没有一家裸用通用 VLM：Seedance 在 Tarsier2 上专训了双语 captioner，MovieGen 微调 LLaMA3-Video，HunyuanVideo 用 OPA-DPO 后训练来平衡描述密度与幻觉，输出的都是 80 到 200 词的密集结构化描述；Seedance 甚至单独训了一个 prompt 改写器，保证用户输入和 caption 同分布。
+
+第五层是数据金字塔。同一批语料按质量分出梯度：Open-Sora 2.0 是 7000 万的低分辨率池喂出 500 万的高分辨率精选，HunyuanVideo 从 1000 万小时原始视频筛出 8 亿 clip，逐级收紧，贵的高分辨率训练只吃塔尖那一层。
+
+第六层是后训练和 RLHF，筛法在这里彻底变了：不再是过滤大池子，而是人工构造一个小数据集。prompt 池人工验证（HunyuanVideo 的 I2V RL 用了 100 多个类目），候选由不同 checkpoint 对同一 prompt 滚出，人来成对标注（Meta 用 GSB，Seedance 按维度选 best/worst，HunyuanVideo 标了约 1 万对 DPO），最后把这 1 万对人类偏好蒸馏成 VLM 奖励模型，供在线 RL 批量打分。8 亿 clip 对 1 万对标注，差五个数量级，越靠近塔尖，数据越小、越贵、也越真。顺带一提，HunyuanVideo 自己承认现有奖励模型分不清细粒度运动的好坏，所以才先做离线 DPO 再上在线 RL：VLM 裁判也是蒸馏来的，人分不清的它同样分不清。
+
+既然我们用 VLM 洗得好好的，为什么大厂不在过滤段也用它？
 
 既然我们用 VLM 洗得好好的，为什么大厂不用？
 
@@ -82,11 +98,12 @@ CLIP+MLP 美学回归器是冻结的：同一个模型、同一个分数语义�
 
 ## 文章小结
 
-这篇文章用我们自己的一份账单和六份技术报告，对"为什么大厂不用 VLM 洗数据"给出了一点个人的理解：贵是直接原因，但过滤器的量具属性和整条管线的代理结构，可能是更本质的原因。
+这篇文章用我们自己的一份账单和六份技术报告，把工业界的洗数据管线拆成了六层，并回答了一个问题：为什么过滤段没有 VLM。直接原因是贵；更本质的原因是身份，VLM 在这条管线里始终以人类判断放大器的身份出现，而过滤器要的是量具的稳定，两者要的从来不是同一种东西。
 
 ## 参考资料
 
 - Seedance 1.0: https://arxiv.org/abs/2506.09113
+- Seedance 2.0: https://arxiv.org/abs/2604.14148
 - MovieGen: https://arxiv.org/abs/2410.13720
 - Open-Sora 2.0: https://arxiv.org/abs/2503.09642
 - HunyuanVideo 1.5: https://arxiv.org/abs/2511.18870

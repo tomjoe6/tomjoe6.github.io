@@ -84,11 +84,25 @@
           </tbody>
         </table>
       </div>
-      <p class="table-note">表 2｜六份技术报告的数据管线，按漏斗层级归纳。</p>
+      <p class="table-note">表 2｜六份技术报告的数据管线，按漏斗层级归纳。Seedance 2.0（2026）的数据引擎与 1.0 同构，未单列。</p>
 
-      <p>可以看到，VLM 只出现在三个位置：caption（六家全用，但没有一家裸用通用 VLM，Seedance 在 Tarsier2 上专训了双语 captioner，MovieGen 微调 LLaMA3-Video，HunyuanVideo 则用 OPA-DPO 后训练来平衡描述密度与幻觉）、后训练的小规模判断，以及 RL 阶段的奖励模型。而在过滤段，也就是镜头切分、质量过滤、美学打分、运动过滤、去重这一段，清一色是 PySceneDetect、PaddleOCR、Laplacian 方差、VMAF、光流、CLIP+MLP 这些工具和小模型。</p>
+      <p>可以看到，VLM 只出现在三个位置：caption、后训练的小规模判断，以及 RL 阶段的奖励模型。值得注意的是，这三个位置其实是同一种身份：captioner 放大人类写描述的方式，奖励模型放大人类的偏好判断，都不是独立裁判。而在过滤段，也就是镜头切分、质量过滤、美学打分、运动过滤、去重这一段，清一色是 PySceneDetect、PaddleOCR、Laplacian 方差、VMAF、光流、CLIP+MLP 这些工具和小模型。我们对照了 2026 年的 Seedance 2.0 报告，数据引擎与 1.0 同构，过滤段依旧没有 VLM——两代模型，同一个模式。</p>
 
-      <p>既然我们用 VLM 洗得好好的，为什么大厂不用？</p>
+      <h2>六层漏斗</h2>
+
+      <p>把六份报告叠在一起，工业界洗数据的流水线大致是六层。第一层是切分：PySceneDetect、TransNetV2、FFmpeg 的场景分数把原始视频切成 2 到 16 秒的单镜头 clip，转场和特效由专门的小分类器清掉。Tiger200K 给过一个细节：阈值式的 PySceneDetect 会漏叠化转场，所以他们换了学习式的 TransNetV2。这一层没有理解，只有逐帧定位。</p>
+
+      <p>第二层是一批便宜的量具。水印和字幕交给 PaddleOCR 和专用检测器，裁出安全区，裁完保留面积不足就整条丢弃；清晰度用 Laplacian 方差和 VMAF；美学是 CLIP+MLP 小回归器；运动用光流和 VMAF motion，太静和太抖都删。全是冻结的小模型，毫秒级一条。2026 年的 Seedance 2.0 报告里，这一层还是同样的配置。</p>
+
+      <p>第三层是去重与配比，操作对象从单条视频换成了分布。clip 用视频表征模型编码，聚类之后每个近重复簇只留质量分最高的那条；再按主体、场景、动作、风格数分布，头部下采样、尾部定向补采（Seedance），MovieGen 则用聚类反比采样加一套 600 个动词的词表做概念平衡。</p>
+
+      <p>第四层 caption，VLM 在这里进场，但没有一家裸用通用 VLM：Seedance 在 Tarsier2 上专训了双语 captioner，MovieGen 微调 LLaMA3-Video，HunyuanVideo 用 OPA-DPO 后训练来平衡描述密度与幻觉，输出的都是 80 到 200 词的密集结构化描述；Seedance 甚至单独训了一个 prompt 改写器，保证用户输入和 caption 同分布。</p>
+
+      <p>第五层是数据金字塔。同一批语料按质量分出梯度：Open-Sora 2.0 是 7000 万的低分辨率池喂出 500 万的高分辨率精选，HunyuanVideo 从 1000 万小时原始视频筛出 8 亿 clip，逐级收紧，贵的高分辨率训练只吃塔尖那一层。</p>
+
+      <p>第六层是后训练和 RLHF，筛法在这里彻底变了：不再是过滤大池子，而是人工构造一个小数据集。prompt 池人工验证（HunyuanVideo 的 I2V RL 用了 100 多个类目），候选由不同 checkpoint 对同一 prompt 滚出，人来成对标注（Meta 用 GSB，Seedance 按维度选 best/worst，HunyuanVideo 标了约 1 万对 DPO），最后把这 1 万对人类偏好蒸馏成 VLM 奖励模型，供在线 RL 批量打分。8 亿 clip 对 1 万对标注，差五个数量级，越靠近塔尖，数据越小、越贵、也越真。顺带一提，HunyuanVideo 自己承认现有奖励模型分不清细粒度运动的好坏，所以才先做离线 DPO 再上在线 RL：VLM 裁判也是蒸馏来的，人分不清的它同样分不清。</p>
+
+      <p>既然我们用 VLM 洗得好好的，为什么大厂不在过滤段也用它？</p>
 
       <h2>贵多少</h2>
 
@@ -124,11 +138,12 @@
 
       <h2>文章小结</h2>
 
-      <p>这篇文章用我们自己的一份账单和六份技术报告，对"为什么大厂不用 VLM 洗数据"给出了一点个人的理解：贵是直接原因，但过滤器的量具属性和整条管线的代理结构，可能是更本质的原因。</p>
+      <p>这篇文章用我们自己的一份账单和六份技术报告，把工业界的洗数据管线拆成了六层，并回答了一个问题：为什么过滤段没有 VLM。直接原因是贵；更本质的原因是身份，VLM 在这条管线里始终以人类判断放大器的身份出现，而过滤器要的是量具的稳定，两者要的从来不是同一种东西。</p>
 
       <p class="references-title">参考资料</p>
       <ul class="paper-list">
         <li><a href="https://arxiv.org/abs/2506.09113" target="_blank" rel="noreferrer">ByteDance Seed, <em>Seedance 1.0 Technical Report</em>, 2025</a></li>
+        <li><a href="https://arxiv.org/abs/2604.14148" target="_blank" rel="noreferrer">ByteDance Seed, <em>Seedance 2.0: Advancing Video Generation with Unified Multi-Modal Generation and Editing</em>, 2026</a></li>
         <li><a href="https://arxiv.org/abs/2410.13720" target="_blank" rel="noreferrer">Meta AI, <em>Movie Gen: A Cast of Media Foundation Models</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2503.09642" target="_blank" rel="noreferrer">HPC-AI Tech, <em>Open-Sora 2.0</em>, 2025</a></li>
         <li><a href="https://arxiv.org/abs/2511.18870" target="_blank" rel="noreferrer">Tencent Hunyuan, <em>HunyuanVideo 1.5 Technical Report</em>, 2025</a></li>
@@ -192,11 +207,25 @@
           </tbody>
         </table>
       </div>
-      <p class="table-note">Table 2. Data pipelines of the six technical reports, organized by funnel layer.</p>
+      <p class="table-note">Table 2. Data pipelines of the six technical reports, organized by funnel layer. The Seedance 2.0 (2026) data engine is isomorphic to 1.0 and not listed separately.</p>
 
-      <p>VLMs show up in exactly three places: captioning (all six use one, and none uses a stock general VLM — Seedance trained a bilingual captioner on Tarsier2, MovieGen fine-tuned LLaMA3-Video, HunyuanVideo used OPA-DPO post-training to balance description density against hallucination), small-scale post-training judgments, and reward models in RL. In the filtering stage — shot segmentation, quality filtering, aesthetic scoring, motion filtering, dedup — it is PySceneDetect, PaddleOCR, Laplacian variance, VMAF, optical flow, and CLIP+MLP all the way down.</p>
+      <p>VLMs show up in exactly three places: captioning, small-scale post-training judgments, and reward models in RL. These three are really one identity: the captioner amplifies how humans describe videos, the reward model amplifies human preference — neither is an independent judge. In the filtering stage — shot segmentation, quality filtering, aesthetic scoring, motion filtering, dedup — it is PySceneDetect, PaddleOCR, Laplacian variance, VMAF, optical flow, and CLIP+MLP all the way down. We also checked the 2026 Seedance 2.0 report: its data engine is isomorphic to 1.0, and its filtering stage is still VLM-free — two generations, the same pattern.</p>
 
-      <p>Since VLMs worked fine for us, why don't frontier labs use them?</p>
+      <h2>The six-layer funnel</h2>
+
+      <p>Stacking the six reports together, the industry's cleaning pipeline has roughly six layers. The first is segmentation: PySceneDetect, TransNetV2, and FFmpeg scene scores cut raw footage into single-shot clips of 2 to 16 seconds, and dedicated small classifiers remove transitions and effects. Tiger200K offers a detail: threshold-based PySceneDetect misses cross-dissolves, so they switched to the learned TransNetV2. There is no understanding in this layer, only per-frame localization.</p>
+
+      <p>The second layer is a batch of cheap instruments. Watermarks and subtitles go to PaddleOCR and dedicated detectors that crop a safe zone, discarding the clip if too little frame remains; sharpness is Laplacian variance and VMAF; aesthetics is a small CLIP+MLP regressor; motion is optical flow and VMAF motion, with both the too-still and the too-shaky removed. All frozen small models, milliseconds per item. In the 2026 Seedance 2.0 report, this layer runs the same configuration.</p>
+
+      <p>The third layer is dedup and rebalancing, where the object of operation shifts from individual clips to distributions. Clips are embedded by a video representation model and clustered; each near-duplicate cluster keeps only its highest-quality member. Then the distribution is counted over subject, scene, action, and style — heads are downsampled, tails get targeted acquisition (Seedance), and MovieGen combines inverse-proportional cluster sampling with a taxonomy of 600 human verbs for concept balancing.</p>
+
+      <p>The fourth layer is captioning, where VLMs enter — but none uses a stock general VLM: Seedance trained a bilingual captioner on Tarsier2, MovieGen fine-tuned LLaMA3-Video, HunyuanVideo used OPA-DPO post-training to balance description density against hallucination; the outputs are dense structured descriptions of 80 to 200 words. Seedance even trained a separate prompt rewriter so that user inputs stay in the same distribution as captions.</p>
+
+      <p>The fifth layer is the data pyramid. The same corpus is graded by quality: Open-Sora 2.0 feeds a 70M low-resolution pool down into a 5M high-resolution selection, and HunyuanVideo filters 10M raw hours into 800M clips, tightening level by level; expensive high-resolution training only eats from the top.</p>
+
+      <p>The sixth layer is post-training and RLHF, where the method changes completely: no longer filtering a big corpus, but hand-constructing a tiny dataset. The prompt pool is human-verified (HunyuanVideo used 100-plus categories for I2V RL), candidates are rolled out from different checkpoints on the same prompt, humans label pairwise preferences (Meta used GSB, Seedance picked best/worst per dimension, HunyuanVideo annotated about 10k DPO pairs), and finally those 10k human preferences are distilled into a VLM reward model that scores rollouts in bulk during online RL. 800M clips versus 10k annotations — five orders of magnitude apart. The closer to the top of the tower, the smaller, pricier, and truer the data. Incidentally, HunyuanVideo itself admits that existing reward models cannot tell apart fine-grained motion quality, which is why they run offline DPO before online RL: a VLM judge is also distilled — whatever humans cannot distinguish, it cannot either.</p>
+
+      <p>Since VLMs worked fine for us, why don't frontier labs use them in the filtering stage too?</p>
 
       <h2>How expensive</h2>
 
@@ -232,11 +261,12 @@
 
       <h2>Summary</h2>
 
-      <p>With one bill of our own and six technical reports, this post offered a personal reading of "why frontier labs don't clean data with VLMs": cost is the immediate reason, but the instrument nature of filters and the proxy structure of the whole pipeline may be the more essential ones.</p>
+      <p>With one bill of our own and six technical reports, this post took the industry's data pipeline apart into six layers and answered one question: why is the filtering stage VLM-free. The immediate reason is cost; the more essential one is identity — in this pipeline the VLM always works as an amplifier of human judgment, while a filter must be a stable instrument. They are not the same kind of thing.</p>
 
       <p class="references-title">References</p>
       <ul class="paper-list">
         <li><a href="https://arxiv.org/abs/2506.09113" target="_blank" rel="noreferrer">ByteDance Seed, <em>Seedance 1.0 Technical Report</em>, 2025</a></li>
+        <li><a href="https://arxiv.org/abs/2604.14148" target="_blank" rel="noreferrer">ByteDance Seed, <em>Seedance 2.0: Advancing Video Generation with Unified Multi-Modal Generation and Editing</em>, 2026</a></li>
         <li><a href="https://arxiv.org/abs/2410.13720" target="_blank" rel="noreferrer">Meta AI, <em>Movie Gen: A Cast of Media Foundation Models</em>, 2024</a></li>
         <li><a href="https://arxiv.org/abs/2503.09642" target="_blank" rel="noreferrer">HPC-AI Tech, <em>Open-Sora 2.0</em>, 2025</a></li>
         <li><a href="https://arxiv.org/abs/2511.18870" target="_blank" rel="noreferrer">Tencent Hunyuan, <em>HunyuanVideo 1.5 Technical Report</em>, 2025</a></li>
