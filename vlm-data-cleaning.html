@@ -34,9 +34,9 @@
       <a class="back-link" href="blog.html">← 返回博客</a>
       <div class="article-meta">2026-10-26 · 技术报告漫读 · 机器学习 · 视频生成 · 数据</div>
       <h1>技术报告漫读：工业界怎么洗数据</h1>
-      <p class="lead">我们洗数据是全程 VLM 的，成本也完全付得起；直到把六份前沿技术报告放在一起精读，才发现它们的过滤段没有一家用 VLM。这是为什么呢？</p>
+      <p class="lead">在学界论文中，洗数据除了规格筛选外，常常全程 VLM：对于 5B~14B 的小模型与十秒内的 480P 视频，只需要十几张卡较短时间内就能跑出一个差强人意的数据集。</p>
 
-      <p>前段时间我们洗了一批视频数据，从去重、初筛、重筛、富矿挖掘、事件窗定位，到 caption 重写与泄漏校验，八道工序中除了第一道 ffprobe，其余全部由 VLM 出判决。流程跑下来效果不错，账单也在可接受范围内，于是笔者很自然地形成一个想法：数据清洗本质上是个判断问题，模型越强判断越准，拿 VLM 洗数据理应就是更先进的做法。</p>
+      <p>最近尝试洗一批视频数据，去重、初筛、重筛、富矿挖掘、事件窗定位，到 caption 重写与泄漏校验，多道工序除了第一道 ffprobe，其余全部由 VLM 严格出判决。于是自然想到：数据清洗本质上是个处理数据算力、数据丰富程度/质量等因素的 Tradeoff。那么，工业界是如何洗出一份好的数据集的？</p>
 
       <p>后来闲下来，笔者把手上能找到的前沿视频生成技术报告都翻了出来：MovieGen、Seedance 1.0、HunyuanVideo 1.5、Open-Sora 2.0，加上两篇专门讲数据集的 Koala-36M 和 Tiger200K，新一点的还对照了 Seedance 2.0 和开源权重的 MiniMax H3，把数据部分放在一起精读了一遍。先说清楚，这些管线里当然有 VLM——caption 和奖励模型都是它；出乎意料的是另一件事：过滤段，从头到尾没有一家用 VLM。上一篇《SOTA视频模型的物理表现还有提升空间》看的是评测端，这篇往上游走一步，看数据端。</p>
 
@@ -211,9 +211,9 @@ keep = D[:, 1] &lt; 0.95                       # 近重复只留一条</code></p
       <a class="back-link" href="blog.html">← Back to Blog</a>
       <div class="article-meta">2026-10-26 · Tech Report Digest · Machine Learning · Video Generation · Data</div>
       <h1>Tech Report Digest: How the Industry Cleans Data</h1>
-      <p class="lead">We cleaned our data entirely with VLMs, and the bill was perfectly affordable. Then I put six frontier technical reports side by side and found that not one of them uses a VLM in the filtering stage. Why?</p>
+      <p class="lead">In academic papers, data cleaning beyond basic metadata screening is often done end-to-end with VLMs: for 5B~14B models and sub-10-second 480p videos, a dozen GPUs for a short while is enough to produce a passable dataset.</p>
 
-      <p>A while ago we cleaned a batch of video data. Deduplication, first pass, tiered admission, strong-prompt re-screening, dense mining, event-window localization, caption rewriting, leakage checks — of the eight stages, all but the first ffprobe pass were judged by VLMs. The results were good and the bill was acceptable, so I naturally settled into a belief: data cleaning is at bottom a judgment problem, stronger models judge better, so cleaning with VLMs is simply the more advanced approach.</p>
+      <p>Recently we set out to clean a batch of video data — deduplication, first pass, re-screening, dense mining, event-window localization, caption rewriting, leakage checks; of the many stages, all but the first ffprobe pass were judged strictly by VLMs. This naturally suggested that data cleaning is at bottom a trade-off among processing compute, data richness/quality, and similar factors. So how does the industry wash out a good dataset?</p>
 
       <p>Later, with some time to spare, I dug out every frontier video generation technical report I could find — MovieGen, Seedance 1.0, HunyuanVideo 1.5, Open-Sora 2.0, plus two dataset papers, Koala-36M and Tiger200K — and for the newer generation I also checked Seedance 2.0 and the open-weights MiniMax H3, reading their data sections side by side. To be clear up front: these pipelines certainly do use VLMs — captioning and reward models are VLMs. What surprised me is something narrower: in the filtering stage, not a single one uses a VLM. My previous post looked at the evaluation end; this one takes a step upstream, to the data end.</p>
 
