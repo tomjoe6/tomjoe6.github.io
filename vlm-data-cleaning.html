@@ -36,9 +36,9 @@
       <h1>技术报告漫读：工业界怎么洗数据</h1>
       <p class="lead">在学界论文中，洗数据除了规格筛选外常常全程 VLM：对于 5B~14B 的小模型与十秒内的 480P 视频，只需要十几张卡较短时间内就能跑出一个差强人意的数据集。</p>
 
-      <p>最近尝试一遍洗数据 pipe，去重、初筛、重筛、富矿挖掘、事件窗定位，到 caption 重写与泄漏校验，多道工序除了第一道 ffprobe，其余全部由 VLM 严格出判决，做 SFT ablation 的效果仍然很不好，于是自然想到：数据清洗本质上是个处理数据算力、数据丰富程度/质量等因素的 Tradeoff。工业界是如何洗出一份好的数据集的？</p>
+      <p>最近尝试一遍洗数据 pipe，去重、初筛、重筛、富矿挖掘、事件窗定位，到 caption 重写与泄漏校验，多道工序除了第一道 ffprobe，其余全部由 VLM 严格出判决，做 SFT ablation 的效果仍然很不好。数据清洗本质上是个处理数据算力、数据丰富程度/质量等因素的 Tradeoff，工业界是如何洗出一份好的数据集的？</p>
 
-      <p>直接翻阅技术报告：MovieGen、Seedance 1.0、HunyuanVideo 1.5、Open-Sora 2.0，加上专门讲数据集的 Koala-36M 和 Tiger200K，新一点的还对照了 Seedance 2.0 精读一遍 Data 部分。首先这些管线里的确有 VLM——caption 和奖励模型。而过滤段从头到尾几乎没有用 VLM 的。</p>
+      <p>直接翻阅技术报告：MovieGen、Seedance 1.0、HunyuanVideo 1.5、Open-Sora 2.0，加上专门讲数据集的 Koala-36M 和 Tiger200K，新一点的还对照了 Seedance 2.0，精读一遍 Data 部分。首先管线里的确有 VLM——caption 和奖励模型。而过滤段从头到尾几乎没有用 VLM。</p>
 
       <h2>一份账单</h2>
 
@@ -83,9 +83,9 @@
       </div>
       <p class="table-note">表 2｜六份技术报告的数据管线，按漏斗层级归纳。Seedance 2.0（2026）的数据引擎与 1.0 同构，未单列。</p>
 
-      <p>可以看到，VLM 只出现在 caption、后训练的小规模判断，以及 RL 阶段的奖励模型。captioner 力求贴近人类写描述的方式，奖励模型放大人类的偏好判断。而在过滤段，也即镜头切分、质量过滤、运动过滤、去重这一段，清一色是 PySceneDetect、PaddleOCR、Laplacian 方差、VMAF、光流、CLIP+MLP 这些工具和小模型。</p>
+      <p>VLM 只出现在 caption、后训练的小规模判断，以及 RL 阶段的奖励模型。captioner 力求贴近人类写描述的方式，奖励模型放大人类的偏好判断。而在过滤段，也即镜头切分、质量过滤、运动过滤、去重这一段，清一色是 PySceneDetect、PaddleOCR、Laplacian 方差、VMAF、光流、CLIP+MLP 这些工具和小模型。</p>
 
-      <p>关于开源状态，Seedance 2.0 无权重，MiniMax H3 给权重不给报告，HunyuanVideo 报告权重都给了——但把数据处理管线这一真正的核心科技开源出来的，一家大厂都没有。开源世界能找到的完整管线全部来自开源阵营：Open-Sora 把报告里的管线原样放进 repo，NeMo Curator 和 Data-Juicer 提供现成的过滤去重框架，再配上开源的 captioner、美学回归器和 Koala-36M、Tiger200K 这样的数据集，社区是拿开源工具复现工业 pipe。</p>
+      <p>关于开源状态，Seedance 2.0 无权重，MiniMax H3 给权重不给报告，HunyuanVideo 报告权重都给了——但把数据处理管线这一真正的核心科技开源出来的一家大厂都没有。开源世界能找到的完整管线全部来自开源阵营：Open-Sora 把报告里的管线原样放进 repo，NeMo Curator 和 Data-Juicer 提供现成的过滤去重框架，再配上开源的 captioner、美学回归器和 Koala-36M、Tiger200K 这样的数据集，社区是拿开源工具复现工业 pipe。</p>
 
       <p>第二层是一批便宜的量具。水印和字幕交给 PaddleOCR 和专用检测器，裁出安全区，裁完保留面积不足就整条丢弃；清晰度用 Laplacian 方差和 VMAF；美学是 CLIP+MLP 小回归器；运动用光流和 VMAF motion，太静和太抖都删。全是冻结的小模型，毫秒级一条。2026 年的 Seedance 2.0 报告里，这一层还是同样的配置。</p>
 
@@ -95,11 +95,11 @@
 
       <p>第五层是数据金字塔。同一批语料按质量分出梯度：Open-Sora 2.0 是 7000 万的低分辨率池喂出 500 万的高分辨率精选，HunyuanVideo 从 1000 万小时原始视频筛出 8 亿 clip，逐级收紧，贵的高分辨率训练只吃塔尖那一层。</p>
 
-      <p>后训练和 RLHF 则是另一种筛法：不再是过滤大池子，而是人工构造小数据集。prompt 池人工验证，候选由不同 checkpoint 对同一 prompt 滚出，人来做成对标注（HunyuanVideo 标了约 1 万对 DPO），最后把这 1 万对人类偏好蒸馏成 VLM 奖励模型，供在线 RL 批量打分。8 亿 clip 对 1 万对标注，差五个数量级——越靠近塔尖，数据越小、越贵、也越真。</p>
+      <p>后训练和 RLHF 不再是过滤大池子，而是人工构造小数据集。prompt 池人工验证，候选由不同 checkpoint 对同一 prompt 滚出，让人来做成对标注（HunyuanVideo 标了约 1 万对 DPO），最后把这 1 万对人类偏好蒸馏成 VLM 奖励模型供在线 RL 批量打分。</p>
 
-      <h2>自己拼一个漏斗</h2>
+      <h2>拼漏斗</h2>
 
-      <p>好在表 2 里的每一层都有开源对应物，方法是真的可以自己拼的。切分用 PySceneDetect 一行，转场敏感的场景换学习式的 TransNetV2；清晰度是 Laplacian 方差，运动是相邻帧光流的平均幅值，都是十几行 OpenCV 的事：</p>
+      <p>每一层都有开源下位替代物。切分用 PySceneDetect 一行，转场敏感的场景换学习式的 TransNetV2；清晰度是 Laplacian 方差，运动是相邻帧光流的平均幅值，如：</p>
 
       <pre><code>from scenedetect import detect, ContentDetector
 import cv2, numpy as np
@@ -122,43 +122,30 @@ def motion_sharpness(path):
 
       Qwen2.5-VL 或 Tarsier2 按六要素写 prompt——工业漏斗的每一层都有开源件，区别只在阈值要自己调、专训的 operator 没有现成的，这恰恰是最花时间的部分。</p>
 
-      <p>既然我们用 VLM 洗得好好的，为什么大厂不在过滤段也用它？</p>
+      <p>既然 VLM 可以靠近人类感官，为什么不在全流程尽量多用？</p>
 
-      <h2>贵多少</h2>
 
-      <p>最直接的解释当然是贵。这个说法大差不差，但它属于"万能模版"式的回答，什么问题都可以拿"贵"来搪塞，所以我们不妨把账认真算一遍。有意思的是，六份报告没有一个披露数据处理本身的算力开销：HunyuanVideo 只给了"1000 万小时原始视频 → 8 亿 clip"的比例，Open-Sora 只给了 20 万美元的模型训练成本。所以这笔账只能拿自己的实测去外推。</p>
+      <p>最直接当然是贵。六份报告没有一个披露数据处理本身的算力开销：HunyuanVideo 只给了「1000 万小时原始视频 → 8 亿 clip」的比例，Open-Sora 只给了 20 万美元的模型训练成本。</p>
 
-      <p>把表 1 的耗时加起来约 257 GPU·小时，摊到每条源视频约 6 卡秒；乘以 8 亿 clip，约等于 135 万 A800·小时，折合 150 卡年。什么概念呢？一千张 A800 不吃不喝跑五十多天，才筛完一遍；而数据引擎的常态是每个模型版本迭代都重筛。另一边，CLIP+MLP 美学回归器是毫秒级一帧，前后差了三个数量级。所以在预训练的规模上，全程 VLM 不是贵一点，是根本跑不动。</p>
+      <p>若设每条 6 卡秒，8 亿 clip，约 135 万 A800 小时，折合 150 卡年，即约一千张 A800 跑五十多天才筛一遍；而数据引擎常常每个模型版本迭代或表现不达预期都需要重筛。另一边，CLIP+MLP 美学回归器是毫秒级一帧。</p>
 
-      <p>可能有读者觉得：那不就是纯粹的贵而已，等 VLM 推理降价了自然就换过去了。咋看之下有道理，但笔者认为不成立，问题出在过滤器这个角色的特殊性上。</p>
 
-      <h2>量具与裁判</h2>
 
-      <p>过滤器和 captioner 不一样：captioner 的输出直接进训练，好坏由下游模型消化；过滤器定义的是整个语料的分布，所以它首先得是一件量具。而量具的第一美德是稳定，不是聪明。</p>
+      <p>进一步地，过滤器和 captioner 不一样：captioner 的输出直接进训练，好坏由下游模型消化；过滤器定义的是整个语料的分布，所以它首先得是一件量具，量具首先需要稳定。</p>
 
-      <p>CLIP+MLP 美学回归器是冻结的：同一个模型、同一个分数语义，跑十遍结果一致，失败模式已知，分数分布可以画出来审计。VLM 则是生成器：prompt 换个措辞、底座升个版本、甚至同一批数据重跑一遍，分数的含义都可能漂移。同一条视频这个月 4.2 分、下个月 4.8 分，对 caption 来说无所谓，对过滤器来说是灾难，因为整个语料的筛选标准跟着变了。</p>
+      <p>CLIP+MLP 美学回归器是完全冻结的：同一个模型同一个分数语义，跑十遍结果一致，分数分布可以画出来审计。VLM 则是生成器：prompt 换个措辞、甚至同一批数据重跑一遍，分数的含义都可能漂移。</p>
 
-      <p>这里还有一层更微妙的关系。美学回归器是什么？是在人类美学评分数据上蒸馏出来的 CLIP+MLP；VLM 是什么？同样是人类判断的蒸馏。两者本是同源，所以大厂在过滤段做的选择，其实不是要哪份知识，而是要哪种容器：冻结的标量，还是会漂移的语言。</p>
 
-      <p>写到这里，笔者回头看了眼自己的管线，发现一个有点好笑的事实。我们为了把 VLM 用便宜，把 12–16 段拼成一张蒙太奇、一个请求塞 5 条视频 × 3 个 chunk，这些技巧的本质，就是逼 VLM 一次前向吐出尽可能多的标量判决，把它往编码器的用法上推。换句话说，在成本压力下，VLM 重管线会自发长出小模型管线的行为模式。我们和大厂，其实是在从两端做同一件事。</p>
 
-      <h2>代理塔</h2>
 
-      <p>再往深一层想，就碰到"什么是好数据"本身了。理想的定义其实很清楚：U(x) 等于用 x 训练之后模型的期望提升。麻烦的是这个量没法计算，唯一的测法是真的拿去训练再评测。所以整条数据管线本质上是一座代理塔：塔尖是真训真测，塔下面的一切，元数据、质量分、美学分、embedding 几何、VLM 判断、甚至人工标注，都是对塔尖的代理，越往上越准也越贵。漏斗的规则是便宜的看全部、贵的只看幸存者，而这个排序由单条成本决定，并不由哪个信号最接近 U 决定。</p>
+      <p>对于一个模型，什么是好数据无法量化，唯一的测法是拿去训练再评测，烧掉无法计量的卡时，最后得到数据配比 recipe。所以在工业界，加组件、加约束提升几个点的算法根本没那么重要，Methods to get good data is all we need.</p>
 
-      <p>用这个视角回看，一些原来散落的现象就都能解释了。Tiger200K 为什么敢不做任何训练实验就发数据集？因为大家都把代理当成了本体，默认过滤了就是好的。学界论文为什么清一色 VLM 洗数据？算力有限，级联退化成一层，那就只留最全能的那层。HunyuanVideo 为什么花力气用 RL 专训 captioner，而不是直接用 Qwen？因为 caption 是离塔尖最近、又能低成本对齐的环节。各家为什么都把数据飞轮当终局？因为飞轮把塔尖变成了日常操作。</p>
 
-      <p>这也意味着"好数据"并没有属性式的定义，只有阶段式的：同一条 clip，在 256p 预训练是好数据，到 768p 精调就是坏数据。"好"不是视频自己的属性，而是视频、训练阶段和目标三者之间的关系。</p>
 
-      <h2>拓展思考</h2>
 
-      <p>最后说一个可能被未来打脸的预测。当时实测的稳定吞吐，7B 大约 35–40 条/分/卡，换成大四倍的 30B 大约 30 条/分/卡，模型大了四倍，单卡吞吐基本没掉，可见 serving 效率的进步是实打实的。如果 VLM 推理成本再降两个数量级，量具论会松动，过滤段逐步换成 VLM judge 是大概率事件，AVVA 这类工作和大厂 RL 里的 VLM 奖励模型已经是先声。到那时候回头看，CLIP+MLP 美学回归器大概就像我们今天看像素阈值过滤一样原始。</p>
 
-      <p>两种管线正在相向而行：我们在学着把 VLM 用成编码器，大厂在把手工过滤器换成 learned judge。至于成本真正崩塌之后，"好数据"会等来一个认识论上的定义，还是只换一个更贵的共识，笔者暂时还没有想清楚。</p>
 
-      <h2>文章小结</h2>
 
-      <p>这篇文章用我们自己的一份账单和六份技术报告，把工业界的洗数据管线拆成了六层，并回答了一个问题：为什么过滤段没有 VLM。直接原因是贵；更本质的原因是身份，VLM 在这条管线里始终以人类判断放大器的身份出现，而过滤器要的是量具的稳定，两者要的从来不是同一种东西。</p>
 
       <p class="references-title">参考资料</p>
       <ul class="paper-list">
@@ -226,7 +213,7 @@ def motion_sharpness(path):
       </div>
       <p class="table-note">Table 2. Data pipelines of the six technical reports, organized by funnel layer. The Seedance 2.0 (2026) data engine is isomorphic to 1.0 and not listed separately.</p>
 
-      <p>As you can see, VLMs appear only in captioning, small-scale post-training judgments, and reward models in RL. The captioner strives to imitate how humans describe videos, and the reward model amplifies human preference. In the filtering stage — shot segmentation, quality filtering, motion filtering, dedup — it is PySceneDetect, PaddleOCR, Laplacian variance, VMAF, optical flow, and CLIP+MLP all the way down.</p>
+      <p>VLMs appear only in captioning, small-scale post-training judgments, and reward models in RL. The captioner strives to imitate how humans describe videos, and the reward model amplifies human preference. In the filtering stage — shot segmentation, quality filtering, motion filtering, dedup — it is PySceneDetect, PaddleOCR, Laplacian variance, VMAF, optical flow, and CLIP+MLP all the way down.</p>
 
       <p>On open-source status: Seedance 2.0 gives no weights; MiniMax H3 gives weights but no report; HunyuanVideo gives both — yet the data processing pipeline, the real core technology, has been open-sourced by not a single major lab. The complete pipelines you can find in the open world all come from the open-source camp itself: Open-Sora put the exact pipeline from its report into the repo, NeMo Curator and Data-Juicer ship ready-made filtering and dedup frameworks, and together with open captioners, aesthetic regressors, and datasets like Koala-36M and Tiger200K, the community is reassembling the industrial pipeline with open tools.</p>
 
@@ -238,11 +225,11 @@ def motion_sharpness(path):
 
       <p>The fifth layer is the data pyramid. The same corpus is graded by quality: Open-Sora 2.0 feeds a 70M low-resolution pool down into a 5M high-resolution selection, and HunyuanVideo filters 10M raw hours into 800M clips, tightening level by level; expensive high-resolution training only eats from the top.</p>
 
-      <p>Post-training and RLHF are a different kind of screening: instead of filtering a big corpus, a tiny dataset is hand-constructed. The prompt pool is human-verified, candidates are rolled out from different checkpoints on the same prompt, and humans label pairwise preferences (HunyuanVideo annotated about 10k DPO pairs); those 10k human preferences are then distilled into a VLM reward model that scores rollouts in bulk during online RL. 800M clips versus 10k annotations — five orders of magnitude: the closer to the top of the tower, the smaller, pricier, and truer the data.</p>
+      <p>Post-training and RLHF no longer filter a big corpus; they hand-construct a small dataset. The prompt pool is human-verified, candidates are rolled out from different checkpoints on the same prompt, and humans label pairwise preferences (HunyuanVideo annotated about 10k DPO pairs), which are then distilled into a VLM reward model for bulk scoring during online RL.</p>
 
-      <h2>Assemble one yourself</h2>
+      <h2>Assemble the funnel</h2>
 
-      <p>Fortunately, every layer in Table 2 has an open-source counterpart, so the method really can be assembled at home. Segmentation is one line with PySceneDetect (switch to the learned TransNetV2 where cross-dissolves matter); sharpness is Laplacian variance, motion is the mean magnitude of inter-frame optical flow — a dozen lines of OpenCV:</p>
+      <p>Every layer has an open-source, downgraded replacement. Segmentation is one line with PySceneDetect — switch to the learned TransNetV2 where cross-dissolves matter; sharpness is Laplacian variance, and motion is the mean magnitude of inter-frame optical flow, for example:</p>
 
       <pre><code>from scenedetect import detect, ContentDetector
 import cv2, numpy as np
@@ -265,43 +252,30 @@ def motion_sharpness(path):
 
        — Qwen2.5-VL or Tarsier2 with a six-element prompt — every layer of the industrial funnel has an open part; the difference is that thresholds need your own tuning, and the trained operators have no off-the-shelf equivalents, which is precisely the time-consuming part.</p>
 
-      <p>Since VLMs worked fine for us, why don't frontier labs use them in the filtering stage too?</p>
+      <p>Since VLMs sit so close to human senses, why not use them as much as possible across the whole pipeline?</p>
 
-      <h2>How expensive</h2>
 
-      <p>The immediate explanation is cost. That answer is roughly right, but it is a template answer — almost anything can be waved off as "too expensive" — so let's run the numbers properly. Interestingly, none of the six reports discloses the compute cost of data processing itself: HunyuanVideo gives only the ratio "10M raw hours → 800M clips", Open-Sora only a $200k training budget. So the only way to do the accounting is to extrapolate from our own measurements.</p>
+      <p>The most direct reason is cost. None of the six reports discloses the compute cost of data processing itself: HunyuanVideo gives only the ratio “10M raw hours → 800M clips”, Open-Sora only a $200k training budget.</p>
 
-      <p>Summing Table 1 gives about 257 GPU·hours, roughly 6 card-seconds per source video; times 800M clips, that is about 1.35M A800·hours, or 150 card-years. Concretely: a thousand A800s grinding for over fifty days straight buys exactly one pass, and data engines routinely re-run the funnel for every model iteration. On the other side, a CLIP+MLP aesthetic regressor runs at milliseconds per frame — a three-orders-of-magnitude gap. At pre-training scale, an all-VLM pipeline is not somewhat expensive; it simply does not run.</p>
+      <p>Suppose six card-seconds per item; 800M clips comes to about 1.35M A800 hours, or 150 card-years — roughly a thousand A800s grinding for over fifty days for a single pass; and data engines routinely re-screen on every model iteration, or whenever results disappoint. On the other side, a CLIP+MLP aesthetic regressor runs at milliseconds per frame.</p>
 
-      <p>Some readers may think: fine, it is purely a cost issue, and once VLM inference gets cheaper everyone will switch. That sounds right at first glance, but I don't think it holds, and the reason lies in what a filter is.</p>
 
-      <h2>Instruments and judges</h2>
 
-      <p>A filter is not a captioner. A captioner's output goes straight into training and is digested by the downstream model; a filter defines the distribution of the entire corpus, so first and foremost it is a measuring instrument. The first virtue of an instrument is stability, not intelligence.</p>
+      <p>To go further: a filter is not a captioner. A captioner’s output goes straight into training and is digested by the downstream model; a filter defines the distribution of the entire corpus, so it is first of all a measuring instrument — and an instrument first needs to be stable.</p>
 
       <p>A CLIP+MLP aesthetic regressor is frozen: same model, same score semantics, identical results across ten runs, known failure modes, and a score distribution you can plot and audit. A VLM is a generator: reword the prompt, upgrade the base model, or simply re-run the same batch, and the meaning of the score can drift. The same video scoring 4.2 this month and 4.8 next month is harmless for a caption and disastrous for a filter, because the selection criterion of the whole corpus just moved.</p>
 
-      <p>There is a subtler relationship here. What is an aesthetic regressor? A CLIP+MLP distilled from human aesthetic ratings. What is a VLM? Also a distillation of human judgment. The two share a source, so the choice made in the filtering stage was never about which knowledge to use, but about which container: a frozen scalar, or drifting language.</p>
 
-      <p>At this point I looked back at our own pipeline and found something almost funny. To make VLMs cheap, we tile 12–16 segments into one montage image and pack 5 videos × 3 chunks into a single request. The essence of these tricks is to force the VLM to emit as many scalar verdicts as possible per forward pass — pushing it toward encoder-style usage. Under cost pressure, a VLM-heavy pipeline spontaneously grows the behavioral patterns of a small-model pipeline. We and the frontier labs are doing the same thing from opposite ends.</p>
 
-      <h2>A tower of proxies</h2>
 
-      <p>One level deeper, we bump into "what is good data" itself. The ideal definition is clear enough: U(x) equals the expected improvement of the model after training on x. The trouble is that this quantity cannot be computed; the only way to measure it is to actually train and evaluate. So the entire pipeline is a tower of proxies: the top is train-and-measure, and everything below — metadata, quality scores, aesthetic scores, embedding geometry, VLM judgments, even human annotation — is a proxy for the top, each level more accurate and more expensive. The funnel's rule is that the cheap look at everything and the expensive look only at survivors, and this ordering is decided by per-item cost, not by which signal is closest to U.</p>
+      <p>For a given model, what counts as good data cannot be quantified — the only way to measure it is to actually train and evaluate, burning uncountable GPU hours, and what you end up with is a data recipe. So in industry, algorithms that add components and constraints for a couple of benchmark points simply do not matter that much: methods to get good data is all we need.</p>
 
-      <p>Seen through this lens, several scattered facts line up. Why could Tiger200K publish a dataset without a single training experiment? Because everyone mistakes the proxy for the thing itself — filtered means better, by default. Why do academic papers overwhelmingly use VLM cleaning? Under compute constraints the cascade degenerates to one layer, and if you keep only one, you keep the most versatile. Why did HunyuanVideo RL-train a captioner instead of using stock Qwen? Because captioning is the layer closest to the top that can still be aligned cheaply. Why does everyone treat the data flywheel as the endgame? Because it turns the top of the tower into a routine operation.</p>
 
-      <p>It also means "good data" has no attribute-style definition, only a stage-relative one: the same clip is good data at 256p pre-training and bad data at 768p fine-tuning. "Good" is not a property of the video; it is a relation among the video, the training stage, and the objective.</p>
 
-      <h2>Further thoughts</h2>
 
-      <p>Finally, a prediction that future facts are welcome to falsify. Our measured steady throughput was about 35–40 items/min/card for the 7B and about 30 for a 30B four times larger; per-card throughput barely moved, so serving efficiency is improving on a real schedule. If VLM inference cost falls another two orders of magnitude, the instrument argument weakens, and a migration of the filtering stage to VLM judges becomes the likely outcome — AVVA-style work and VLM reward models in RL are the early signs. Looked back on from there, today's CLIP+MLP aesthetic regressors will probably seem as primitive as pixel-threshold filtering does now.</p>
 
-      <p>The two pipelines are converging from opposite directions: we are learning to use VLMs as encoders, and frontier labs are replacing hand filters with learned judges. As for whether "good data" will finally get an epistemic definition once the cost truly collapses, or merely a more expensive consensus — I haven't figured that out yet.</p>
 
-      <h2>Summary</h2>
 
-      <p>With one bill of our own and six technical reports, this post took the industry's data pipeline apart into six layers and answered one question: why is the filtering stage VLM-free. The immediate reason is cost; the more essential one is identity — in this pipeline the VLM always works as an amplifier of human judgment, while a filter must be a stable instrument. They are not the same kind of thing.</p>
 
       <p class="references-title">References</p>
       <ul class="paper-list">
