@@ -44,6 +44,19 @@ VLM 只出现在 caption、后训练的小规模判断，以及 RL 阶段的奖�
 
 关于开源状态，Seedance 2.0 无权重，MiniMax H3 给权重不给报告，HunyuanVideo 报告权重都给了——但把数据处理管线这一真正的核心科技开源出来的一家大厂都没有。开源世界能找到的完整管线全部来自开源阵营：Open-Sora 把报告里的管线原样放进 repo，NeMo Curator 和 Data-Juicer 提供现成的过滤去重框架，再配上开源的 captioner、美学回归器和 Koala-36M、Tiger200K 这样的数据集，社区是拿开源工具复现工业 pipe。
 
+## 读出来的细节
+
+漫读的价值在细节，几条值得单独记下的：
+
+- clip 长度即训练窗口：MovieGen 切 4–16 秒、HunyuanVideo 2–10 秒、Seedance 不超过 12 秒，各不相同——切分跟着自家训练窗口走，根本不是内容判断；
+- Panda-70M 时代的老洞察：每个 clip 掐掉开头几秒，因为开头镜头几乎总是不稳的；
+- Tiger200K 换过一次枪：阈值式的 PySceneDetect 会漏叠化转场，改成学习式的 TransNetV2；
+- 过滤比例即态度：Open-Sora 7000 万条低分辨率池喂出 500 万条高分辨率精选，HunyuanVideo 从 1000 万小时筛到 8 亿 clip，数字本身就是各家对“干净”的定义；
+- caption 无一裸用通用 VLM：Seedance 在 Tarsier2 上专训双语 captioner，MovieGen 微调 LLaMA3-Video，HunyuanVideo 用 OPA-DPO 平衡描述密度与幻觉，Seedance 甚至单独训了 prompt 改写器，保证用户输入和 caption 同分布；
+- MovieGen 用一套 600 个动词的词表做概念配比，配比精细到动词级别。
+
+后训练和 RLHF 不再是过滤大池子
+
 第二层是一批便宜的量具。水印和字幕交给 PaddleOCR 和专用检测器，裁出安全区，裁完保留面积不足就整条丢弃；清晰度用 Laplacian 方差和 VMAF；美学是 CLIP+MLP 小回归器；运动用光流和 VMAF motion，太静和太抖都删。全是冻结的小模型，毫秒级一条。2026 年的 Seedance 2.0 报告里，这一层还是同样的配置。
 
 第三层是去重与配比，操作对象从单条视频换成了分布。clip 用视频表征模型编码，聚类之后每个近重复簇只留质量分最高的那条；再按主体、场景、动作、风格数分布，头部下采样、尾部定向补采（Seedance），MovieGen 则用聚类反比采样加一套 600 个动词的词表做概念平衡。
