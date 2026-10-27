@@ -97,7 +97,7 @@
         <li>MovieGen 用一套 600 个动词的词表做概念配比，配比精细到动词级别。</li>
       </ul>
 
-      <p>后训练和 RLHF 不再是过滤大池子      <p>后训练和 RLHF 不再是过滤大池子，而是人工构造小数据集。prompt 池人工验证，候选由不同 checkpoint 对同一 prompt 滚出，让人来做成对标注（HunyuanVideo 标了约 1 万对 DPO），最后把这 1 万对人类偏好蒸馏成 VLM 奖励模型供在线 RL 批量打分。</p>
+      <p>后训练和 RLHF 不再是过滤大池子，而是人工构造小数据集。prompt 池人工验证，候选由不同 checkpoint 对同一 prompt 滚出，让人来做成对标注（HunyuanVideo 标了约 1 万对 DPO），最后把这 1 万对人类偏好蒸馏成 VLM 奖励模型供在线 RL 批量打分。</p>
 
       <p>关于开源状态，Seedance 2.0 无权重，MiniMax H3 给权重不给报告，HunyuanVideo 报告权重都给了——但把数据处理管线这一真正的核心科技开源出来的一家大厂都没有。开源世界能找到的完整管线全部来自开源阵营：Open-Sora 把报告里的管线原样放进 repo，NeMo Curator 和 Data-Juicer 提供现成的过滤去重框架，再配上开源的 captioner、美学回归器和 Koala-36M、Tiger200K 这样的数据集，社区是拿开源工具复现工业 pipe。</p>
       <h2>拼漏斗</h2>

@@ -42,8 +42,6 @@
 
 VLM 只出现在 caption、后训练的小规模判断，以及 RL 阶段的奖励模型。captioner 力求贴近人类写描述的方式，奖励模型放大人类的偏好判断。而在过滤段，也即镜头切分、质量过滤、运动过滤、去重这一段，清一色是 PySceneDetect、PaddleOCR、Laplacian 方差、VMAF、光流、CLIP+MLP 这些工具和小模型。
 
-
-
 关于报告中的一些细节：
 
 - clip 长度：MovieGen 切 4–16 秒、HunyuanVideo 2–10 秒、Seedance 不超过 12 秒；
@@ -52,19 +50,7 @@ VLM 只出现在 caption、后训练的小规模判断，以及 RL 阶段的奖�
 - caption 无一裸用通用 VLM：Seedance 在 Tarsier2 上专训双语 captioner，MovieGen 微调 LLaMA3-Video，HunyuanVideo 用 OPA-DPO 平衡描述密度与幻觉，Seedance 甚至单独训了 prompt 改写器，保证用户输入和 caption 同分布（拟合用户命令的风格）；
 - MovieGen 用一套 600 个动词的词表做概念配比，配比精细到动词级别。
 
-后训练和 RLHF 不再是过滤大池子
-
-第二层是一批便宜的量具。水印和字幕交给 PaddleOCR 和专用检测器，裁出安全区，裁完保留面积不足就整条丢弃；清晰度用 Laplacian 方差和 VMAF；美学是 CLIP+MLP 小回归器；运动用光流和 VMAF motion，太静和太抖都删。全是冻结的小模型，毫秒级一条。2026 年的 Seedance 2.0 报告里，这一层还是同样的配置。
-
-第三层是去重与配比，操作对象从单条视频换成了分布。clip 用视频表征模型编码，聚类之后每个近重复簇只留质量分最高的那条；再按主体、场景、动作、风格数分布，头部下采样、尾部定向补采（Seedance），MovieGen 则用聚类反比采样加一套 600 个动词的词表做概念平衡。
-
-第四层 caption，VLM 在这里进场，但没有一家裸用通用 VLM：Seedance 在 Tarsier2 上专训了双语 captioner，MovieGen 微调 LLaMA3-Video，HunyuanVideo 用 OPA-DPO 后训练来平衡描述密度与幻觉，输出的都是 80 到 200 词的密集结构化描述；Seedance 甚至单独训了一个 prompt 改写器，保证用户输入和 caption 同分布。
-
-第五层是数据金字塔。同一批语料按质量分出梯度：Open-Sora 2.0 是 7000 万的低分辨率池喂出 500 万的高分辨率精选，HunyuanVideo 从 1000 万小时原始视频筛出 8 亿 clip，逐级收紧，贵的高分辨率训练只吃塔尖那一层。
-
 后训练和 RLHF 不再是过滤大池子，而是人工构造小数据集。prompt 池人工验证，候选由不同 checkpoint 对同一 prompt 滚出，让人来做成对标注（HunyuanVideo 标了约 1 万对 DPO），最后把这 1 万对人类偏好蒸馏成 VLM 奖励模型供在线 RL 批量打分。
-
-既然 VLM 可以靠近人类感官，为什么不在全流程尽量多用？
 
 关于开源状态，Seedance 2.0 无权重，MiniMax H3 给权重不给报告，HunyuanVideo 报告权重都给了——但把数据处理管线这一真正的核心科技开源出来的一家大厂都没有。开源世界能找到的完整管线全部来自开源阵营：Open-Sora 把报告里的管线原样放进 repo，NeMo Curator 和 Data-Juicer 提供现成的过滤去重框架，再配上开源的 captioner、美学回归器和 Koala-36M、Tiger200K 这样的数据集，社区是拿开源工具复现工业 pipe。
 ## 拼漏斗
@@ -96,30 +82,18 @@ def motion_sharpness(path):
 
 既然 VLM 可以靠近人类感官，为什么不在全流程尽量多用？
 
-
+既然 VLM 可以靠近人类感官，为什么不在全流程尽量多用？
 最直接是贵。六份报告没有一个披露数据处理本身的算力开销：HunyuanVideo 只给了「1000 万小时原始视频 → 8 亿 clip」的比例，Open-Sora 只给了 20 万美元的模型训练成本。
 
 若乐观设每条 6 卡秒，8 亿 clip，约 135 万 A800 小时，折合 150 卡年，即约一千张 A800 跑五十多天才筛一遍；而数据引擎常常每个模型版本迭代或表现不达预期都需要重筛。另一边，CLIP+MLP 美学回归器是毫秒级一帧。
-
-
 
 进一步地，过滤器和 captioner 不一样：captioner 的输出直接进训练，好坏由下游模型消化；过滤器定义的是整个语料的分布，所以它首先得是一件量具，量具首先需要稳定。
 
 CLIP+MLP 美学回归器是完全冻结的：同一个模型同一个分数语义，跑十遍结果一致，分数分布可以画出来审计。VLM 则是生成器：prompt 换个措辞、甚至同一批数据重跑一遍，分数的含义都可能漂移。
 
-
-
-
 对于一个模型，什么是好数据无法量化，唯一的测法是拿去训练到一定程度再 evaluate，烧掉无法计量的卡时，最后得到数据配比 recipe。所以在工业界，加组件、加约束提升几个点的算法也许根本没那么重要。
 
 **Methods to get good data is all we need.**
-
-
-
-
-
-
-
 
 ## 参考资料
 
