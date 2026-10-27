@@ -87,16 +87,14 @@
 
       <p>关于开源状态，Seedance 2.0 无权重，MiniMax H3 给权重不给报告，HunyuanVideo 报告权重都给了——但把数据处理管线这一真正的核心科技开源出来的一家大厂都没有。开源世界能找到的完整管线全部来自开源阵营：Open-Sora 把报告里的管线原样放进 repo，NeMo Curator 和 Data-Juicer 提供现成的过滤去重框架，再配上开源的 captioner、美学回归器和 Koala-36M、Tiger200K 这样的数据集，社区是拿开源工具复现工业 pipe。</p>
 
-      <h2>读出来的细节</h2>
 
-      <p>漫读的价值在细节，几条值得单独记下的：</p>
+      <p>关于报告中的一些细节：</p>
 
       <ul>
-        <li>clip 长度即训练窗口：MovieGen 切 4–16 秒、HunyuanVideo 2–10 秒、Seedance 不超过 12 秒，各不相同——切分跟着自家训练窗口走，根本不是内容判断；</li>
-        <li>Panda-70M 时代的老洞察：每个 clip 掐掉开头几秒，因为开头镜头几乎总是不稳的；</li>
-        <li>Tiger200K 换过一次枪：阈值式的 PySceneDetect 会漏叠化转场，改成学习式的 TransNetV2；</li>
-        <li>过滤比例即态度：Open-Sora 7000 万条低分辨率池喂出 500 万条高分辨率精选，HunyuanVideo 从 1000 万小时筛到 8 亿 clip，数字本身就是各家对“干净”的定义；</li>
-        <li>caption 无一裸用通用 VLM：Seedance 在 Tarsier2 上专训双语 captioner，MovieGen 微调 LLaMA3-Video，HunyuanVideo 用 OPA-DPO 平衡描述密度与幻觉，Seedance 甚至单独训了 prompt 改写器，保证用户输入和 caption 同分布；</li>
+        <li>clip 长度：MovieGen 切 4–16 秒、HunyuanVideo 2–10 秒、Seedance 不超过 12 秒；</li>
+        <li>Panda-70M 时代的老洞察：每个 clip 掐掉开头几秒，开头镜头几乎总是不稳的；</li>
+        <li>过滤比例：Open-Sora 7000 万条低分辨率池喂出 500 万条高分辨率精选，HunyuanVideo 从 1000 万小时筛到 8 亿 clip；</li>
+        <li>caption 无一裸用通用 VLM：Seedance 在 Tarsier2 上专训双语 captioner，MovieGen 微调 LLaMA3-Video，HunyuanVideo 用 OPA-DPO 平衡描述密度与幻觉，Seedance 甚至单独训了 prompt 改写器，保证用户输入和 caption 同分布（拟合用户命令的风格）；</li>
         <li>MovieGen 用一套 600 个动词的词表做概念配比，配比精细到动词级别。</li>
       </ul>
 
@@ -132,7 +130,7 @@ def motion_sharpness(path):
 
       <p>最直接是贵。六份报告没有一个披露数据处理本身的算力开销：HunyuanVideo 只给了「1000 万小时原始视频 → 8 亿 clip」的比例，Open-Sora 只给了 20 万美元的模型训练成本。</p>
 
-      <p>若乐观设每条 6 卡秒，8 亿 clip，约 135 万 A800 小时，折合 150 卡年，即约一千张 A800 跑五十多天才筛一遍；而数据引擎常常每个模型版本迭代或表现不达预期都需要重筛。另一边，CLIP+MLP 美学回归器是毫秒级一帧。</p>
+      <p>若乐观设每条 6 卡秒，8 亿 clip，约 135 万 A800 小时，折合 150 卡年，即约一千张 A800 跑六十天才筛一遍
 
 
 
@@ -143,7 +141,7 @@ def motion_sharpness(path):
 
 
 
-      <p>对于一个模型，什么是好数据无法量化，唯一的测法是拿去训练到一定程度再 evaluate，烧掉无法计量的卡时，最后得到数据配比 recipe。所以在工业界，加组件、加约束提升几个点的算法也许根本没那么重要。</p>
+      <p>对于一个模型，什么是好数据无法量化，唯一的测法是拿去训练到一定程度再 evaluate，烧掉无法计量的卡时，最后得到数据配比 recipe。所以在现在的工业界，加组件、加约束提升几个点的算法也许根本没那么重要，最花精力的永远是处理数据部分。</p>
       <p><strong>Methods to get good data is all we need.</strong></p>
 
 
@@ -223,16 +221,14 @@ def motion_sharpness(path):
 
       <p>On open-source status: Seedance 2.0 gives no weights; MiniMax H3 gives weights but no report; HunyuanVideo gives both — yet the data processing pipeline, the real core technology, has been open-sourced by not a single major lab. The complete pipelines you can find in the open world all come from the open-source camp itself: Open-Sora put the exact pipeline from its report into the repo, NeMo Curator and Data-Juicer ship ready-made filtering and dedup frameworks, and together with open captioners, aesthetic regressors, and datasets like Koala-36M and Tiger200K, the community is reassembling the industrial pipeline with open tools.</p>
 
-      <h2>Details worth noting</h2>
 
-      <p>The value of a close reading is in the details; a few worth writing down:</p>
+      <p>A few details from the reports:</p>
 
       <ul>
-        <li>clip length is the training window: MovieGen cuts 4–16 s, HunyuanVideo 2–10 s, Seedance at most 12 s — all different, because each follows its own training window; segmentation is not a content judgment at all;</li>
-        <li>the old Panda-70M insight: trim the first few seconds of every clip, since opening shots are almost always unstable;</li>
-        <li>Tiger200K swapped tools once: threshold-based PySceneDetect misses cross-dissolves, so they moved to the learned TransNetV2;</li>
-        <li>filter ratios are attitude: Open-Sora feeds a 70M low-resolution pool into a 5M high-resolution selection, HunyuanVideo filters 10M raw hours into 800M clips — the numbers themselves are each lab's definition of “clean”;</li>
-        <li>no stock VLM writes captions: Seedance trained a bilingual captioner on Tarsier2, MovieGen fine-tuned LLaMA3-Video, HunyuanVideo used OPA-DPO to balance density against hallucination — and Seedance even trained a separate prompt rewriter so user inputs stay in the same distribution as captions;</li>
+        <li>clip length: MovieGen cuts 4–16 s, HunyuanVideo 2–10 s, Seedance at most 12 s;</li>
+        <li>the old Panda-70M insight: trim the first few seconds of every clip — opening shots are almost always unstable;</li>
+        <li>filter ratios: Open-Sora feeds a 70M low-resolution pool into a 5M high-resolution selection, HunyuanVideo filters 10M raw hours into 800M clips;</li>
+        <li>no stock VLM writes captions: Seedance trained a bilingual captioner on Tarsier2, MovieGen fine-tuned LLaMA3-Video, HunyuanVideo used OPA-DPO to balance density against hallucination — and Seedance even trained a separate prompt rewriter so user inputs stay in the same distribution as captions (fitting the style of user commands);</li>
         <li>MovieGen balances concepts with a taxonomy of 600 verbs — matching down to the verb level.</li>
       </ul>
 
@@ -279,7 +275,7 @@ def motion_sharpness(path):
 
 
 
-      <p>For a given model, what counts as good data cannot be quantified — the only way to measure it is to train for a while and then evaluate, burning uncountable GPU hours, and what you end up with is a data recipe. So in industry, algorithms that add components and constraints for a couple of benchmark points may simply not matter that much.</p>
+      <p>For a given model, what counts as good data cannot be quantified — the only way to measure it is to train for a while and then evaluate, burning uncountable GPU hours, and what you end up with is a data recipe. So in today's industry, algorithms that add components and constraints for a couple of benchmark points may simply not matter that much — the most energy-consuming part is always data processing.</p>
       <p><strong>Methods to get good data is all we need.</strong></p>
 
 

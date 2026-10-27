@@ -44,15 +44,13 @@ VLM 只出现在 caption、后训练的小规模判断，以及 RL 阶段的奖�
 
 关于开源状态，Seedance 2.0 无权重，MiniMax H3 给权重不给报告，HunyuanVideo 报告权重都给了——但把数据处理管线这一真正的核心科技开源出来的一家大厂都没有。开源世界能找到的完整管线全部来自开源阵营：Open-Sora 把报告里的管线原样放进 repo，NeMo Curator 和 Data-Juicer 提供现成的过滤去重框架，再配上开源的 captioner、美学回归器和 Koala-36M、Tiger200K 这样的数据集，社区是拿开源工具复现工业 pipe。
 
-## 读出来的细节
 
-漫读的价值在细节，几条值得单独记下的：
+关于报告中的一些细节：
 
-- clip 长度即训练窗口：MovieGen 切 4–16 秒、HunyuanVideo 2–10 秒、Seedance 不超过 12 秒，各不相同——切分跟着自家训练窗口走，根本不是内容判断；
-- Panda-70M 时代的老洞察：每个 clip 掐掉开头几秒，因为开头镜头几乎总是不稳的；
-- Tiger200K 换过一次枪：阈值式的 PySceneDetect 会漏叠化转场，改成学习式的 TransNetV2；
-- 过滤比例即态度：Open-Sora 7000 万条低分辨率池喂出 500 万条高分辨率精选，HunyuanVideo 从 1000 万小时筛到 8 亿 clip，数字本身就是各家对“干净”的定义；
-- caption 无一裸用通用 VLM：Seedance 在 Tarsier2 上专训双语 captioner，MovieGen 微调 LLaMA3-Video，HunyuanVideo 用 OPA-DPO 平衡描述密度与幻觉，Seedance 甚至单独训了 prompt 改写器，保证用户输入和 caption 同分布；
+- clip 长度：MovieGen 切 4–16 秒、HunyuanVideo 2–10 秒、Seedance 不超过 12 秒；
+- Panda-70M 时代的老洞察：每个 clip 掐掉开头几秒，开头镜头几乎总是不稳的；
+- 过滤比例：Open-Sora 7000 万条低分辨率池喂出 500 万条高分辨率精选，HunyuanVideo 从 1000 万小时筛到 8 亿 clip；
+- caption 无一裸用通用 VLM：Seedance 在 Tarsier2 上专训双语 captioner，MovieGen 微调 LLaMA3-Video，HunyuanVideo 用 OPA-DPO 平衡描述密度与幻觉，Seedance 甚至单独训了 prompt 改写器，保证用户输入和 caption 同分布（拟合用户命令的风格）；
 - MovieGen 用一套 600 个动词的词表做概念配比，配比精细到动词级别。
 
 后训练和 RLHF 不再是过滤大池子
