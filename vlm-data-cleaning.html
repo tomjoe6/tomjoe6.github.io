@@ -34,11 +34,11 @@
       <a class="back-link" href="blog.html">← 返回博客</a>
       <div class="article-meta">2026-10-26 · 技术报告漫读 · 机器学习 · 视频生成 · 数据</div>
       <h1>技术报告漫读：工业界怎么洗数据</h1>
-      <p class="lead">在学界论文中，洗数据除了规格筛选外常常全程 VLM：对于 5B~14B 的小模型与十秒内的 480P 视频，只需要十几张卡较短时间内就能跑出一个差强人意的数据集。</p>
+      <p class="lead">在学界论文中，洗数据除了规格筛选外常常全程 VLM：对于 1B~14B 的小模型与十秒内的 480P 视频，只需要十几张卡较短时间内就能跑出一个差强人意的数据集。</p>
 
-      <p>最近尝试一遍洗数据 pipe，去重、初筛、重筛、富矿挖掘、事件窗定位，到 caption 重写与泄漏校验，多道工序除了第一道 ffprobe，其余全部由 VLM 严格出判决，做 SFT ablation 的效果仍然很不好。数据清洗本质上是个处理数据算力、数据丰富程度/质量等因素的 Tradeoff，工业界是如何洗出一份好的数据集的？</p>
+      <p>一道洗数据 pipe，去重、初筛、重筛、富矿挖掘、事件窗定位，到 caption 重写与泄漏校验，多道工序除了第一道 ffprobe，其余全部由 VLM 严格出判决，做 SFT ablation 的效果仍然很不好。数据清洗本质上是个处理数据算力、数据丰富程度/质量等因素的 Tradeoff，工业界是如何洗出一份好的数据集的？</p>
 
-      <p>直接翻阅技术报告：MovieGen、Seedance 1.0、HunyuanVideo 1.5、Open-Sora 2.0，加上专门讲数据集的 Koala-36M 和 Tiger200K，新一点的还对照了 Seedance 2.0，精读一遍 Data 部分。首先管线里的确有 VLM——caption 和奖励模型。而过滤段从头到尾几乎没有用 VLM。</p>
+      <p>翻阅技术报告：MovieGen、Seedance 1.0、HunyuanVideo 1.5、Open-Sora 2.0，加上专门讲数据集的 Koala-36M 和 Tiger200K，还有最新的闭源 Seedance 2.0，精读一遍 Data 部分。首先管线里的确有 VLM——caption 和奖励模型。而过滤段从头到尾几乎没有用 VLM。</p>
 
       <h2>一份账单</h2>
 
@@ -53,7 +53,7 @@
             <tr><td>2</td><td>收紧初筛</td><td>Qwen3-VL，18 帧</td><td>20000 → ~12000</td><td>61%</td><td>~14.5 h ≈ 58 GPU·h</td></tr>
             <tr><td>3</td><td>4fps 强 prompt 重筛</td><td>Qwen3-VL，12–16 段</td><td>12000 → 3000</td><td>23%</td><td>~6 h ≈ 24 GPU·h</td></tr>
             <tr><td>4</td><td>富矿再挖掘</td><td>Qwen3-VL，15 帧</td><td>30,000 候选 → 26,000 pass → 12,000 入档</td><td>93% pass</td><td>9 GPU·h</td></tr>
-            <tr><td>5</td><td>事件窗定位</td><td>Qwen3-VL，8fps</td><td>5,950 个缺窗</td><td>80.8%</td><td>~2.2 h ≈ 8.8 GPU·h</td></tr>
+            <tr><td>5</td><td>事件窗定位</td><td>Qwen3-VL，8fps</td><td>5,950 个缺窗</td><td>80.8%</td><td>~9 GPU·h</td></tr>
             <tr><td>6</td><td>caption 重写</td><td>Qwen3-VL</td><td>14,826</td><td>—</td><td>12 GPU·h</td></tr>
             <tr><td>7</td><td>泄漏校验 + 修复</td><td>Qwen3-VL</td><td>519 嫌疑 → 473 判泄漏 → 447 重写</td><td>91%</td><td>2 GPU·h</td></tr>
           </tbody>
@@ -125,9 +125,9 @@ def motion_sharpness(path):
       <p>既然 VLM 可以靠近人类感官，为什么不在全流程尽量多用？</p>
 
 
-      <p>最直接当然是贵。六份报告没有一个披露数据处理本身的算力开销：HunyuanVideo 只给了「1000 万小时原始视频 → 8 亿 clip」的比例，Open-Sora 只给了 20 万美元的模型训练成本。</p>
+      <p>最直接是贵。六份报告没有一个披露数据处理本身的算力开销：HunyuanVideo 只给了「1000 万小时原始视频 → 8 亿 clip」的比例，Open-Sora 只给了 20 万美元的模型训练成本。</p>
 
-      <p>若设每条 6 卡秒，8 亿 clip，约 135 万 A800 小时，折合 150 卡年，即约一千张 A800 跑五十多天才筛一遍；而数据引擎常常每个模型版本迭代或表现不达预期都需要重筛。另一边，CLIP+MLP 美学回归器是毫秒级一帧。</p>
+      <p>若乐观设每条 6 卡秒，8 亿 clip，约 135 万 A800 小时，折合 150 卡年，即约一千张 A800 跑五十多天才筛一遍；而数据引擎常常每个模型版本迭代或表现不达预期都需要重筛。另一边，CLIP+MLP 美学回归器是毫秒级一帧。</p>
 
 
 
@@ -138,7 +138,7 @@ def motion_sharpness(path):
 
 
 
-      <p>对于一个模型，什么是好数据无法量化，唯一的测法是拿去训练再评测，烧掉无法计量的卡时，最后得到数据配比 recipe。所以在工业界，加组件、加约束提升几个点的算法也许根本没那么重要。</p>
+      <p>对于一个模型，什么是好数据无法量化，唯一的测法是拿去训练到一定程度再 evaluate，烧掉无法计量的卡时，最后得到数据配比 recipe。所以在工业界，加组件、加约束提升几个点的算法也许根本没那么重要。</p>
       <p><strong>Methods to get good data is all we need.</strong></p>
 
 
@@ -165,11 +165,11 @@ def motion_sharpness(path):
       <a class="back-link" href="blog.html">← Back to Blog</a>
       <div class="article-meta">2026-10-26 · Tech Report Digest · Machine Learning · Video Generation · Data</div>
       <h1>Tech Report Digest: How the Industry Cleans Data</h1>
-      <p class="lead">In academic papers, data cleaning beyond basic metadata screening is often done end-to-end with VLMs: for 5B~14B models and sub-10-second 480p videos, a dozen GPUs for a short while is enough to produce a passable dataset.</p>
+      <p class="lead">In academic papers, data cleaning beyond basic metadata screening is often done end-to-end with VLMs: for 1B~14B models and sub-10-second 480p videos, a dozen GPUs for a short while is enough to produce a passable dataset.</p>
 
-      <p>Recently we ran a full data-cleaning pipeline — deduplication, first pass, re-screening, dense mining, event-window localization, caption rewriting, leakage checks; of the many stages, all but the first ffprobe pass were judged strictly by VLMs, and even so the SFT ablation results were still poor. That naturally suggests data cleaning is at bottom a trade-off among processing compute, data richness/quality, and similar factors. So how does the industry wash out a good dataset?</p>
+      <p>A data-cleaning pipeline — deduplication, first pass, re-screening, dense mining, event-window localization, caption rewriting, leakage checks; of the many stages, all but the first ffprobe pass were judged strictly by VLMs, and even so the SFT ablation results were still poor. That naturally suggests data cleaning is at bottom a trade-off among processing compute, data richness/quality, and similar factors. So how does the industry wash out a good dataset?</p>
 
-      <p>So we went straight to the technical reports: MovieGen, Seedance 1.0, HunyuanVideo 1.5, Open-Sora 2.0, plus Koala-36M and Tiger200K, the two dataset papers — and for the newer generation we also read through the Data section of Seedance 2.0. First, these pipelines certainly do use VLMs — captioning and reward models. What they almost never do is use a VLM anywhere in the filtering stage.</p>
+      <p>Go to the technical reports: MovieGen, Seedance 1.0, HunyuanVideo 1.5, Open-Sora 2.0, plus Koala-36M and Tiger200K, the two dataset papers — and the latest closed-source Seedance 2.0, reading through its Data section. First, the pipelines certainly do use VLMs — captioning and reward models. What they almost never do is use a VLM anywhere in the filtering stage.</p>
 
       <h2>A bill</h2>
 
@@ -184,7 +184,7 @@ def motion_sharpness(path):
             <tr><td>2</td><td>Tightened first pass</td><td>Qwen3-VL, 18 frames</td><td>20000 → ~12000</td><td>61%</td><td>~14.5 h ≈ 58 GPU·h</td></tr>
             <tr><td>3</td><td>Strong-prompt re-screen, 4 fps</td><td>Qwen3-VL, 12–16 segments</td><td>12000 → 3000</td><td>23%</td><td>~6 h ≈ 24 GPU·h</td></tr>
             <tr><td>4</td><td>Second dense-mining pass</td><td>Qwen3-VL, 15 frames</td><td>30,000 candidates → 26,000 pass → 12,000 filed</td><td>93% pass</td><td>9 GPU·h</td></tr>
-            <tr><td>5</td><td>Event-window localization</td><td>Qwen3-VL, 8 fps</td><td>5,950 missing windows</td><td>80.8%</td><td>~2.2 h ≈ 8.8 GPU·h</td></tr>
+            <tr><td>5</td><td>Event-window localization</td><td>Qwen3-VL, 8 fps</td><td>5,950 missing windows</td><td>80.8%</td><td>~9 GPU·h</td></tr>
             <tr><td>6</td><td>Caption rewrite</td><td>Qwen3-VL</td><td>14,826</td><td>—</td><td>12 GPU·h</td></tr>
             <tr><td>7</td><td>Leakage check + repair</td><td>Qwen3-VL</td><td>519 suspects → 473 leaks → 447 rewritten</td><td>91%</td><td>2 GPU·h</td></tr>
           </tbody>
@@ -258,7 +258,7 @@ def motion_sharpness(path):
 
       <p>The most direct reason is cost. None of the six reports discloses the compute cost of data processing itself: HunyuanVideo gives only the ratio “10M raw hours → 800M clips”, Open-Sora only a $200k training budget.</p>
 
-      <p>Suppose six card-seconds per item; 800M clips comes to about 1.35M A800 hours, or 150 card-years — roughly a thousand A800s grinding for over fifty days for a single pass; and data engines routinely re-screen on every model iteration, or whenever results disappoint. On the other side, a CLIP+MLP aesthetic regressor runs at milliseconds per frame.</p>
+      <p>Optimistically suppose six card-seconds per item; 800M clips comes to about 1.35M A800 hours, or 150 card-years — roughly a thousand A800s grinding for over fifty days for a single pass; and data engines routinely re-screen on every model iteration, or whenever results disappoint. On the other side, a CLIP+MLP aesthetic regressor runs at milliseconds per frame.</p>
 
 
 
@@ -269,7 +269,7 @@ def motion_sharpness(path):
 
 
 
-      <p>For a given model, what counts as good data cannot be quantified — the only way to measure it is to actually train and evaluate, burning uncountable GPU hours, and what you end up with is a data recipe. So in industry, algorithms that add components and constraints for a couple of benchmark points may simply not matter that much.</p>
+      <p>For a given model, what counts as good data cannot be quantified — the only way to measure it is to train for a while and then evaluate, burning uncountable GPU hours, and what you end up with is a data recipe. So in industry, algorithms that add components and constraints for a couple of benchmark points may simply not matter that much.</p>
       <p><strong>Methods to get good data is all we need.</strong></p>
 
 
