@@ -85,7 +85,6 @@
 
       <p>VLM 只出现在 caption、后训练的小规模判断，以及 RL 阶段的奖励模型。captioner 力求贴近人类写描述的方式，奖励模型放大人类的偏好判断。而在过滤段，也即镜头切分、质量过滤、运动过滤、去重这一段，清一色是 PySceneDetect、PaddleOCR、Laplacian 方差、VMAF、光流、CLIP+MLP 这些工具和小模型。</p>
 
-      <p>关于开源状态，Seedance 2.0 无权重，MiniMax H3 给权重不给报告，HunyuanVideo 报告权重都给了——但把数据处理管线这一真正的核心科技开源出来的一家大厂都没有。开源世界能找到的完整管线全部来自开源阵营：Open-Sora 把报告里的管线原样放进 repo，NeMo Curator 和 Data-Juicer 提供现成的过滤去重框架，再配上开源的 captioner、美学回归器和 Koala-36M、Tiger200K 这样的数据集，社区是拿开源工具复现工业 pipe。</p>
 
 
       <p>关于报告中的一些细节：</p>
@@ -100,6 +99,7 @@
 
       <p>后训练和 RLHF 不再是过滤大池子      <p>后训练和 RLHF 不再是过滤大池子，而是人工构造小数据集。prompt 池人工验证，候选由不同 checkpoint 对同一 prompt 滚出，让人来做成对标注（HunyuanVideo 标了约 1 万对 DPO），最后把这 1 万对人类偏好蒸馏成 VLM 奖励模型供在线 RL 批量打分。</p>
 
+      <p>关于开源状态，Seedance 2.0 无权重，MiniMax H3 给权重不给报告，HunyuanVideo 报告权重都给了——但把数据处理管线这一真正的核心科技开源出来的一家大厂都没有。开源世界能找到的完整管线全部来自开源阵营：Open-Sora 把报告里的管线原样放进 repo，NeMo Curator 和 Data-Juicer 提供现成的过滤去重框架，再配上开源的 captioner、美学回归器和 Koala-36M、Tiger200K 这样的数据集，社区是拿开源工具复现工业 pipe。</p>
       <h2>拼漏斗</h2>
 
       <p>每一层都有开源下位替代物。切分用 PySceneDetect 一行，转场敏感的场景换学习式的 TransNetV2；清晰度是 Laplacian 方差，运动是相邻帧光流的平均幅值，如：</p>
@@ -219,7 +219,6 @@ def motion_sharpness(path):
 
       <p>VLMs appear only in captioning, small-scale post-training judgments, and reward models in RL. The captioner strives to imitate how humans describe videos, and the reward model amplifies human preference. In the filtering stage — shot segmentation, quality filtering, motion filtering, dedup — it is PySceneDetect, PaddleOCR, Laplacian variance, VMAF, optical flow, and CLIP+MLP all the way down.</p>
 
-      <p>On open-source status: Seedance 2.0 gives no weights; MiniMax H3 gives weights but no report; HunyuanVideo gives both — yet the data processing pipeline, the real core technology, has been open-sourced by not a single major lab. The complete pipelines you can find in the open world all come from the open-source camp itself: Open-Sora put the exact pipeline from its report into the repo, NeMo Curator and Data-Juicer ship ready-made filtering and dedup frameworks, and together with open captioners, aesthetic regressors, and datasets like Koala-36M and Tiger200K, the community is reassembling the industrial pipeline with open tools.</p>
 
 
       <p>A few details from the reports:</p>
@@ -234,6 +233,7 @@ def motion_sharpness(path):
 
       <p>Post-training and RLHF no longer filter a big corpus      <p>Post-training and RLHF no longer filter a big corpus; they hand-construct a small dataset. The prompt pool is human-verified, candidates are rolled out from different checkpoints on the same prompt, and humans label pairwise preferences (HunyuanVideo annotated about 10k DPO pairs), which are then distilled into a VLM reward model for bulk scoring during online RL.</p>
 
+      <p>On open-source status: Seedance 2.0 gives no weights; MiniMax H3 gives weights but no report; HunyuanVideo gives both — yet the data processing pipeline, the real core technology, has been open-sourced by not a single major lab. The complete pipelines you can find in the open world all come from the open-source camp itself: Open-Sora put the exact pipeline from its report into the repo, NeMo Curator and Data-Juicer ship ready-made filtering and dedup frameworks, and together with open captioners, aesthetic regressors, and datasets like Koala-36M and Tiger200K, the community is reassembling the industrial pipeline with open tools.</p>
       <h2>Assemble the funnel</h2>
 
       <p>Every layer has an open-source, downgraded replacement. Segmentation is one line with PySceneDetect — switch to the learned TransNetV2 where cross-dissolves matter; sharpness is Laplacian variance, and motion is the mean magnitude of inter-frame optical flow, for example:</p>

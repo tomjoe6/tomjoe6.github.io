@@ -42,7 +42,6 @@
 
 VLM 只出现在 caption、后训练的小规模判断，以及 RL 阶段的奖励模型。captioner 力求贴近人类写描述的方式，奖励模型放大人类的偏好判断。而在过滤段，也即镜头切分、质量过滤、运动过滤、去重这一段，清一色是 PySceneDetect、PaddleOCR、Laplacian 方差、VMAF、光流、CLIP+MLP 这些工具和小模型。
 
-关于开源状态，Seedance 2.0 无权重，MiniMax H3 给权重不给报告，HunyuanVideo 报告权重都给了——但把数据处理管线这一真正的核心科技开源出来的一家大厂都没有。开源世界能找到的完整管线全部来自开源阵营：Open-Sora 把报告里的管线原样放进 repo，NeMo Curator 和 Data-Juicer 提供现成的过滤去重框架，再配上开源的 captioner、美学回归器和 Koala-36M、Tiger200K 这样的数据集，社区是拿开源工具复现工业 pipe。
 
 
 关于报告中的一些细节：
@@ -67,6 +66,7 @@ VLM 只出现在 caption、后训练的小规模判断，以及 RL 阶段的奖�
 
 既然 VLM 可以靠近人类感官，为什么不在全流程尽量多用？
 
+关于开源状态，Seedance 2.0 无权重，MiniMax H3 给权重不给报告，HunyuanVideo 报告权重都给了——但把数据处理管线这一真正的核心科技开源出来的一家大厂都没有。开源世界能找到的完整管线全部来自开源阵营：Open-Sora 把报告里的管线原样放进 repo，NeMo Curator 和 Data-Juicer 提供现成的过滤去重框架，再配上开源的 captioner、美学回归器和 Koala-36M、Tiger200K 这样的数据集，社区是拿开源工具复现工业 pipe。
 ## 拼漏斗
 
 每一层都有开源下位替代物。切分用 PySceneDetect 一行，转场敏感的场景换学习式的 TransNetV2；清晰度是 Laplacian 方差，运动是相邻帧光流的平均幅值，如：
